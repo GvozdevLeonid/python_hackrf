@@ -69,8 +69,6 @@ check_max_num_sweeps = False
 accepted_bytes = 0
 sweep_rate = 0
 sweep_count = 0
-fftwIn = None
-pwr = None
 
 file_object = None
 
@@ -90,7 +88,7 @@ def init_signals():
 
 
 def sweep_callback(buffer: np.ndarray, buffer_length: int, valid_length: int) -> int:
-    global one_shot_mode, run_available, sweep_count, used_frequencies, sweep_started, check_max_num_sweeps, max_num_sweeps, fftSize, fftwIn, pwr, binary_output_mode, file_object, accepted_bytes
+    global one_shot_mode, run_available, sweep_count, used_frequencies, sweep_started, check_max_num_sweeps, max_num_sweeps, fftSize, window, binary_output_mode, file_object, accepted_bytes
     
     timestamp = datetime.datetime.now()
     frequency = None
@@ -173,7 +171,7 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
                          num_sweeps: int = None, binary_output: bool = False, one_shot: bool = False, filename: str = None,
                          print_to_console: bool = True):
 
-    global file_object, one_shot_mode, binary_output_mode, check_max_num_sweeps, max_num_sweeps, used_frequencies, fftSize, window, fftwIn, pwr, sweep_count, sweep_rate
+    global file_object, one_shot_mode, binary_output_mode, check_max_num_sweeps, max_num_sweeps, used_frequencies, fftSize, window, sweep_count, sweep_rate
 
     if print_to_console:
         init_signals()
@@ -237,14 +235,7 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
     while ((fftSize + 4) % 8):
         fftSize += 1
     
-    # setup nessesary arrays
     window = np.hanning(fftSize)
-    # window = np.empty(shape=(fftSize,), dtype=np.float32)
-    # for i in range(fftSize):
-    #     window[i] = 0.5 * (1.0 - np.cos(2 * np.pi * i / (fftSize - 1)))
-    
-    fftwIn = np.empty(shape=(fftSize,), dtype=np.complex64)
-    pwr = np.empty(shape=(fftSize,), dtype=np.float32)
 
     device.pyhackrf_init_sweep(frequencies, num_ranges, pyhackrf.PY_BYTES_PER_BLOCK, int(PY_TUNE_STEP * 1e6), PY_OFFSET, pyhackrf.py_sweep_style.INTERLEAVED)
 
