@@ -15,6 +15,11 @@ CFLAGS="-I/path to lobusb.h /libusb-1.0" \
 LDFLAGS="-L/path to libusb-1.0.so /lib" \
 python setup.py build_ext --inplace
 ```
+## Requirements:
+* Cython
+* Numpy
+* Scipy (optional, for faster work)
+
 ## hackrf:
 Almost all the functionality of the standard library is implemented. Some features will be added later. (operacake).
 
