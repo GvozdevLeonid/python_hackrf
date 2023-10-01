@@ -3,7 +3,7 @@ import argparse
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description="pyhackrf is a Python wrapper for libhackrf and hackrf-tools.",
+        description="python_hackrf is a Python wrapper for libhackrf and hackrf-tools.",
         usage="python -m python_hackrf [-h] {info, sweep} ..."
     )
     subparsers = parser.add_subparsers(dest="command", title="Available commands")
