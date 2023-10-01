@@ -1,6 +1,6 @@
 # python_hackrf
 
-python_hackrf is a cython wrapper for hackrf.
+python_hackrf is a cython wrapper for hackrf (https://github.com/greatscottgadgets/hackrf).
 In order to build the library you need to go to the libhackrf directory
 ```
 cd python_hackrf/libhackrf
