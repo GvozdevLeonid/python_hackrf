@@ -91,7 +91,7 @@ def sweep_callback(buffer: np.ndarray, buffer_length: int, valid_length: int) ->
             sweep_started = True
         
         if not run_available:
-            return 0
+            return -1
 
         if not sweep_started:
             index += pyhackrf.PY_BYTES_PER_BLOCK
