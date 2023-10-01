@@ -23,8 +23,8 @@ if getenv('LIBLINK'):
 if PLATFORM != 'android':
     SETUP_REQUIRES.append('cython')
     INSTALL_REQUIRES.append('cython')
-    libraries = ['usb1.0']
 else:
+    libraries = ['usb1.0']
     FILES = [fn.with_suffix('.c') for fn in FILES]
 
 source_files = [str(fn) for fn in FILES]
