@@ -41,7 +41,8 @@ setup(
             'pyhackrf',
             source_files,
             libraries=libraries,
-            define_macros=[("LIBRARY_VERSION", f'"{LIBRARY_VERSION}"'), ("LIBRARY_RELEASE", f'"{LIBRARY_RELEASE}"')]
+            define_macros=[("LIBRARY_VERSION", f'"{LIBRARY_VERSION}"'), ("LIBRARY_RELEASE", f'"{LIBRARY_RELEASE}"')],
+            extra_compile_args=['-w'],
         )
     ],
 )
