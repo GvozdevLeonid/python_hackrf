@@ -491,14 +491,14 @@ static int set_hackrf_configuration(libusb_device_handle* usb_device, int config
 extern "C" {
 #endif
 
-int ADDCALL hackrf_init_android(int fileDescriptor)
+int ADDCALL hackrf_android_init(int fileDescriptor, hackrf_device** device)
 {
 	int libusb_error;
-	if (g_libusb_context != NULL) {
-		return HACKRF_SUCCESS;
+	if (device == NULL) {
+		return HACKRF_ERROR_INVALID_PARAM;
 	}
 
-    libusb_device_handle *devh = NULL;
+    libusb_device_handle* usb_device = NULL;
    
     libusb_error = libusb_set_option(NULL, LIBUSB_OPTION_NO_DEVICE_DISCOVERY, NULL);
     if (libusb_error != LIBUSB_SUCCESS) {
@@ -508,14 +508,15 @@ int ADDCALL hackrf_init_android(int fileDescriptor)
     if (libusb_error < 0) {
         return HACKRF_ERROR_LIBUSB;
     }
-    libusb_error = libusb_wrap_sys_device(g_libusb_context, (intptr_t)fileDescriptor, &devh);
+    libusb_error = libusb_wrap_sys_device(g_libusb_context, (intptr_t)fileDescriptor, &usb_device);
     if (libusb_error < 0) {
         return HACKRF_ERROR_LIBUSB;
 
-    } else if (devh == NULL) {
+    } else if (usb_device == NULL) {
         return HACKRF_ERROR_LIBUSB;
     }
-    return HACKRF_SUCCESS;
+
+	return hackrf_open_setup(usb_device, device);
 }
 
 int ADDCALL hackrf_init(void)

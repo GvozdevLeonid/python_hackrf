@@ -23,14 +23,9 @@
 
 # distutils: sources = hackrf.c
 # cython: language_level=3
-from libc.stdint cimport int8_t, uint8_t, uint16_t, uint32_t, uint64_t
+from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t
 from libc.stdlib cimport malloc, free
 cimport chackrf
-from chackrf cimport (
-    hackrf_sample_block_cb_fn,
-    hackrf_tx_block_complete_cb_fn,
-    hackrf_flush_cb_fn,
-)
 
 from enum import IntEnum
 import numpy as np
@@ -85,22 +80,19 @@ cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
             result = global_callbacks[<size_t> transfer.device]['__sweep_callback'](np_buffer, transfer.buffer_length, transfer.valid_length)
             return result
     return -1
-    
+
 cdef void __tx_complete_callback(chackrf.hackrf_transfer* transfer, int success) noexcept nogil:
     global global_callbacks
     with gil:
         np_buffer = np.frombuffer(<uint8_t[:transfer.buffer_length]>transfer.buffer, dtype=np.uint8)
         if global_callbacks[<size_t> transfer.device]['__tx_complete_callback'] is not None:
             global_callbacks[<size_t> transfer.device]['__tx_complete_callback'](np_buffer, transfer.buffer_length, transfer.valid_length, success)
-   
 
 cdef void __tx_flush_callback(void* flush_ctx, int success) noexcept nogil:
     global global_callbacks
-    pass
-    # with gil:
-    #     if global_callbacks[<size_t> transfer.device]['__tx_flush_callback'] is not None:
-    #         global_callbacks[<size_t> transfer.device]['__tx_flush_callback'](success)
-   
+    with gil:
+        if global_callbacks['__tx_flush_callback'] is not None:
+            global_callbacks['__tx_flush_callback'](success)
 
 
 cdef class PyHackRFDeviceList:
@@ -111,7 +103,7 @@ cdef class PyHackRFDeviceList:
 
     def __cinit__(self):
         self.__hackrf_device_list = chackrf.hackrf_device_list()
-    
+
     def __dealloc__(self):
         if self.__hackrf_device_list is not NULL:
             chackrf.hackrf_device_list_free(self.__hackrf_device_list)
@@ -138,11 +130,10 @@ cdef class PyHackRFDeviceList:
 cdef class PyHackrfDevice:
 
     cdef chackrf.hackrf_device* __hackrf_device
-    
-    def __cinit__(self):
 
+    def __cinit__(self):
         self.__hackrf_device = NULL
-       
+
     def __dealloc__(self):
         global global_callbacks
         if self.__hackrf_device is not NULL:
@@ -153,7 +144,7 @@ cdef class PyHackrfDevice:
 
             if result != chackrf.hackrf_error.HACKRF_SUCCESS:
                 raise RuntimeError(f'__dealloc__ failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
-        
+
         self.__hackrf_device = NULL
 
 
@@ -164,7 +155,7 @@ cdef class PyHackrfDevice:
     cdef chackrf.hackrf_device** get_hackrf_device_double_ptr(self):
         return &self.__hackrf_device
 
-    
+
     # ---- callbacks ---- #
     def _setup_callbacks(self):
         global global_callbacks
@@ -175,11 +166,12 @@ cdef class PyHackrfDevice:
                 '__tx_callback': None,
                 '__sweep_callback': None,
                 '__tx_complete_callback': None,
-                '__tx_flush_callback': None
             }
+            global_callbacks['__tx_flush_callback'] = None
             return
-        
+
         raise RuntimeError(f'_setup_callbacks() failed: Device not initialized!')
+
 
     # ---- device ---- #
     def pyhackrf_close(self):
@@ -190,13 +182,20 @@ cdef class PyHackrfDevice:
             result = chackrf.hackrf_close(self.__hackrf_device)
             if result != chackrf.hackrf_error.HACKRF_SUCCESS:
                 raise RuntimeError(f'pyhackrf_close() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
-        
+
         self.__hackrf_device = NULL
 
     def pyhackrf_reset(self):
         result = chackrf.hackrf_reset(self.__hackrf_device)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_reset() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
+
+    def pyhackrf_board_id_read(self) -> tuple(int, str):
+        cdef uint8_t value
+        result = chackrf.hackrf_board_id_read(self.__hackrf_device, &value)
+        if result != chackrf.hackrf_error.HACKRF_SUCCESS:
+            raise RuntimeError(f'pyhackrf_board_id_read() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
+        return value, chackrf.hackrf_board_id_name(value).decode('utf-8')
 
     def pyhackrf_version_string_read(self) -> str:
         cdef char[255] version
@@ -217,7 +216,6 @@ cdef class PyHackrfDevice:
         result = chackrf.hackrf_board_partid_serialno_read(self.__hackrf_device, &read_partid_serialno)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_board_partid_serialno_read() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
-        
         return read_partid_serialno
     
     def pyhackrf_filter_path_name(self, path: py_rf_path_filter) -> str:
@@ -240,12 +238,12 @@ cdef class PyHackrfDevice:
         result = chackrf.hackrf_set_baseband_filter_bandwidth(self.__hackrf_device, <uint32_t> bandwidth_hz)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_set_baseband_filter_bandwidth() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
-    
+
     def pyhackrf_set_freq(self, freq_hz: int):
         result = chackrf.hackrf_set_freq(self.__hackrf_device, <uint64_t> freq_hz)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_set_freq() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
-    
+
     def pyhackrf_set_freq_explicit(self, if_freq_hz: int, lo_freq_hz: int, path: py_rf_path_filter):
         result = chackrf.hackrf_set_freq_explicit(self.__hackrf_device, <uint64_t> if_freq_hz, <uint64_t> lo_freq_hz, path)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
@@ -296,9 +294,7 @@ cdef class PyHackrfDevice:
         result = chackrf.hackrf_get_clkin_status(self.__hackrf_device, &status)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_set_clkout_enable() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
-        
         return status
-
 
 
     # ---- streaming ---- #
@@ -318,13 +314,13 @@ cdef class PyHackrfDevice:
                             offset: int,
                             style: py_sweep_style
                             ):
-        
+
         cdef uint16_t* frequencies
         frequencies = <uint16_t*>malloc(chackrf.MAX_SWEEP_RANGES * 2 * sizeof(uint16_t))
 
         for index, frequency in enumerate(frequency_list):
             frequencies[index] = frequency
-        
+
         result = chackrf.hackrf_init_sweep(
             self.__hackrf_device,
             frequencies,
@@ -353,7 +349,7 @@ cdef class PyHackrfDevice:
         result = chackrf.hackrf_stop_rx(self.__hackrf_device)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_stop_rx() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
-    
+
     def pyhackrf_start_tx(self):
         result = chackrf.hackrf_start_tx(self.__hackrf_device, __tx_callback, NULL)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
@@ -378,7 +374,7 @@ cdef class PyHackrfDevice:
         result = chackrf.hackrf_set_tx_underrun_limit(self.__hackrf_device, <uint32_t> value)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_set_tx_underrun_limit() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
-    
+
     def pyhackrf_set_rx_overrun_limit(self, value):
         result = chackrf.hackrf_set_rx_overrun_limit(self.__hackrf_device, <uint32_t> value)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
@@ -396,7 +392,6 @@ cdef class PyHackrfDevice:
         result = chackrf.hackrf_get_m0_state(self.__hackrf_device, &hackrf_m0_state)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_get_m0_state() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
-        
         return hackrf_m0_state
     
     def pyhackrf_max2837_read(self, register_number: int) -> int:
@@ -405,20 +400,20 @@ cdef class PyHackrfDevice:
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_max2837_read() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
         return value
-    
+
     def pyhackrf_max2837_write(self, register_number: int, value: int):
         result = chackrf.hackrf_max2837_write(self.__hackrf_device, <uint8_t> register_number, <uint16_t> value)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_max2837_write() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
         return value
-    
+
     def pyhackrf_si5351c_read(self, register_number: int) -> int:
         cdef uint16_t value
         result = chackrf.hackrf_si5351c_read(self.__hackrf_device, <uint16_t> register_number, &value)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_si5351c_read() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
         return value
-    
+
     def pyhackrf_si5351c_write(self, register_number: int, value: int):
         result = chackrf.hackrf_max2837_write(self.__hackrf_device, <uint16_t> register_number, <uint16_t> value)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
@@ -431,19 +426,12 @@ cdef class PyHackrfDevice:
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_rffc5071_read() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
         return value
-    
+
     def pyhackrf_rffc5071_write(self, register_number: int, value: int):
         result = chackrf.hackrf_rffc5071_write(self.__hackrf_device, <uint8_t> register_number, <uint16_t> value)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_rffc5071_write() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-    def pyhackrf_board_id_read(self) -> tuple(int, str):
-        cdef uint8_t value
-        result = chackrf.hackrf_board_id_read(self.__hackrf_device, &value)
-        if result != chackrf.hackrf_error.HACKRF_SUCCESS:
-            raise RuntimeError(f'pyhackrf_board_id_read() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
-        return value, chackrf.hackrf_board_id_name(value).decode('utf-8')
-    
 
     # ---- python callbacks setters ---- #
     def set_rx_callback(self, rx_callback_function):
@@ -459,9 +447,9 @@ cdef class PyHackrfDevice:
         if self.__hackrf_device is not NULL:
             global_callbacks[<size_t>self.__hackrf_device]['__rx_callback'] = rx_callback_function
             return
-        
+
         raise RuntimeError(f'set_rx_callback() failed: Device not initialized!')
-        
+
     def set_tx_callback(self, tx_callback_function):
         global global_callbacks
         """
@@ -474,7 +462,7 @@ cdef class PyHackrfDevice:
         if self.__hackrf_device is not NULL:
             global_callbacks[<size_t>self.__hackrf_device]['__tx_callback'] = tx_callback_function
             return
-        
+
         raise RuntimeError(f'set_tx_callback() failed: Device not initialized!')
 
     def set_sweep_callback(self, sweep_callback_function):
@@ -491,7 +479,7 @@ cdef class PyHackrfDevice:
         if self.__hackrf_device is not NULL:
             global_callbacks[<size_t>self.__hackrf_device]['__sweep_callback'] = sweep_callback_function
             return
-        
+
         raise RuntimeError(f'set_sweep_callback() failed: Device not initialized!')
 
     def set_tx_complete_callback(self, tx_complete_callback_function):
@@ -505,7 +493,7 @@ cdef class PyHackrfDevice:
         if self.__hackrf_device is not NULL:
             global_callbacks[<size_t>self.__hackrf_device]['__tx_complete_callback'] = tx_complete_callback_function
             return
-        
+
         raise RuntimeError(f'set_tx_complete_callback() failed: Device not initialized!')
 
     def set_tx_flush_callback(self, tx_flush_callback_function):
@@ -515,32 +503,28 @@ cdef class PyHackrfDevice:
         This callback will be called when all the data was transmitted and all data transfers were completed.
         Prameter is success flag.
         """
-        if self.__hackrf_device is not NULL:
-            global_callbacks[<size_t>self.__hackrf_device]['__tx_flush_callback'] = tx_flush_callback_function
-            return
-        
-        raise RuntimeError(f'set_tx_flush_callback() failed: Device not initialized!')
 
+        global_callbacks['__tx_flush_callback'] = tx_flush_callback_function
 
     # ---- operacake ---- # [Not implemented]
     def pyhackrf_get_operacake_boards(self, boards):# Not implemented
         pass
-    
+
     def pyhackrf_set_operacake_mode(self, address, mode):# Not implemented
         pass
-    
+
     def pyhackrf_get_operacake_mode(self, address, mode):# Not implemented
         pass
-    
+
     def pyhackrf_set_operacake_ports(self, adress, port_a, port_b):# Not implemented
         pass
-    
+
     def pyhackrf_set_operacake_dwell_times(self, dwell_times, count):# Not implemented
         pass
-    
+
     def pyhackrf_set_operacake_freq_ranges(self, freq_ranges, count):# Not implemented
         pass
-    
+
     def pyhackrf_set_operacake_ranges(self, ranges, num_ranges):# Not implemented
         pass
 
@@ -551,18 +535,25 @@ cdef class PyHackrfDevice:
     # ---- library ---- #
     def pyhackrf_get_transfer_buffer_size(self) -> int:
         return chackrf.hackrf_get_transfer_buffer_size(self.__hackrf_device)
-    
+
     def pyhackrf_get_transfer_queue_depth(self) -> int:
         return chackrf.hackrf_get_transfer_queue_depth(self.__hackrf_device)
-    
+
 
 # ---- library ---- #
 # Should run before use library
 def pyhackrf_init() -> int:
     return chackrf.hackrf_init()
 
-def pyhackrf_init_android(fileDescriptor: int) -> int:
-    return chackrf.hackrf_init_android(fileDescriptor)
+def pyhackrf_android_init(int fileDescriptor) -> PyHackrfDevice | None:
+    hackrf_device = PyHackrfDevice()
+    result = chackrf.hackrf_android_init(fileDescriptor, hackrf_device.get_hackrf_device_double_ptr())
+    if result == chackrf.hackrf_error.HACKRF_SUCCESS:
+        hackrf_device._setup_callbacks()
+        return hackrf_device
+
+    raise RuntimeError(f'pyhackrf_android_init() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
+
 
 # Should run atrer use library
 def pyhackrf_exit() -> int:

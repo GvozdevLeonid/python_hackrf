@@ -985,7 +985,7 @@ typedef void (*hackrf_flush_cb_fn)(void* flush_ctx, int);
 extern "C" {
 #endif
 
-extern ADDAPI int ADDCALL hackrf_init_android(int fileDescriptor);
+extern ADDAPI int ADDCALL hackrf_android_init(int fileDescriptor, hackrf_device** device);
 
 /**
  * Initialize libhackrf
