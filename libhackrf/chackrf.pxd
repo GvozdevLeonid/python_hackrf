@@ -160,7 +160,7 @@ cdef extern from "hackrf.h":
     
     ctypedef void (*hackrf_flush_cb_fn)(void* flush_ctx, int)
 
-    int hackrf_init_android(int fileDescriptor)
+    int hackrf_android_init(int fileDescriptor, hackrf_device** device)
 
     int hackrf_init()
 
