@@ -71,6 +71,7 @@ sweep_rate = 0
 sweep_count = 0
 
 file_object = None
+callback = None
 
 
 def sigint_callback_handler(sig, frame):
@@ -80,15 +81,18 @@ def sigint_callback_handler(sig, frame):
 
 
 def init_signals():
-    signal.signal(signal.SIGINT, sigint_callback_handler)
-    signal.signal(signal.SIGILL, sigint_callback_handler)
-    signal.signal(signal.SIGFPE, sigint_callback_handler)
-    signal.signal(signal.SIGTERM, sigint_callback_handler)
-    signal.signal(signal.SIGABRT, sigint_callback_handler)
+    try:
+        signal.signal(signal.SIGINT, sigint_callback_handler)
+        signal.signal(signal.SIGILL, sigint_callback_handler)
+        signal.signal(signal.SIGFPE, sigint_callback_handler)
+        signal.signal(signal.SIGTERM, sigint_callback_handler)
+        signal.signal(signal.SIGABRT, sigint_callback_handler)
+    except:
+        pass
 
 
 def sweep_callback(buffer: np.ndarray, buffer_length: int, valid_length: int) -> int:
-    global one_shot_mode, run_available, sweep_count, used_frequencies, sweep_started, check_max_num_sweeps, max_num_sweeps, fftSize, window, binary_output_mode, file_object, accepted_bytes
+    global one_shot_mode, run_available, sweep_count, used_frequencies, sweep_started, check_max_num_sweeps, max_num_sweeps, fftSize, window, binary_output_mode, file_object, callback, accepted_bytes
     
     timestamp = datetime.datetime.now()
     frequency = None
@@ -156,6 +160,19 @@ def sweep_callback(buffer: np.ndarray, buffer_length: int, valid_length: int) ->
             for i in range(fftSize // 4):
                 line += f'{pwr[i + 1 + (fftSize // 8)]:.2f}, '
             line += '\n'
+            if callback is not None:
+                callback({
+                    'timestamp': time_str,
+                    'frequency_start': frequency,
+                    'frequency_stop': frequency + PY_DEFAULT_SAMPLE_RATE_HZ // 4,
+                    'array': pwr[1 + (fftSize * 5) // 8 : 1 + (fftSize * 5) // 8 + fftSize // 4]
+                })
+                callback({
+                    'timestamp': time_str,
+                    'frequency_start': frequency + PY_DEFAULT_SAMPLE_RATE_HZ // 2,
+                    'frequency_stop': frequency + (PY_DEFAULT_SAMPLE_RATE_HZ * 3) // 4,
+                    'array': pwr[1 + fftSize // 8 : 1 + fftSize // 8 + fftSize // 4]
+                })
             if file_object is None:
                 print(line, end='')
             else:
@@ -173,8 +190,7 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
 
     global file_object, one_shot_mode, binary_output_mode, check_max_num_sweeps, max_num_sweeps, used_frequencies, fftSize, window, sweep_count, sweep_rate
 
-    if print_to_console:
-        init_signals()
+    init_signals()
 
     if filename is not None:
         file_object = open(filename, 'w' if not binary_output else 'wb')

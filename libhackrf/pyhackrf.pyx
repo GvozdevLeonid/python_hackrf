@@ -20,8 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
-# distutils: sources = hackrf.c
 # cython: language_level=3
 from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t
 from libc.stdlib cimport malloc, free
