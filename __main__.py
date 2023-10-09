@@ -52,6 +52,7 @@ if __name__ == '__main__':
                 pass
             if freq_min is not None and freq_max is not None:
                 frequencies.extend([freq_min, freq_max])
+
         pyhackrf_sweep.pyhackrf_sweep(frequencies=frequencies,
                                       lna_gain=int(args.l),
                                       vga_gain=int(args.g),
@@ -63,5 +64,5 @@ if __name__ == '__main__':
                                       binary_output=args.B,
                                       one_shot=args.__dict__.get('1'),
                                       filename=args.r,
-                                      print_to_console=True
+                                      print_to_console=True,
                                       )

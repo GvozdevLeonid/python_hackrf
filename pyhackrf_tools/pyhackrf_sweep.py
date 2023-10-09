@@ -33,7 +33,6 @@ import time
 import sys
 
 
-
 PY_FREQ_MIN_MHZ = 0 # 0 MHz 
 PY_FREQ_MAX_MHZ = 7250 # 7250 MHz
 
@@ -163,14 +162,14 @@ def sweep_callback(buffer: np.ndarray, buffer_length: int, valid_length: int) ->
             if callback is not None:
                 callback({
                     'timestamp': time_str,
-                    'frequency_start': frequency,
-                    'frequency_stop': frequency + PY_DEFAULT_SAMPLE_RATE_HZ // 4,
+                    'start_frequency': frequency,
+                    'stop_frequency': frequency + PY_DEFAULT_SAMPLE_RATE_HZ // 4,
                     'array': pwr[1 + (fftSize * 5) // 8 : 1 + (fftSize * 5) // 8 + fftSize // 4]
                 })
                 callback({
                     'timestamp': time_str,
-                    'frequency_start': frequency + PY_DEFAULT_SAMPLE_RATE_HZ // 2,
-                    'frequency_stop': frequency + (PY_DEFAULT_SAMPLE_RATE_HZ * 3) // 4,
+                    'start_frequency': frequency + PY_DEFAULT_SAMPLE_RATE_HZ // 2,
+                    'stop_frequency': frequency + (PY_DEFAULT_SAMPLE_RATE_HZ * 3) // 4,
                     'array': pwr[1 + fftSize // 8 : 1 + fftSize // 8 + fftSize // 4]
                 })
             if file_object is None:
@@ -186,7 +185,7 @@ def sweep_callback(buffer: np.ndarray, buffer_length: int, valid_length: int) ->
 def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: int = 20, bin_width: int = 100000,
                          serial_number: str = None, amp_enable: bool = False, antenna_enable:bool = False,
                          num_sweeps: int = None, binary_output: bool = False, one_shot: bool = False, filename: str = None,
-                         print_to_console: bool = True):
+                         print_to_console: bool = True, device: pyhackrf.PyHackrfDevice = None):
 
     global file_object, one_shot_mode, binary_output_mode, check_max_num_sweeps, max_num_sweeps, used_frequencies, fftSize, window, sweep_count, sweep_rate
 
@@ -198,16 +197,17 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
     binary_output_mode = binary_output
     one_shot_mode = one_shot
 
-    pyhackrf.pyhackrf_init()
+    if device is None:
+        pyhackrf.pyhackrf_init()
 
-    if num_sweeps is not None:
-        check_max_num_sweeps = True
-        max_num_sweeps = num_sweeps
+        if num_sweeps is not None:
+            check_max_num_sweeps = True
+            max_num_sweeps = num_sweeps
 
-    if serial_number is None:
-        device = pyhackrf.pyhackrf_open()
-    else:
-        device = pyhackrf.pyhackrf_open_by_serial(serial_number)
+        if serial_number is None:
+            device = pyhackrf.pyhackrf_open()
+        else:
+            device = pyhackrf.pyhackrf_open_by_serial(serial_number)
 
     device.set_sweep_callback(sweep_callback)
     
@@ -303,10 +303,12 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
     if print_to_console:
         print(f'Total sweeps: {sweep_count} in {(time_now - time_start).total_seconds():.5f} seconds ({sweep_rate :.2f}sweeps/second)', file=sys.stderr)
     
-    device.pyhackrf_close()
-    if print_to_console:
-        print('pyhackrf_close() done', file=sys.stderr)
-
+    try:
+        device.pyhackrf_close()
+        if print_to_console:
+            print('pyhackrf_close() done', file=sys.stderr)
+    except RuntimeError as e:
+        print(e, file=sys.stderr)
 
     pyhackrf.pyhackrf_exit()
     if print_to_console:
