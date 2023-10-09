@@ -139,11 +139,11 @@ cdef class PyHackrfDevice:
                 global_callbacks.pop(<size_t> self.__hackrf_device)
 
             result = chackrf.hackrf_close(self.__hackrf_device)
+            self.__hackrf_device = NULL
 
             if result != chackrf.hackrf_error.HACKRF_SUCCESS:
                 raise RuntimeError(f'__dealloc__ failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-        self.__hackrf_device = NULL
 
 
     # ---- inner functions ---- #
@@ -178,10 +178,10 @@ cdef class PyHackrfDevice:
             if <size_t> self.__hackrf_device in global_callbacks.keys():
                 global_callbacks.pop(<size_t> self.__hackrf_device)
             result = chackrf.hackrf_close(self.__hackrf_device)
+            self.__hackrf_device = NULL
             if result != chackrf.hackrf_error.HACKRF_SUCCESS:
                 raise RuntimeError(f'pyhackrf_close() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-        self.__hackrf_device = NULL
 
     def pyhackrf_reset(self):
         result = chackrf.hackrf_reset(self.__hackrf_device)
