@@ -20,10 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# cython: language_level=3
+# cython: language_level=3str
 from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t
 from libc.stdlib cimport malloc, free
 cimport chackrf
+
 
 from enum import IntEnum
 import numpy as np
@@ -47,19 +48,19 @@ class py_sweep_style(IntEnum):
 
 cdef dict global_callbacks = {}
 
-cdef int __rx_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
+cdef int __rx_callback(chackrf.hackrf_transfer* transfer) nogil:
     global global_callbacks
     with gil:
-        np_buffer = np.frombuffer(<uint8_t[:transfer.buffer_length]>transfer.buffer, dtype=np.uint8)
+        np_buffer =np.asarray(<uint8_t[:transfer.buffer_length]>transfer.buffer)
         if global_callbacks[<size_t> transfer.device]['__rx_callback'] is not None:
             result = global_callbacks[<size_t> transfer.device]['__rx_callback'](np_buffer, transfer.buffer_length, transfer.valid_length)
             return result
     return -1
 
-cdef int __tx_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
+cdef int __tx_callback(chackrf.hackrf_transfer* transfer) nogil:
     global global_callbacks
     with gil:
-        np_buffer = np.frombuffer(<uint8_t[:transfer.buffer_length]>transfer.buffer, dtype=np.uint8)
+        np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]>transfer.buffer)
         if global_callbacks[<size_t> transfer.device]['__tx_callback'] is not None:
             result, buffer, valid_length = global_callbacks[<size_t> transfer.device]['__tx_callback'](np_buffer, transfer.buffer_length, transfer.valid_length)
 
@@ -70,23 +71,23 @@ cdef int __tx_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
             return result
     return -1
 
-cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
+cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) nogil:
     global global_callbacks
     with gil:
-        np_buffer = np.frombuffer(<uint8_t[:transfer.buffer_length]>transfer.buffer, dtype=np.uint8)
+        np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]>transfer.buffer)
         if global_callbacks[<size_t> transfer.device]['__sweep_callback'] is not None:
             result = global_callbacks[<size_t> transfer.device]['__sweep_callback'](np_buffer, transfer.buffer_length, transfer.valid_length)
             return result
     return -1
 
-cdef void __tx_complete_callback(chackrf.hackrf_transfer* transfer, int success) noexcept nogil:
+cdef void __tx_complete_callback(chackrf.hackrf_transfer* transfer, int success) nogil:
     global global_callbacks
     with gil:
-        np_buffer = np.frombuffer(<uint8_t[:transfer.buffer_length]>transfer.buffer, dtype=np.uint8)
+        np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]>transfer.buffer)
         if global_callbacks[<size_t> transfer.device]['__tx_complete_callback'] is not None:
             global_callbacks[<size_t> transfer.device]['__tx_complete_callback'](np_buffer, transfer.buffer_length, transfer.valid_length, success)
 
-cdef void __tx_flush_callback(void* flush_ctx, int success) noexcept nogil:
+cdef void __tx_flush_callback(void* flush_ctx, int success) nogil:
     global global_callbacks
     with gil:
         if global_callbacks['__tx_flush_callback'] is not None:
@@ -145,7 +146,6 @@ cdef class PyHackrfDevice:
                 raise RuntimeError(f'__dealloc__ failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
 
-
     # ---- inner functions ---- #
     cdef chackrf.hackrf_device* get_hackrf_device_ptr(self):
         return self.__hackrf_device
@@ -177,8 +177,10 @@ cdef class PyHackrfDevice:
         if self.__hackrf_device is not NULL:
             if <size_t> self.__hackrf_device in global_callbacks.keys():
                 global_callbacks.pop(<size_t> self.__hackrf_device)
+            
             result = chackrf.hackrf_close(self.__hackrf_device)
             self.__hackrf_device = NULL
+
             if result != chackrf.hackrf_error.HACKRF_SUCCESS:
                 raise RuntimeError(f'pyhackrf_close() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 

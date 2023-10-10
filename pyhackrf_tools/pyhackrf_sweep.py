@@ -172,7 +172,7 @@ def sweep_callback(buffer: np.ndarray, buffer_length: int, valid_length: int) ->
                     'stop_frequency': frequency + (PY_DEFAULT_SAMPLE_RATE_HZ * 3) // 4,
                     'array': pwr[1 + fftSize // 8 : 1 + fftSize // 8 + fftSize // 4]
                 })
-            if file_object is None:
+            elif file_object is None:
                 print(line, end='')
             else:
                 file_object.write(line)
@@ -187,7 +187,13 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
                          num_sweeps: int = None, binary_output: bool = False, one_shot: bool = False, filename: str = None,
                          print_to_console: bool = True, device: pyhackrf.PyHackrfDevice = None):
 
-    global file_object, one_shot_mode, binary_output_mode, check_max_num_sweeps, max_num_sweeps, used_frequencies, fftSize, window, sweep_count, sweep_rate
+    global file_object, one_shot_mode, binary_output_mode, check_max_num_sweeps, max_num_sweeps, used_frequencies, fftSize, window, sweep_count, sweep_rate, accepted_bytes, sweep_started, run_available
+
+    run_available = True
+    sweep_count = 0
+    sweep_rate = 0
+    accepted_bytes = 0
+    sweep_started = False
 
     init_signals()
 
@@ -313,3 +319,5 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
     pyhackrf.pyhackrf_exit()
     if print_to_console:
         print('pyhackrf_exit() done', file=sys.stderr)
+
+    run_available = False
