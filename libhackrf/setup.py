@@ -25,11 +25,11 @@ if PLATFORM != 'android':
     if PLATFORM == 'darwin':
         environ["CFLAGS"] = "-I/opt/homebrew/include/libusb-1.0"
         environ["LDFLAGS"] = "-L/opt/homebrew/Cellar/libusb/1.0.26/lib"
-    elif PLATFORM.startswith("linux"):
+    elif PLATFORM.startswith('linux'):
         environ["CFLAGS"] = "-I/usr/include/libusb-1.0"
         environ["LDFLAGS"] = "-L/usr/lib64"
         environ["LDFLAGS"] = "-L/usr/lib"
-    elif PLATFORM == "win32":
+    elif PLATFORM == 'win32':
         pass
 else:
     libraries = ['usb1.0']
