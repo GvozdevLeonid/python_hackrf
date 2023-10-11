@@ -1,9 +1,9 @@
 # python_hackrf
 
 python_hackrf is a cython wrapper for hackrf (https://github.com/greatscottgadgets/hackrf).
-In order to build the library you need to go to the libhackrf directory
+In order to build the library you need to go to the python_hackrf directory
 ```
-cd python_hackrf/libhackrf
+cd python_hackrf
 ```
 call
 ```
@@ -11,7 +11,7 @@ python setup.py build_ext --inplace.
 ```
 If the build fails, you will need to specify the paths for the libusb library.
 ```
-CFLAGS="-I/path to lobusb.h /libusb-1.0" \
+CFLAGS="-I/path to libusb.h /libusb-1.0" \
 LDFLAGS="-L/path to libusb-1.0.so /lib" \
 python setup.py build_ext --inplace
 ```
