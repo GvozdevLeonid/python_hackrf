@@ -28,7 +28,9 @@ if PLATFORM != 'android':
         environ["CFLAGS"] = "-I/opt/homebrew/include/libusb-1.0"
         environ["LDFLAGS"] = "-L/opt/homebrew/Cellar/libusb/1.0.26/lib"
     elif PLATFORM.startswith("linux"):
-        pass
+        environ["CFLAGS"] = "-I/usr/include/libusb-1.0"
+        environ["LDFLAGS"] = "-L/usr/lib64"
+        environ["LDFLAGS"] = "-L/usr/lib"
     elif PLATFORM == "win32":
         pass
 else:
