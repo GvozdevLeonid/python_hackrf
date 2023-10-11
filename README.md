@@ -16,7 +16,7 @@ LDFLAGS="-L/path to libusb-1.0.so /lib" \
 python setup.py build_ext --inplace
 ```
 ## Requirements:
-* Cython
+* Cython==0.29.36
 * Numpy
 * Scipy (optional, for faster work)
 
