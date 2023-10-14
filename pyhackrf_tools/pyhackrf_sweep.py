@@ -233,6 +233,9 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
         RuntimeError(f'specify a maximum of {pyhackrf.PY_MAX_SWEEP_RANGES} frequency ranges')
 
     for i in range(num_ranges):
+        frequencies[i] = int(frequencies[i])
+
+    for i in range(num_ranges):
         if frequencies[2 * i] >= frequencies[2 * i + 1]:
             raise RuntimeError('max frequency must be greater than min frequency.')
         

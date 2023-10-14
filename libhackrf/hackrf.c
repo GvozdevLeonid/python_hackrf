@@ -786,7 +786,7 @@ int ADDCALL hackrf_android_init(int fileDescriptor, hackrf_device** device)
 
     libusb_device_handle* usb_device = NULL;
    
-    libusb_error = libusb_set_option(NULL, LIBUSB_OPTION_NO_DEVICE_DISCOVERY, NULL);
+    libusb_error = libusb_set_option(NULL, LIBUSB_OPTION_WEAK_AUTHORITY, NULL);
     if (libusb_error != LIBUSB_SUCCESS) {
         return HACKRF_ERROR_LIBUSB;
     }
