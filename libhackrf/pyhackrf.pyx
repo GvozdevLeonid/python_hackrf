@@ -51,7 +51,7 @@ cdef dict global_callbacks = {}
 cdef int __rx_callback(chackrf.hackrf_transfer* transfer) nogil:
     global global_callbacks
     with gil:
-        np_buffer =np.asarray(<uint8_t[:transfer.buffer_length]>transfer.buffer)
+        np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]>transfer.buffer)
         if global_callbacks[<size_t> transfer.device]['__rx_callback'] is not None:
             result = global_callbacks[<size_t> transfer.device]['__rx_callback'](np_buffer, transfer.buffer_length, transfer.valid_length)
             return result
