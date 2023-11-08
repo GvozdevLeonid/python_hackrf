@@ -304,7 +304,7 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
     time_start = time.time()
     time_prev = time.time()
     while device.pyhackrf_is_streaming() and run_available:
-        time.sleep(0.01)
+        time.sleep(0.05)
         time_now = time.time()
         time_difference = time_now - time_prev
         if time_difference >= time_second:
@@ -327,7 +327,6 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
             print('Exiting...', file=sys.stderr)
         else:
             print(f'Exiting... [ pyhackrf streaming stopped ]', file=sys.stderr)
-            time.sleep(2)
 
     time_now = time.time()
     time_difference = time_now - time_prev
