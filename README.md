@@ -1,6 +1,13 @@
 # python_hackrf
 
 python_hackrf is a cython wrapper for hackrf (https://github.com/greatscottgadgets/hackrf).
+
+You can install this library using
+```
+pip install python_hackrf
+```
+Or assemble it manually using the following steps:
+
 In order to build the library you need to go to the python_hackrf directory
 ```
 cd python_hackrf
@@ -17,7 +24,7 @@ python setup.py build_ext --inplace
 ```
 ## Requirements:
 * Cython==0.29.36
-* Numpy
+* Numpy>=1.26
 * Scipy (optional, for faster work)
 
 ## hackrf:
