@@ -38,11 +38,13 @@ else:
     FILES = [fn.with_suffix('.c') for fn in FILES]
 
 source_files = [str(fn) for fn in FILES]
-source_files.append('./libhackrf/hackrf.c')
+source_files.append('libhackrf/hackrf.c')
 
 setup(
     name='python_hackrf',
-    version=LIBRARY_VERSION,
+    author='Leonid Gvozdev',
+    author_email='leo.gvozdev.dev@gmail.com',
+    version='1.0',
     cmdclass={'build_ext': build_ext},
     install_requires=INSTALL_REQUIRES,
     setup_requires=SETUP_REQUIRES,
@@ -51,7 +53,7 @@ setup(
             name='libhackrf.pyhackrf',
             sources=source_files,
             libraries=libraries,
-            include_dirs=['./libhackrf'],
+            include_dirs=['libhackrf'],
             define_macros=[("LIBRARY_VERSION", f'"{LIBRARY_VERSION}"'), ("LIBRARY_RELEASE", f'"{LIBRARY_RELEASE}"')],
             extra_compile_args=['-w'],
         )
