@@ -79,3 +79,7 @@ options:
   -B          binary output. If specified = Enable
   -r          filename. output file
 ```
+## Note
+This library can work on android. To do this, go to the android directory and download two recipes for p4a.
+## Examples
+Examples will be added later.
