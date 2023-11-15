@@ -1,22 +1,21 @@
-from pythonforandroid.recipe import NDKRecipe, IncludedFilesBehaviour
 from pythonforandroid.util import current_directory
+from pythonforandroid.recipe import NDKRecipe
 from pythonforandroid.logger import shprint
 from os.path import join
 import shutil
 import sh
 
 
-class LibusbRecipe(NDKRecipe, IncludedFilesBehaviour):
-    version = '1.0'
-    url = None
+class LibusbRecipe(NDKRecipe):
+    version = '1.0.26'
+    url = 'https://github.com/libusb/libusb/archive/refs/tags/v{version}.tar.gz'
     site_packages_name = 'libusb'
     name = 'libusb'
-    src_filename = './src'
     generated_libraries = ['libusb1.0.so']
 
     def should_build(self, arch):
         return True
-    
+
     def get_recipe_env(self, arch):
         env = super().get_recipe_env(arch)
 
@@ -41,7 +40,8 @@ class LibusbRecipe(NDKRecipe, IncludedFilesBehaviour):
                 'APP_ABI=' + arch.arch,
                 *extra_args, _env=env
             )
-        
+
         shutil.copyfile(join(self.get_build_dir(arch.arch), 'android', 'libs', arch.arch, 'libusb1.0.so'), join(self.ctx.get_libs_dir(arch.arch), 'libusb1.0.so'))
+
 
 recipe = LibusbRecipe()

@@ -1,0 +1,20 @@
+[project]
+name = "python_hackrf"
+version = "1.0.1"
+authors = [
+  {name="Leonid Gvozdev", email="leo.gvozdev.dev@gmail.com"},
+]
+description = "This is a wrapper for hackrf. It includes both libhackrf and hackrf-tools"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Android",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/GvozdevLeonid/python_hackrf"
+"Bug Tracker" = "https://github.com/GvozdevLeonid/python_hackrf/issues"

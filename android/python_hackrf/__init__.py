@@ -1,16 +1,15 @@
-from pythonforandroid.recipe import CythonRecipe, IncludedFilesBehaviour
+from pythonforandroid.recipe import CythonRecipe
 from pythonforandroid.recipe import Recipe
 import shutil
 import os
 
 
-class PythonHackrffRecipe(CythonRecipe, IncludedFilesBehaviour):
-    version = '0.8'
-    url = None
+class PythonHackrffRecipe(CythonRecipe):
+    version = '1.0.0'
+    url = 'https://files.pythonhosted.org/packages/af/51/3d43809b72853c2a624c6dba3575c874d4f803f20dbe8a95a8b6f65440b2/python_hackrf-{version}.tar.gz'
     depends = ['python3', 'setuptools', 'libusb']
     site_packages_name = 'python_hackrf'
     name = 'python_hackrf'
-    src_filename = './src'
 
     def get_recipe_env(self, arch):
         env = super().get_recipe_env(arch)
@@ -25,13 +24,13 @@ class PythonHackrffRecipe(CythonRecipe, IncludedFilesBehaviour):
 
     def postbuild_arch(self, arch):
         super().postbuild_arch(arch)
-        
+
         python_hackrf_dir = os.path.join(self.ctx.get_python_install_dir(arch.arch), 'python_hackrf')
         os.makedirs(python_hackrf_dir, exist_ok=True)
         try:
             shutil.move(os.path.join(self.ctx.get_python_install_dir(arch.arch), 'libhackrf'), os.path.join(python_hackrf_dir, 'libhackrf'))
             shutil.move(os.path.join(self.ctx.get_python_install_dir(arch.arch), 'pyhackrf_tools'), os.path.join(python_hackrf_dir, 'pyhackrf_tools'))
-            
+
             shutil.copy(os.path.join(self.get_build_dir(arch.arch), '__init__.py'), python_hackrf_dir)
             shutil.copy(os.path.join(self.get_build_dir(arch.arch), '__main__.py'), python_hackrf_dir)
         except FileNotFoundError:

@@ -7,7 +7,7 @@ from setuptools.command.build_ext import build_ext
 
 libraries = ['usb-1.0']
 
-FILES = list(Path('libhackrf').rglob('*.pyx'))
+FILES = list(Path('python_hackrf/libhackrf').rglob('*.pyx'))
 
 INSTALL_REQUIRES = []
 SETUP_REQUIRES = []
@@ -21,8 +21,9 @@ if getenv('LIBLINK'):
 
 # detect cython
 if PLATFORM != 'android':
-    SETUP_REQUIRES.append('cython')
-    INSTALL_REQUIRES.append('cython')
+    SETUP_REQUIRES.append('cython==0.29.36')
+    INSTALL_REQUIRES.append('cython==0.29.36')
+    INSTALL_REQUIRES.append('numpy>=1.26')
 
     if PLATFORM == 'darwin':
         environ["CFLAGS"] = "-I/opt/homebrew/include/libusb-1.0"
@@ -38,22 +39,22 @@ else:
     FILES = [fn.with_suffix('.c') for fn in FILES]
 
 source_files = [str(fn) for fn in FILES]
-source_files.append('libhackrf/hackrf.c')
+source_files.append('python_hackrf/libhackrf/hackrf.c')
 
 setup(
     name='python_hackrf',
     author='Leonid Gvozdev',
     author_email='leo.gvozdev.dev@gmail.com',
-    version='1.0.0',
+    version='1.0.1',
     cmdclass={'build_ext': build_ext},
     install_requires=INSTALL_REQUIRES,
     setup_requires=SETUP_REQUIRES,
     ext_modules=[
         Extension(
-            name='libhackrf.pyhackrf',
+            name='python_hackrf.libhackrf.pyhackrf',
             sources=source_files,
             libraries=libraries,
-            include_dirs=['libhackrf'],
+            include_dirs=['python_hackrf/libhackrf'],
             define_macros=[("LIBRARY_VERSION", f'"{LIBRARY_VERSION}"'), ("LIBRARY_RELEASE", f'"{LIBRARY_RELEASE}"')],
             extra_compile_args=['-w'],
         )
@@ -61,5 +62,3 @@ setup(
     packages=find_packages(),
     package_dir={'': '.'}
 )
-# To build run
-# python setup.py build_ext --inplace

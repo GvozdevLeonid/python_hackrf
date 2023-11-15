@@ -1,0 +1,4 @@
+include python_hackrf/libhackrf/hackrf.h
+include python_hackrf/libhackrf/chackrf.pxd
+include README.md
+include pyproject.toml

@@ -1,1 +1,9 @@
+__pycache__/
+
+dist/
+.venv/
+
 .DS_Store
+.pypirc
+
+*.egg-info
