@@ -1,3 +1,3 @@
 from . import pyhackrf_info
 from . import pyhackrf_sweep
-from .__android import get_usb_device_descriptor
+from .__android import get_device
