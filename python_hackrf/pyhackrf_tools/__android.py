@@ -25,7 +25,7 @@ class USBBroadcastReceiver:
     def on_broadcast(self, context, intent):
         global event
 
-        if 'libusb.android.USB_PERMISSION':
+        if intent.getAction() == 'libusb.android.USB_PERMISSION':
             event.set()
 
 
@@ -45,22 +45,23 @@ def get_usb_device_descriptor():
     usb_manager = activity.getSystemService(Context.USB_SERVICE)
     permission_intent = "libusb.android.USB_PERMISSION"
 
-    flags = PendingIntent.FLAG_MUTABLE
+    flags = PendingIntent.FLAG_IMMUTABLE
     mPermissionIntent = PendingIntent.getBroadcast(activity, 0, autoclass('android.content.Intent')(permission_intent), flags)
 
     device_list = usb_manager.getDeviceList()
-    usb_device = next(iter(device_list.values()))
+    if device_list:
+        usb_device = next(iter(device_list.values()))
 
-    usb_manager.requestPermission(usb_device, mPermissionIntent)
+        usb_manager.requestPermission(usb_device, mPermissionIntent)
 
-    if not usb_manager.hasPermission(usb_device):
-        usb_broadcast_receiver.start()
-        event.wait()
-        usb_broadcast_receiver.stop()
+        if not usb_manager.hasPermission(usb_device):
+            usb_broadcast_receiver.start()
+            event.wait()
+            usb_broadcast_receiver.stop()
 
-    if usb_manager.hasPermission(usb_device):
-        usb_device_connection = usb_manager.openDevice(usb_device)
-        return usb_device_connection.getFileDescriptor()
+        if usb_manager.hasPermission(usb_device):
+            usb_device_connection = usb_manager.openDevice(usb_device)
+            return usb_device_connection.getFileDescriptor()
 
     return None
 
