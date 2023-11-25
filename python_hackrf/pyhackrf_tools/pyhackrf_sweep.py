@@ -35,18 +35,19 @@ import sys
 
 PY_FREQ_MIN_MHZ = 0  # 0 MHz
 PY_FREQ_MAX_MHZ = 7_250  # 7250 MHz
+PY_BLOCKS_PER_TRANSFER = 16
 
 # hackrf sweep settings
 AVAILABLE_SAMPLING_RATES = (2_000_000, 4_000_000, 6_000_000, 8_000_000, 10_000_000, 12_000_000, 14_000_000, 16_000_000, 18_000_000, 20_000_000)
 BASEBAND_FILTER_BANDWIDTH_RATIO = 0.75
 OFFSET_RATIO = 0.375
 
-PY_BLOCKS_PER_TRANSFER = 16
 
-sample_rate_hz = None
+SAMPLE_RATE = None
 frequency_step_1 = None
 frequency_step_2 = None
 frequency_step_3 = None
+SWEEP_STYLE = None
 
 # hackrf sweep valiables
 binary_output_mode = False
@@ -101,9 +102,9 @@ def init_signals():
 
 
 def sweep_callback(buffer: np.ndarray, buffer_length: int, valid_length: int) -> int:
-    global fftSize, window, pwr_1_start, pwr_1_stop, pwr_2_start, pwr_2_stop, norm_factor, data_length, sample_rate_hz
+    global fftSize, window, pwr_1_start, pwr_1_stop, pwr_2_start, pwr_2_stop, norm_factor, data_length, SAMPLE_RATE
     global start_frequency, sweep_count, sweep_started, max_num_sweeps, check_max_num_sweeps, accepted_bytes, one_shot_mode, run_available
-    global binary_output_mode, file_object, callback
+    global binary_output_mode, file_object, callback, SWEEP_STYLE
 
     timestamp = datetime.datetime.now()
     time_str = timestamp.strftime("%Y-%m-%d, %H:%M:%S.%f")
@@ -147,15 +148,22 @@ def sweep_callback(buffer: np.ndarray, buffer_length: int, valid_length: int) ->
         index += data_length
 
         if binary_output_mode:
-            record_length = 16 + (fftSize // 4) * 4
-            line = struct.pack('I', record_length)
-            line += struct.pack('Q', frequency)
-            line += struct.pack('Q', frequency + frequency_step_1)
-            line += struct.pack('<' + 'f' * (fftSize // 4), *pwr[pwr_1_start: pwr_1_stop])
-            line += struct.pack('I', record_length)
-            line += struct.pack('Q', frequency + frequency_step_2)
-            line += struct.pack('Q', frequency + frequency_step_3)
-            line += struct.pack('<' + 'f' * (fftSize // 4), *pwr[pwr_2_start: pwr_2_stop])
+            if SWEEP_STYLE == pyhackrf.py_sweep_style.INTERLEAVED:
+                record_length = 16 + (fftSize // 4) * 4
+                line = struct.pack('I', record_length)
+                line += struct.pack('Q', frequency)
+                line += struct.pack('Q', frequency + frequency_step_1)
+                line += struct.pack('<' + 'f' * (fftSize // 4), *pwr[pwr_1_start: pwr_1_stop])
+                line += struct.pack('I', record_length)
+                line += struct.pack('Q', frequency + frequency_step_2)
+                line += struct.pack('Q', frequency + frequency_step_3)
+                line += struct.pack('<' + 'f' * (fftSize // 4), *pwr[pwr_2_start: pwr_2_stop])
+            else:
+                record_length = 16 + fftSize * 4
+                line = struct.pack('I', record_length)
+                line += struct.pack('Q', frequency)
+                line += struct.pack('Q', frequency + SAMPLE_RATE)
+                line += struct.pack('<' + 'f' * fftSize, *pwr)
 
             if file_object is None:
                 sys.stdout.buffer.write(line)
@@ -163,29 +171,43 @@ def sweep_callback(buffer: np.ndarray, buffer_length: int, valid_length: int) ->
                 file_object.write(line)
 
         elif callback is not None:
-            callback({
-                'timestamp': time_str,
-                'start_frequency': frequency,
-                'stop_frequency': frequency + frequency_step_1,
-                'array': pwr[pwr_1_start: pwr_1_stop]
-            })
-            callback({
-                'timestamp': time_str,
-                'start_frequency': frequency + frequency_step_2,
-                'stop_frequency': frequency + frequency_step_3,
-                'array': pwr[pwr_2_start: pwr_2_stop]
-            })
+            if SWEEP_STYLE == pyhackrf.py_sweep_style.INTERLEAVED:
+                callback({
+                    'timestamp': time_str,
+                    'start_frequency': frequency,
+                    'stop_frequency': frequency + frequency_step_1,
+                    'array': pwr[pwr_1_start: pwr_1_stop]
+                })
+                callback({
+                    'timestamp': time_str,
+                    'start_frequency': frequency + frequency_step_2,
+                    'stop_frequency': frequency + frequency_step_3,
+                    'array': pwr[pwr_2_start: pwr_2_stop]
+                })
+
+            else:
+                callback({
+                    'timestamp': time_str,
+                    'start_frequency': frequency,
+                    'stop_frequency': frequency + SAMPLE_RATE,
+                    'array': pwr
+                })
 
         else:
-            line = f'{time_str}, {frequency}, {frequency + frequency_step_1}, {sample_rate_hz / fftSize}, {fftSize}, '
-            pwr_1 = pwr[pwr_1_start: pwr_1_stop]
-            for i in range(len(pwr_1)):
-                line += f'{pwr_1[i]:.2f}, '
-            line += f'\n{time_str}, {frequency + frequency_step_2}, {frequency + frequency_step_3}, {(sample_rate_hz / fftSize)}, {fftSize}, '
-            pwr_2 = pwr[pwr_2_start: pwr_2_stop]
-            for i in range(len(pwr_2)):
-                line += f'{pwr_2[i]:.2f}, '
-            line += '\n'
+            if SWEEP_STYLE == pyhackrf.py_sweep_style.INTERLEAVED:
+                line = f'{time_str}, {frequency}, {frequency + frequency_step_1}, {SAMPLE_RATE / fftSize}, {fftSize}, '
+                pwr_1 = pwr[pwr_1_start: pwr_1_stop]
+                for i in range(len(pwr_1)):
+                    line += f'{pwr_1[i]:.2f}, '
+                line += f'\n{time_str}, {frequency + frequency_step_2}, {frequency + frequency_step_3}, {(SAMPLE_RATE / fftSize)}, {fftSize}, '
+                pwr_2 = pwr[pwr_2_start: pwr_2_stop]
+                for i in range(len(pwr_2)):
+                    line += f'{pwr_2[i]:.2f}, '
+                line += '\n'
+            else:
+                line = f'{time_str}, {frequency}, {frequency + SAMPLE_RATE}, {SAMPLE_RATE / fftSize}, {fftSize}, '
+                for i in range(len(pwr)):
+                    line += f'{pwr[i]:.2f}, '
 
             if file_object is None:
                 print(line, end='')
@@ -199,18 +221,23 @@ def sweep_callback(buffer: np.ndarray, buffer_length: int, valid_length: int) ->
 
 def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: int = 20, bin_width: int = 100_000,
                    serial_number: str = None, amp_enable: bool = False, antenna_enable: bool = False, sample_rate: int = 20_000_000,
-                   num_sweeps: int = None, binary_output: bool = False, one_shot: bool = False, filename: str = None,
+                   num_sweeps: int = None, binary_output: bool = False, one_shot: bool = False, filename: str = None, sweep_style: pyhackrf.py_sweep_style = pyhackrf.py_sweep_style.INTERLEAVED,
                    print_to_console: bool = True, device: pyhackrf.PyHackrfDevice = None):
 
-    global fftSize, window, pwr_1_start, pwr_1_stop, pwr_2_start, pwr_2_stop, norm_factor, data_length, sample_rate_hz
+    global fftSize, window, pwr_1_start, pwr_1_stop, pwr_2_start, pwr_2_stop, norm_factor, data_length, SAMPLE_RATE
     global start_frequency, sweep_count, sweep_started, max_num_sweeps, check_max_num_sweeps, accepted_bytes, one_shot_mode, run_available
-    global binary_output_mode, file_object, callback
+    global binary_output_mode, file_object, callback, SWEEP_STYLE
     global frequency_step_1, frequency_step_2, frequency_step_3
 
-    if sample_rate in AVAILABLE_SAMPLING_RATES:
-        sample_rate_hz = sample_rate
+    if sweep_style in pyhackrf.py_sweep_style:
+        SWEEP_STYLE = sweep_style
     else:
-        sample_rate_hz = 20_000_000
+        SWEEP_STYLE = pyhackrf.sweep_stylepyhackrf.py_sweep_style.INTERLEAVED
+
+    if sample_rate in AVAILABLE_SAMPLING_RATES:
+        SAMPLE_RATE = sample_rate
+    else:
+        SAMPLE_RATE = 20_000_000
 
     frequency_step_1 = sample_rate // 4
     frequency_step_2 = sample_rate // 2
@@ -222,9 +249,9 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
     accepted_bytes = 0
     sweep_started = False
 
-    BASEBAND_FILTER_BANDWIDTH = int(sample_rate_hz * BASEBAND_FILTER_BANDWIDTH_RATIO)
-    OFFSET = int(sample_rate_hz * OFFSET_RATIO)
-    TUNE_STEP = sample_rate_hz / 1e6
+    BASEBAND_FILTER_BANDWIDTH = int(SAMPLE_RATE * BASEBAND_FILTER_BANDWIDTH_RATIO)
+    OFFSET = int(SAMPLE_RATE * OFFSET_RATIO)
+    TUNE_STEP = SAMPLE_RATE / 1e6
 
     init_signals()
 
@@ -249,8 +276,8 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
     device.set_sweep_callback(sweep_callback)
 
     if print_to_console:
-        print(f'call pyhackrf_sample_rate_set({sample_rate_hz / 1e6 :.3f} MHz)', file=sys.stderr)
-    device.pyhackrf_set_sample_rate_manual(sample_rate_hz, 1)
+        print(f'call pyhackrf_sample_rate_set({SAMPLE_RATE / 1e6 :.3f} MHz)', file=sys.stderr)
+    device.pyhackrf_set_sample_rate_manual(SAMPLE_RATE, 1)
 
     if print_to_console:
         print(f'call pyhackrf_set_baseband_filter_bandwidth({BASEBAND_FILTER_BANDWIDTH / 1e6 :.3f} MHz)', file=sys.stderr)
@@ -283,15 +310,15 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
 
     start_frequency = int(frequencies[0] * 1e6)
 
-    fftSize = int(sample_rate_hz / bin_width)
+    fftSize = int(SAMPLE_RATE / bin_width)
     while ((fftSize + 4) % 8):
         fftSize += 1
 
     if fftSize < 4:
-        raise RuntimeError(f'bin_width should be between no more than {sample_rate_hz // 4} Hz')
+        raise RuntimeError(f'bin_width should be between no more than {SAMPLE_RATE // 4} Hz')
 
     if fftSize > 8180:
-        raise RuntimeError(f'bin_width should be between no less than {sample_rate_hz // 8180 + 1} Hz')
+        raise RuntimeError(f'bin_width should be between no less than {SAMPLE_RATE // 8180 + 1} Hz')
 
     pwr_1_start = 1 + (fftSize * 5) // 8
     pwr_1_stop = 1 + (fftSize * 5) // 8 + fftSize // 4
@@ -304,7 +331,7 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
 
     window = np.hanning(fftSize)
 
-    device.pyhackrf_init_sweep(frequencies, num_ranges, pyhackrf.PY_BYTES_PER_BLOCK, int(TUNE_STEP * 1e6), OFFSET, pyhackrf.py_sweep_style.INTERLEAVED)
+    device.pyhackrf_init_sweep(frequencies, num_ranges, pyhackrf.PY_BYTES_PER_BLOCK, int(TUNE_STEP * 1e6), OFFSET, sweep_style)
 
     if amp_enable:
         if print_to_console:
