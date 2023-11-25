@@ -34,20 +34,19 @@ import sys
 
 
 PY_FREQ_MIN_MHZ = 0  # 0 MHz
-PY_FREQ_MAX_MHZ = 7250  # 7250 MHz
+PY_FREQ_MAX_MHZ = 7_250  # 7250 MHz
 
 # hackrf sweep settings
-PY_DEFAULT_SAMPLE_RATE_HZ = 20000000  # 20MHz default sample rate
-PY_DEFAULT_BASEBAND_FILTER_BANDWIDTH = 15000000  # 15MHz default
-
-PY_TUNE_STEP = PY_DEFAULT_SAMPLE_RATE_HZ / 1e6
-PY_OFFSET = 7500000
+AVAILABLE_SAMPLING_RATES = (2_000_000, 4_000_000, 6_000_000, 8_000_000, 10_000_000, 12_000_000, 14_000_000, 16_000_000, 18_000_000, 20_000_000)
+BASEBAND_FILTER_BANDWIDTH_RATIO = 0.75
+OFFSET_RATIO = 0.375
 
 PY_BLOCKS_PER_TRANSFER = 16
 
-frequency_step_1 = PY_DEFAULT_SAMPLE_RATE_HZ // 4
-frequency_step_2 = PY_DEFAULT_SAMPLE_RATE_HZ // 2
-frequency_step_3 = (PY_DEFAULT_SAMPLE_RATE_HZ * 3) // 4
+sample_rate_hz = None
+frequency_step_1 = None
+frequency_step_2 = None
+frequency_step_3 = None
 
 # hackrf sweep valiables
 binary_output_mode = False
@@ -102,7 +101,7 @@ def init_signals():
 
 
 def sweep_callback(buffer: np.ndarray, buffer_length: int, valid_length: int) -> int:
-    global fftSize, window, pwr_1_start, pwr_1_stop, pwr_2_start, pwr_2_stop, norm_factor, data_length
+    global fftSize, window, pwr_1_start, pwr_1_stop, pwr_2_start, pwr_2_stop, norm_factor, data_length, sample_rate_hz
     global start_frequency, sweep_count, sweep_started, max_num_sweeps, check_max_num_sweeps, accepted_bytes, one_shot_mode, run_available
     global binary_output_mode, file_object, callback
 
@@ -178,11 +177,11 @@ def sweep_callback(buffer: np.ndarray, buffer_length: int, valid_length: int) ->
             })
 
         else:
-            line = f'{time_str}, {frequency}, {frequency + frequency_step_1}, {PY_DEFAULT_SAMPLE_RATE_HZ / fftSize}, {fftSize}, '
+            line = f'{time_str}, {frequency}, {frequency + frequency_step_1}, {sample_rate_hz / fftSize}, {fftSize}, '
             pwr_1 = pwr[pwr_1_start: pwr_1_stop]
             for i in range(len(pwr_1)):
                 line += f'{pwr_1[i]:.2f}, '
-            line += f'\n{time_str}, {frequency + frequency_step_2}, {frequency + frequency_step_3}, {(PY_DEFAULT_SAMPLE_RATE_HZ / fftSize)}, {fftSize}, '
+            line += f'\n{time_str}, {frequency + frequency_step_2}, {frequency + frequency_step_3}, {(sample_rate_hz / fftSize)}, {fftSize}, '
             pwr_2 = pwr[pwr_2_start: pwr_2_stop]
             for i in range(len(pwr_2)):
                 line += f'{pwr_2[i]:.2f}, '
@@ -198,19 +197,34 @@ def sweep_callback(buffer: np.ndarray, buffer_length: int, valid_length: int) ->
     return 0
 
 
-def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: int = 20, bin_width: int = 100000,
-                   serial_number: str = None, amp_enable: bool = False, antenna_enable: bool = False,
+def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: int = 20, bin_width: int = 100_000,
+                   serial_number: str = None, amp_enable: bool = False, antenna_enable: bool = False, sample_rate: int = 20_000_000,
                    num_sweeps: int = None, binary_output: bool = False, one_shot: bool = False, filename: str = None,
                    print_to_console: bool = True, device: pyhackrf.PyHackrfDevice = None):
-    global fftSize, window, pwr_1_start, pwr_1_stop, pwr_2_start, pwr_2_stop, norm_factor, data_length
+
+    global fftSize, window, pwr_1_start, pwr_1_stop, pwr_2_start, pwr_2_stop, norm_factor, data_length, sample_rate_hz
     global start_frequency, sweep_count, sweep_started, max_num_sweeps, check_max_num_sweeps, accepted_bytes, one_shot_mode, run_available
     global binary_output_mode, file_object, callback
+    global frequency_step_1, frequency_step_2, frequency_step_3
+
+    if sample_rate in AVAILABLE_SAMPLING_RATES:
+        sample_rate_hz = sample_rate
+    else:
+        sample_rate_hz = 20_000_000
+
+    frequency_step_1 = sample_rate // 4
+    frequency_step_2 = sample_rate // 2
+    frequency_step_3 = (sample_rate * 3) // 4
 
     run_available = True
     sweep_count = 0
     sweep_rate = 0
     accepted_bytes = 0
     sweep_started = False
+
+    BASEBAND_FILTER_BANDWIDTH = int(sample_rate_hz * BASEBAND_FILTER_BANDWIDTH_RATIO)
+    OFFSET = int(sample_rate_hz * OFFSET_RATIO)
+    TUNE_STEP = sample_rate_hz / 1e6
 
     init_signals()
 
@@ -235,12 +249,12 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
     device.set_sweep_callback(sweep_callback)
 
     if print_to_console:
-        print(f'call pyhackrf_sample_rate_set({PY_DEFAULT_SAMPLE_RATE_HZ / 1e6 :.3f} MHz)', file=sys.stderr)
-    device.pyhackrf_set_sample_rate_manual(PY_DEFAULT_SAMPLE_RATE_HZ, 1)
+        print(f'call pyhackrf_sample_rate_set({sample_rate_hz / 1e6 :.3f} MHz)', file=sys.stderr)
+    device.pyhackrf_set_sample_rate_manual(sample_rate_hz, 1)
 
     if print_to_console:
-        print(f'call pyhackrf_set_baseband_filter_bandwidth({PY_DEFAULT_BASEBAND_FILTER_BANDWIDTH / 1e6 :.3f} MHz)', file=sys.stderr)
-    device.pyhackrf_set_baseband_filter_bandwidth(PY_DEFAULT_BASEBAND_FILTER_BANDWIDTH)
+        print(f'call pyhackrf_set_baseband_filter_bandwidth({BASEBAND_FILTER_BANDWIDTH / 1e6 :.3f} MHz)', file=sys.stderr)
+    device.pyhackrf_set_baseband_filter_bandwidth(BASEBAND_FILTER_BANDWIDTH)
 
     device.pyhackrf_set_vga_gain(vga_gain)
     device.pyhackrf_set_lna_gain(lna_gain)
@@ -256,8 +270,8 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
         if frequencies[2 * i] >= frequencies[2 * i + 1]:
             raise RuntimeError('max frequency must be greater than min frequency.')
 
-        step_count = 1 + (frequencies[2 * i + 1] - frequencies[2 * i] - 1) // PY_TUNE_STEP
-        frequencies[2 * i + 1] = int(frequencies[2 * i] + step_count * PY_TUNE_STEP)
+        step_count = 1 + (frequencies[2 * i + 1] - frequencies[2 * i] - 1) // TUNE_STEP
+        frequencies[2 * i + 1] = int(frequencies[2 * i] + step_count * TUNE_STEP)
 
         if frequencies[2 * i] < PY_FREQ_MIN_MHZ:
             raise RuntimeError(f'min frequency must must be greater than than {PY_FREQ_MIN_MHZ} MHz.')
@@ -269,13 +283,15 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
 
     start_frequency = int(frequencies[0] * 1e6)
 
-    if not 2445 <= bin_width <= 5000000:
-        raise RuntimeError('bin_width should be between 2445:5000000 Hz')
-
-    fftSize = int(PY_DEFAULT_SAMPLE_RATE_HZ / bin_width)
-
+    fftSize = int(sample_rate_hz / bin_width)
     while ((fftSize + 4) % 8):
         fftSize += 1
+
+    if fftSize < 4:
+        raise RuntimeError(f'bin_width should be between no more than {sample_rate_hz // 4} Hz')
+
+    if fftSize > 8180:
+        raise RuntimeError(f'bin_width should be between no less than {sample_rate_hz // 8180 + 1} Hz')
 
     pwr_1_start = 1 + (fftSize * 5) // 8
     pwr_1_stop = 1 + (fftSize * 5) // 8 + fftSize // 4
@@ -288,7 +304,7 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
 
     window = np.hanning(fftSize)
 
-    device.pyhackrf_init_sweep(frequencies, num_ranges, pyhackrf.PY_BYTES_PER_BLOCK, int(PY_TUNE_STEP * 1e6), PY_OFFSET, pyhackrf.py_sweep_style.INTERLEAVED)
+    device.pyhackrf_init_sweep(frequencies, num_ranges, pyhackrf.PY_BYTES_PER_BLOCK, int(TUNE_STEP * 1e6), OFFSET, pyhackrf.py_sweep_style.INTERLEAVED)
 
     if amp_enable:
         if print_to_console:
