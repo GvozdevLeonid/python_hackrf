@@ -64,7 +64,7 @@ options:
   -s, --serial_numbers  show only founded serial_numbers
 ```
 ```
-usage: python -m python_hackrf sweep [-h] [-d] [-a] [-f] [-p] [-l] [-g] [-w] [-1] [-N] [-B] [s] [-SR] [-r]
+usage: python -m python_hackrf sweep [-h] [-d] [-a] [-f] [-p] [-l] [-g] [-w] [-1] [-N] [-B] [-s] [-SR] [-r]
 
 options:
   -h, --help  show this help message and exit
