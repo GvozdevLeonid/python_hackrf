@@ -45,7 +45,7 @@ setup(
     name='python_hackrf',
     author='Leonid Gvozdev',
     author_email='leo.gvozdev.dev@gmail.com',
-    version='1.0.1',
+    version='1.0.2',
     cmdclass={'build_ext': build_ext},
     install_requires=INSTALL_REQUIRES,
     setup_requires=SETUP_REQUIRES,
