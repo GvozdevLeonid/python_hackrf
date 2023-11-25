@@ -16,7 +16,7 @@ if __name__ == '__main__':
     pyhackrf_info_parser.add_argument('-s', '--serial_numbers', action='store_true', help='show only founded serial_numbers')
 
     pyhackrf_sweep_parser = subparsers.add_parser(
-        'sweep', help='a command-line spectrum analyzer.', usage='python -m python_hackrf sweep [-h] [-d] [-a] [-f] [-p] [-l] [-g] [-w] [-1] [-N] [-I] [-SR] [-s] [-r]'
+        'sweep', help='a command-line spectrum analyzer.', usage='python -m python_hackrf sweep [-h] [-d] [-a] [-f] [-p] [-l] [-g] [-w] [-1] [-N] [-B] [-s] [-SR] [-r]'
     )
     pyhackrf_sweep_parser.add_argument('-d', action='store', help='serial_number. serial number of desired HackRF', metavar='')
     pyhackrf_sweep_parser.add_argument('-a', action='store_true', help='amp_enable. RX RF amplifier. If specified = Enable')
@@ -24,7 +24,7 @@ if __name__ == '__main__':
     pyhackrf_sweep_parser.add_argument('-p', action='store_true', help='antenna_enable. Antenna port power. If specified = Enable')
     pyhackrf_sweep_parser.add_argument('-l', action='store', help='gain_db. RX LNA (IF) gain, 0-40dB, 8dB steps', metavar='', default=16)
     pyhackrf_sweep_parser.add_argument('-g', action='store', help='gain_db. RX VGA (baseband) gain, 0-62dB, 2dB steps', metavar='', default=20)
-    pyhackrf_sweep_parser.add_argument('-w', action='store', help='bin_width. FFT bin width (frequency resolution) in Hz, 2445-5000000', metavar='', default=1000000)
+    pyhackrf_sweep_parser.add_argument('-w', action='store', help='bin_width. FFT bin width (frequency resolution) in Hz, 245-5000000 Depends on sample rate min= sample rate * 1e6 / 8180, max = sample_rate * 1e6 / 4', metavar='', default=1000000)
     pyhackrf_sweep_parser.add_argument('-1', action='store_true', help='one shot mode. If specified = Enable')
     pyhackrf_sweep_parser.add_argument('-N', action='store', help='num_sweeps. Number of sweeps to perform', metavar='')
     pyhackrf_sweep_parser.add_argument('-B', action='store_true', help='binary output. If specified = Enable')
