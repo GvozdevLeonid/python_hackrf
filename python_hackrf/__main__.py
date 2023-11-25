@@ -55,7 +55,6 @@ if __name__ == '__main__':
                 pass
             if freq_min is not None and freq_max is not None:
                 frequencies.extend([freq_min, freq_max])
-        
 
         pyhackrf_sweep.pyhackrf_sweep(frequencies=frequencies,
                                       lna_gain=int(args.l),
