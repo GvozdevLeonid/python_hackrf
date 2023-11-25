@@ -64,7 +64,7 @@ options:
   -s, --serial_numbers  show only founded serial_numbers
 ```
 ```
-usage: python -m python_hackrf sweep [-h] [-d] [-a] [-f] [-p] [-l] [-g] [-w] [-1] [-N] [-I] [-r]
+usage: python -m python_hackrf sweep [-h] [-d] [-a] [-f] [-p] [-l] [-g] [-w] [-1] [-N] [-B] [s] [-SR] [-r]
 
 options:
   -h, --help  show this help message and exit
@@ -74,10 +74,12 @@ options:
   -p          antenna_enable. Antenna port power. If specified = Enable
   -l          gain_db. RX LNA (IF) gain, 0-40dB, 8dB steps
   -g          gain_db. RX VGA (baseband) gain, 0-62dB, 2dB steps
-  -w          bin_width. FFT bin width (frequency resolution) in Hz, 2445-5000000
+  -w          bin_width. FFT bin width (frequency resolution) in Hz, 245-5000000 Depends on sample rate min= sample rate * 1e6 / 8180, max = sample_rate * 1e6 / 4
   -1          one shot mode. If specified = Enable
   -N          num_sweeps. Number of sweeps to perform
   -B          binary output. If specified = Enable
+  -s          sweep style ("L" - LINEAR, "I" - INTERLEAVED). Default is INTERLEAVED
+  -SR         sample rate (2, 4, 6, 8, 10, 12, 14, 16, 18, 20). Default is 20
   -r          filename. output file
 ```
 ## Note
