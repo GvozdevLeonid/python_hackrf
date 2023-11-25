@@ -68,6 +68,6 @@ if __name__ == '__main__':
                                       one_shot=args.__dict__.get('1'),
                                       filename=args.r,
                                       sweep_style=pyhackrf.py_sweep_style.LINEAR if args.s == 'L' else pyhackrf.py_sweep_style.INTERLEAVED,
-                                      sample_rate=int(args.SR),
+                                      sample_rate=int(args.SR) * 1e6,
                                       print_to_console=True,
                                       )

@@ -195,19 +195,20 @@ def sweep_callback(buffer: np.ndarray, buffer_length: int, valid_length: int) ->
 
         else:
             if SWEEP_STYLE == pyhackrf.py_sweep_style.INTERLEAVED:
-                line = f'{time_str}, {frequency}, {frequency + frequency_step_1}, {SAMPLE_RATE / fftSize}, {fftSize}, '
+                line = f'{time_str}, {frequency}, {frequency + frequency_step_1}, {round(SAMPLE_RATE / fftSize, 2)}, {fftSize}, '
                 pwr_1 = pwr[pwr_1_start: pwr_1_stop]
                 for i in range(len(pwr_1)):
                     line += f'{pwr_1[i]:.2f}, '
-                line += f'\n{time_str}, {frequency + frequency_step_2}, {frequency + frequency_step_3}, {(SAMPLE_RATE / fftSize)}, {fftSize}, '
+                line += f'\n{time_str}, {frequency + frequency_step_2}, {frequency + frequency_step_3}, {round(SAMPLE_RATE / fftSize, 2)}, {fftSize}, '
                 pwr_2 = pwr[pwr_2_start: pwr_2_stop]
                 for i in range(len(pwr_2)):
                     line += f'{pwr_2[i]:.2f}, '
-                line += '\n'
+                line = line[:-2] + '\n'
             else:
-                line = f'{time_str}, {frequency}, {frequency + SAMPLE_RATE}, {SAMPLE_RATE / fftSize}, {fftSize}, '
+                line = f'{time_str}, {frequency}, {frequency + SAMPLE_RATE}, {round(SAMPLE_RATE / fftSize, 2)}, {fftSize}, '
                 for i in range(len(pwr)):
                     line += f'{pwr[i]:.2f}, '
+                line = line[:-2] + '\n'
 
             if file_object is None:
                 print(line, end='')
@@ -235,7 +236,7 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
         SWEEP_STYLE = pyhackrf.sweep_stylepyhackrf.py_sweep_style.INTERLEAVED
 
     if sample_rate in AVAILABLE_SAMPLING_RATES:
-        SAMPLE_RATE = sample_rate
+        SAMPLE_RATE = int(sample_rate)
     else:
         SAMPLE_RATE = 20_000_000
 
@@ -311,14 +312,13 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
     start_frequency = int(frequencies[0] * 1e6)
 
     fftSize = int(SAMPLE_RATE / bin_width)
-    while ((fftSize + 4) % 8):
-        fftSize += 1
-
     if fftSize < 4:
         raise RuntimeError(f'bin_width should be between no more than {SAMPLE_RATE // 4} Hz')
-
-    if fftSize > 8180:
+    elif fftSize > 8180:
         raise RuntimeError(f'bin_width should be between no less than {SAMPLE_RATE // 8180 + 1} Hz')
+
+    while ((fftSize + 4) % 8):
+        fftSize += 1
 
     pwr_1_start = 1 + (fftSize * 5) // 8
     pwr_1_stop = 1 + (fftSize * 5) // 8 + fftSize // 4
