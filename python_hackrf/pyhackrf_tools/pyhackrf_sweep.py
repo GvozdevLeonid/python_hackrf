@@ -22,9 +22,9 @@
 
 from python_hackrf import pyhackrf
 try:
-    from scipy.fft import fft
+    from scipy.fft import fft, fftshift
 except ImportError:
-    from numpy.fft import fft
+    from numpy.fft import fft, fftshift
 import numpy as np
 import datetime
 import signal
@@ -40,7 +40,8 @@ PY_BLOCKS_PER_TRANSFER = 16
 # hackrf sweep settings
 AVAILABLE_SAMPLING_RATES = (2_000_000, 4_000_000, 6_000_000, 8_000_000, 10_000_000, 12_000_000, 14_000_000, 16_000_000, 18_000_000, 20_000_000)
 BASEBAND_FILTER_BANDWIDTH_RATIO = 0.75
-OFFSET_RATIO = 0.375
+INTERLEAVED_OFFSET_RATIO = 0.375
+LINEAR_OFFSET_RATIO = 0.5
 
 
 SAMPLE_RATE = None
@@ -141,12 +142,13 @@ def sweep_callback(buffer: np.ndarray, buffer_length: int, valid_length: int) ->
         index += (pyhackrf.PY_BYTES_PER_BLOCK - data_length)
 
         fftwOut = fft((buffer[index: index + data_length: 2].astype(np.int8, copy=False) / 128 + 1j * buffer[index + 1: index + data_length: 2].astype(np.int8, copy=False) / 128) * window)
-
         magsq = np.abs(fftwOut * norm_factor) ** 2
         pwr = np.log10(magsq) * 10.0
 
-        index += data_length
+        if SWEEP_STYLE == pyhackrf.py_sweep_style.LINEAR:
+            pwr = fftshift(pwr)
 
+        index += data_length
         if binary_output_mode:
             if SWEEP_STYLE == pyhackrf.py_sweep_style.INTERLEAVED:
                 record_length = 16 + (fftSize // 4) * 4
@@ -251,7 +253,11 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
     sweep_started = False
 
     BASEBAND_FILTER_BANDWIDTH = int(SAMPLE_RATE * BASEBAND_FILTER_BANDWIDTH_RATIO)
-    OFFSET = int(SAMPLE_RATE * OFFSET_RATIO)
+    if SWEEP_STYLE == pyhackrf.py_sweep_style.INTERLEAVED:
+        OFFSET = int(SAMPLE_RATE * INTERLEAVED_OFFSET_RATIO)
+    else:
+        OFFSET = int(SAMPLE_RATE * LINEAR_OFFSET_RATIO)
+
     TUNE_STEP = SAMPLE_RATE / 1e6
 
     init_signals()
