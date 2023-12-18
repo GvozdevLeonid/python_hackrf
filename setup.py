@@ -4,10 +4,12 @@ import sys
 
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
+import numpy
 
 libraries = ['usb-1.0']
 
-FILES = list(Path('python_hackrf/libhackrf').rglob('*.pyx'))
+LIBHACKRF_FILES = list(Path('python_hackrf/libhackrf').rglob('*.pyx'))
+PYHACKrF_TOOLS_FILES = list(Path('python_hackrf/pyhackrf_tools').rglob('*.pyx'))
 
 INSTALL_REQUIRES = []
 SETUP_REQUIRES = []
@@ -36,16 +38,16 @@ if PLATFORM != 'android':
         pass
 else:
     libraries = ['usb1.0']
-    FILES = [fn.with_suffix('.c') for fn in FILES]
+    LIBHACKRF_FILES = [fn.with_suffix('.c') for fn in LIBHACKRF_FILES]
 
-source_files = [str(fn) for fn in FILES]
+source_files = [str(fn) for fn in LIBHACKRF_FILES]
 source_files.append('python_hackrf/libhackrf/hackrf.c')
 
 setup(
     name='python_hackrf',
     author='Leonid Gvozdev',
     author_email='leo.gvozdev.dev@gmail.com',
-    version='1.0.3',
+    version='1.0.4',
     cmdclass={'build_ext': build_ext},
     install_requires=INSTALL_REQUIRES,
     setup_requires=SETUP_REQUIRES,
@@ -54,8 +56,14 @@ setup(
             name='python_hackrf.libhackrf.pyhackrf',
             sources=source_files,
             libraries=libraries,
-            include_dirs=['python_hackrf/libhackrf'],
+            include_dirs=['python_hackrf/libhackrf',  numpy.get_include()],
             define_macros=[("LIBRARY_VERSION", f'"{LIBRARY_VERSION}"'), ("LIBRARY_RELEASE", f'"{LIBRARY_RELEASE}"')],
+            extra_compile_args=['-w'],
+        ),
+        Extension(
+            name='python_hackrf.pyhackrf_tools.pyhackrf_sweep',
+            sources=[str(fn) for fn in PYHACKrF_TOOLS_FILES],
+            include_dirs=['python_hackrf/pyhackrf_tools', numpy.get_include()],
             extra_compile_args=['-w'],
         )
     ],
