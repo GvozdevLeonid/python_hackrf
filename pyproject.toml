@@ -1,6 +1,6 @@
 [project]
 name = "python_hackrf"
-version = "1.0.3"
+version = "1.0.4"
 authors = [
   {name="Leonid Gvozdev", email="leo.gvozdev.dev@gmail.com"},
 ]
@@ -18,3 +18,10 @@ classifiers = [
 [project.urls]
 "Homepage" = "https://github.com/GvozdevLeonid/python_hackrf"
 "Bug Tracker" = "https://github.com/GvozdevLeonid/python_hackrf/issues"
+
+[build-system]
+requires = [
+    "setuptools",
+    "wheel",
+    "numpy"
+]
