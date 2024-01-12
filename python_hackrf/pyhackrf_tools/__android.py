@@ -72,6 +72,6 @@ def get_device():
     file_descriptor = get_usb_device_descriptor()
 
     if file_descriptor is not None:
-        device = pyhackrf.pyhackrf_android_init(file_descriptor)
+        device = pyhackrf.pyhackrf_init_on_android(file_descriptor)
 
     return device

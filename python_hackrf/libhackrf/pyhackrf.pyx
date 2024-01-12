@@ -546,14 +546,14 @@ cdef class PyHackrfDevice:
 def pyhackrf_init() -> int:
     return chackrf.hackrf_init()
 
-def pyhackrf_android_init(int fileDescriptor) -> PyHackrfDevice | None:
+def pyhackrf_init_on_android(int fileDescriptor) -> PyHackrfDevice | None:
     hackrf_device = PyHackrfDevice()
-    result = chackrf.hackrf_android_init(fileDescriptor, hackrf_device.get_hackrf_device_double_ptr())
+    result = chackrf.hackrf_init_on_android(fileDescriptor, hackrf_device.get_hackrf_device_double_ptr())
     if result == chackrf.hackrf_error.HACKRF_SUCCESS:
         hackrf_device._setup_callbacks()
         return hackrf_device
 
-    raise RuntimeError(f'pyhackrf_android_init() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
+    raise RuntimeError(f'pyhackrf_init_on_android() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
 
 # Should run atrer use library
