@@ -26,7 +26,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 
 #include <stdint.h>
 #include <sys/types.h>
-
+#include <stdbool.h> // for bool
 #ifdef _WIN32
 	#define ADD_EXPORTS
 
@@ -87,6 +87,41 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
  * # Library internals
  * 
  * The library uses `libusb` (version 1.0) to communicate with HackRF hardware. It uses both the synchronous and asynchronous API for communication (asynchronous for streaming data to/from the device, and synchronous for everything else). The asynchronous API requires to periodically call a variant of `libusb_handle_events`, so the library creates a new "transfer thread" for each device doing that using the `pthread` library. The library uses multiple transfers for each device (@ref hackrf_get_transfer_queue_depth).
+ *
+ * # USB API versions
+ * As all functionality of HackRF devices requires cooperation between the firmware and the host, both devices can have outdated software. If host machine software is outdated, the new functions will be unalaviable in `hackrf.h`, causing linking errors. If the device firmware is outdated, the functions will return @ref HACKRF_ERROR_USB_API_VERSION.
+ * Since device firmware and USB API are separate (but closely related), USB API has its own version numbers.
+ * Here is a list of all the functions that require a certain minimum USB API version, up to version 0x0107
+ * ## 0x0102
+ * - @ref hackrf_set_hw_sync_mode
+ * - @ref hackrf_init_sweep
+ * - @ref hackrf_set_operacake_ports
+ * - @ref hackrf_reset
+ * ## 0x0103
+ * - @ref hackrf_spiflash_status
+ * - @ref hackrf_spiflash_clear_status
+ * - @ref hackrf_set_operacake_ranges
+ * - @ref hackrf_set_operacake_freq_ranges
+ * - @ref hackrf_set_clkout_enable
+ * - @ref hackrf_operacake_gpio_test
+ * - @ref hackrf_cpld_checksum
+ * ## 0x0104
+ * - @ref hackrf_set_ui_enable
+ * - @ref hackrf_start_rx_sweep
+ * ## 0x0105
+ * - @ref hackrf_get_operacake_boards
+ * - @ref hackrf_set_operacake_mode
+ * - @ref hackrf_get_operacake_mode
+ * - @ref hackrf_set_operacake_dwell_times
+ * ## 0x0106
+ * - @ref hackrf_get_m0_state
+ * - @ref hackrf_set_tx_underrun_limit
+ * - @ref hackrf_set_rx_overrun_limit
+ * - @ref hackrf_get_clkin_status
+ * - @ref hackrf_board_rev_read
+ * - @ref hackrf_supported_platform_read
+ * ## 0x0107
+ * - @ref hackrf_set_leds
  */
 
 /**
@@ -886,6 +921,28 @@ typedef struct {
 } hackrf_operacake_freq_range;
 
 /** 
+ * Helper struct for hackrf_bias_t_user_setting.  If 'do_update' is true, then the values of 'change_on_mode_entry'
+ * and 'enabled' will be used as the new default.  If 'do_update' is false, the current default will not change.
+*/
+typedef struct {
+	bool do_update;
+	bool change_on_mode_entry;
+	bool enabled;
+} hackrf_bool_user_settting;
+
+/** 
+ * User settings for user-supplied bias tee defaults.
+ * 
+ * @ingroup device
+ * 
+*/
+typedef struct {
+	hackrf_bool_user_settting tx;
+	hackrf_bool_user_settting rx;
+	hackrf_bool_user_settting off;
+} hackrf_bias_t_user_settting_req;
+
+/** 
  * State of the SGPIO loop running on the M0 core. 
  * @ingroup debug
  */
@@ -985,8 +1042,6 @@ typedef void (*hackrf_flush_cb_fn)(void* flush_ctx, int);
 extern "C" {
 #endif
 
-extern ADDAPI int ADDCALL hackrf_android_init(int fileDescriptor, hackrf_device** device);
-
 /**
  * Initialize libhackrf
  * 
@@ -995,6 +1050,18 @@ extern ADDAPI int ADDCALL hackrf_android_init(int fileDescriptor, hackrf_device*
  * @ingroup library
  */
 extern ADDAPI int ADDCALL hackrf_init();
+
+/**
+ * Initialize libhackrf on Android device
+ * 
+ * Should be called before any other libhackrf function. Initializes libusb on android device and return hackrf device
+ * @param[in] int file descriptor from android USB manager
+ * @param[out] device device handle to open
+ * @return @ref HACKRF_SUCCESS on success or @ref HACKRF_ERROR_LIBUSB
+ * @ingroup device
+ */
+extern ADDAPI int ADDCALL hackrf_init_on_android(int fileDescriptor, hackrf_device** device);
+
 
 /**
  * Exit libhackrf
@@ -1164,6 +1231,7 @@ extern ADDAPI int ADDCALL hackrf_stop_tx(hackrf_device* device);
 /**
  * Get the state of the M0 code on the LPC43xx MCU
  * 
+ * Requires USB API version 0x0106 or above!
  * @param[in] device device to query
  * @param[out] value MCU code state
  * @return @ref HACKRF_SUCCESS on success or @ref hackrf_error variant  
@@ -1178,6 +1246,7 @@ extern ADDAPI int ADDCALL hackrf_get_m0_state(
  * 
  * When this limit is set, after the specified number of samples (bytes, not whole IQ pairs) missing the device will automatically return to IDLE mode, thus stopping operation. Useful for handling cases like program/computer crashes or other problems. The default value 0 means no limit.
  * 
+ * Requires USB API version 0x0106 or above!
  * @param device device to configure
  * @param value number of samples to wait before auto-stopping
  * @return @ref HACKRF_SUCCESS on success or @ref hackrf_error variant   
@@ -1192,6 +1261,7 @@ extern ADDAPI int ADDCALL hackrf_set_tx_underrun_limit(
  * 
  * When this limit is set, after the specified number of samples (bytes, not whole IQ pairs) missing the device will automatically return to IDLE mode, thus stopping operation. Useful for handling cases like program/computer crashes or other problems. The default value 0 means no limit.
  * 
+ * Requires USB API version 0x0106 or above!
  * @param device device to configure
  * @param value number of samples to wait before auto-stopping
  * @return @ref HACKRF_SUCCESS on success or @ref hackrf_error variant
@@ -1375,6 +1445,7 @@ extern ADDAPI int ADDCALL hackrf_spiflash_read(
  * 
  * See the datasheet for details of the status registers. The two registers are read in order.
  * 
+ * Requires USB API version 0x0103 or above!
  * @param[in] device device to query
  * @param[out] data char[2] array of the status registers
  * @return @ref HACKRF_SUCCESS on success or @ref hackrf_error variant
@@ -1387,6 +1458,7 @@ extern ADDAPI int ADDCALL hackrf_spiflash_status(hackrf_device* device, uint8_t*
  * 
  * See the datasheet for details of the status registers.
  * 
+ * Requires USB API version 0x0103 or above!
  * @param device device to clear
  * @return @ref HACKRF_SUCCESS on success or @ref hackrf_error variant
  * @ingroup debug
@@ -1677,6 +1749,7 @@ extern ADDAPI uint32_t ADDCALL hackrf_compute_baseband_filter_bw(
  * 
  * See the documentation on hardware triggering for details
  * 
+ * Requires USB API version 0x0102 or above!
  * @param device device to configure
  * @param value enable (1) or disable (0) hardware triggering
  * @return @ref HACKRF_SUCCESS on success or @ref hackrf_error variant
@@ -1691,6 +1764,7 @@ extern ADDAPI int ADDCALL hackrf_set_hw_sync_mode(
  * 
  * In this mode, in a single data transfer (single call to the RX transfer callback), multiple blocks of size @p num_bytes bytes are received with different center frequencies. At the beginning of each block, a 10-byte frequency header is present in `0x7F - 0x7F - uint64_t frequency (LSBFIRST, in Hz)` format, followed by the actual samples.
  * 
+ * Requires USB API version 0x0102 or above!
  * @param device device to configure
  * @param frequency_list list of start-stop frequency pairs in MHz
  * @param num_ranges length of array @p frequency_list (in pairs, so total array length / 2!). Must be less than @ref MAX_SWEEP_RANGES
@@ -1715,6 +1789,7 @@ extern ADDAPI int ADDCALL hackrf_init_sweep(
  * 
  * Returns a @ref HACKRF_OPERACAKE_MAX_BOARDS size array of addresses, with @ref HACKRF_OPERACAKE_ADDRESS_INVALID as a placeholder
  *
+ * Requires USB API version 0x0105 or above!
  * @param[in] device device to query
  * @param[out] boards list of boards
  * @return @ref HACKRF_SUCCESS on success or @ref hackrf_error variant
@@ -1727,6 +1802,7 @@ extern ADDAPI int ADDCALL hackrf_get_operacake_boards(
 /**
  * Setup Opera Cake operation mode
  * 
+ * Requires USB API version 0x0105 or above!
  * @param device device to configure
  * @param address address of Opera Cake add-on board to configure
  * @param mode mode to use
@@ -1741,6 +1817,7 @@ extern ADDAPI int ADDCALL hackrf_set_operacake_mode(
 /**
  * Query Opera Cake mode
  * 
+ * Requires USB API version 0x0105 or above!
  * @param[in] device device to query from
  * @param[in] address address of add-on board to query
  * @param[out] mode operation mode of the selected add-on board
@@ -1757,6 +1834,7 @@ extern ADDAPI int ADDCALL hackrf_get_operacake_mode(
  * 
  * Should be called after @ref hackrf_set_operacake_mode. A0 and B0 must be connected to opposite sides (A->A and B->B or A->B and B->A but not A->A and B->A or A->B and B->B)
  * 
+ * Requires USB API version 0x0102 or above!
  * @param device device to configure
  * @param address address of add-on board to configure
  * @param port_a port for A0. Must be one of @ref operacake_ports
@@ -1777,6 +1855,7 @@ extern ADDAPI int ADDCALL hackrf_set_operacake_ports(
  * 
  * **Note:** this configuration applies to all Opera Cake boards in @ref OPERACAKE_MODE_TIME mode 
  * 
+ * Requires USB API version 0x0105 or above!
  * @param device device to configure
  * @param dwell_times list of dwell times to setup
  * @param count number of dwell times to setup. Must be at most @ref HACKRF_OPERACAKE_MAX_DWELL_TIMES.
@@ -1795,6 +1874,7 @@ extern ADDAPI int ADDCALL hackrf_set_operacake_dwell_times(
  *
  * **Note:** this configuration applies to all Opera Cake boards in @ref OPERACAKE_MODE_FREQUENCY mode
  * 
+ * Requires USB API version 0x0103 or above!
  * @param device device to configure
  * @param freq_ranges list of frequency ranges to setup
  * @param count number of ranges to setup. Must be at most @ref HACKRF_OPERACAKE_MAX_FREQ_RANGES.
@@ -1809,6 +1889,7 @@ extern ADDAPI int ADDCALL hackrf_set_operacake_freq_ranges(
 /**
  * Reset HackRF device
  * 
+ * Requires USB API version 0x0102 or above!
  * @param device device to reset
  * @return @ref HACKRF_SUCCESS on success or @ref hackrf_error variant
  * @ingroup device
@@ -1822,6 +1903,7 @@ extern ADDAPI int ADDCALL hackrf_reset(hackrf_device* device);
  * 
  * **Note:** this configuration applies to all Opera Cake boards in @ref OPERACAKE_MODE_FREQUENCY mode
  * 
+ * Requires USB API version 0x0103 or above!
  * @param device device to configure
  * @param ranges ranges to setup. Should point to a valid @ref hackrf_operacake_freq_range array.
  * @param num_ranges length of ranges to setup, must be number of ranges * 5. Must be at most 8*5=40. (internally called len_ranges, possible typo)
@@ -1837,6 +1919,7 @@ extern ADDAPI int ADDCALL hackrf_set_operacake_ranges(
 /**
  * Enable / disable CLKOUT
  * 
+ * Requires USB API version 0x0103 or above!
  * @param device device to configure
  * @param value clock output enabled (0/1)
  * @return @ref HACKRF_SUCCESS on success or @ref hackrf_error variant
@@ -1851,6 +1934,7 @@ extern ADDAPI int ADDCALL hackrf_set_clkout_enable(
  * 
  * Check if an external clock signal is detected on the CLKIN port.
  * 
+ * Requires USB API version 0x0106 or above!
  * @param[in] device device to read status from
  * @param[out] status external clock detected (0/1)
  * @return @ref HACKRF_SUCCESS on success or @ref hackrf_error variant
@@ -1866,7 +1950,7 @@ extern ADDAPI int ADDCALL hackrf_get_clkin_status(hackrf_device* device, uint8_t
  * In any other values, a 1 bit signals an error. Bits are grouped in groups of 3. Encoding:
  * 0 - u1ctrl - u3ctrl0 - u3ctrl1 - u2ctrl0 - u2ctrl1
  * 
- * 
+ * Requires USB API version 0x0103 or above!
  * @param[in] device device to perform test on
  * @param[in] address address of Opera Cake board to test
  * @param[out] test_result result of tests
@@ -1884,6 +1968,7 @@ extern ADDAPI int ADDCALL hackrf_operacake_gpio_test(
  * 
  * This function is not always available, see [issue 609](https://github.com/greatscottgadgets/hackrf/issues/609)
  * 
+ * Requires USB API version 0x0103 or above!
  * @param[in] device device to read checksum from
  * @param[out] crc CRC checksum of the CPLD configuration
  * @return @ref HACKRF_SUCCESS on success or @ref hackrf_error variant
@@ -1897,6 +1982,7 @@ extern ADDAPI int ADDCALL hackrf_cpld_checksum(hackrf_device* device, uint32_t* 
  * 
  * Enable or disable the display on display-enabled devices (Rad1o, PortaPack)
  * 
+ * Requires USB API version 0x0104 or above!
  * @param device device to enable/disable UI on
  * @param value Enable UI. Must be 1 or 0
  * @return @ref HACKRF_SUCCESS on success or @ref HACKRF_ERROR_LIBUSB on usb error
@@ -1909,6 +1995,7 @@ extern ADDAPI int ADDCALL hackrf_set_ui_enable(hackrf_device* device, const uint
  * 
  * See @ref hackrf_init_sweep for more info
  *
+ * Requires USB API version 0x0104 or above!
  * @param device device to start sweeping
  * @param callback rx callback processing the received data
  * @param rx_ctx User provided RX context. Not used by the library, but available to @p callback as @ref hackrf_transfer.rx_ctx.
@@ -1941,6 +2028,7 @@ extern ADDAPI uint32_t ADDCALL hackrf_get_transfer_queue_depth(hackrf_device* de
 /**
  * Read board revision of device
  * 
+ * Requires USB API version 0x0106 or above!
  * @param[in] device device to read board revision from
  * @param[out] value revision enum, will become one of @ref hackrf_board_rev. Should be initialized with @ref BOARD_REV_UNDETECTED
  * @return @ref HACKRF_SUCCESS on success or @ref HACKRF_ERROR_LIBUSB
@@ -1962,6 +2050,7 @@ extern ADDAPI const char* ADDCALL hackrf_board_rev_name(enum hackrf_board_rev bo
  * 
  * Returns a combination of @ref HACKRF_PLATFORM_JAWBREAKER | @ref HACKRF_PLATFORM_HACKRF1_OG | @ref HACKRF_PLATFORM_RAD1O | @ref HACKRF_PLATFORM_HACKRF1_R9
  * 
+ * Requires USB API version 0x0106 or above!
  * @param[in] device device to query
  * @param[out] value supported platform bitfield
  * @return @ref HACKRF_SUCCESS on success or @ref hackrf_error variant
@@ -1978,6 +2067,7 @@ extern ADDAPI int ADDCALL hackrf_supported_platform_read(
  * 
  * The LEDs can be set via specifying them as bits of a 8 bit number @p state, bit 0 representing the first (USB on the HackRF One) and bit 3 or 4 representing the last LED. The upper 4 or 5 bits are unused. For example, binary value 0bxxxxx101 turns on the USB and TX LEDs on the HackRF One. 
  * 
+ * Requires USB API version 0x0107 or above!
  * @param device device to query
  * @param state LED states as a bitfield
  * @return @ref HACKRF_SUCCESS on success or @ref hackrf_error variant
@@ -1985,6 +2075,34 @@ extern ADDAPI int ADDCALL hackrf_supported_platform_read(
  * 
 */
 extern ADDAPI int ADDCALL hackrf_set_leds(hackrf_device* device, const uint8_t state);
+
+/**
+ * Configure bias tee behavior of the HackRF device when changing RF states
+ * 
+ * This function allows the user to configure bias tee behavior so that it can be turned on or off automatically by the HackRF when entering the RX, TX, or OFF state. By default, the HackRF switches off the bias tee when the RF path switches to OFF mode.
+ * 
+ * The bias tee configuration is specified via a bitfield:
+ * 
+ * 0000000TmmRmmOmm
+ * 
+ * Where setting T/R/O bits indicates that the TX/RX/Off behavior should be set to mode 'mm', 0=don't modify
+ * 
+ * mm specifies the bias tee mode:
+ * 
+ * 00 - do nothing
+ * 01 - reserved, do not use
+ * 10 - disable bias tee
+ * 11 - enable bias tee
+ * 
+ * @param device device to configure
+ * @param state Bias tee states, as a bitfield
+ * @return @ref HACKRF_SUCCESS on success or @ref hackrf_error variant
+ * @ingroup device
+ * 
+*/
+extern ADDAPI int ADDCALL hackrf_set_user_bias_t_opts(
+	hackrf_device* device,
+	hackrf_bias_t_user_settting_req* req);
 
 #ifdef __cplusplus
 } // __cplusplus defined.

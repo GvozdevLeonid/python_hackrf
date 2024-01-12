@@ -27,6 +27,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 #include <string.h>
 #ifndef _WIN32
 	#include <unistd.h>
+	#include <signal.h>
 #endif
 #include <libusb.h>
 
@@ -103,6 +104,7 @@ typedef enum {
 	HACKRF_VENDOR_REQUEST_BOARD_REV_READ = 45,
 	HACKRF_VENDOR_REQUEST_SUPPORTED_PLATFORM_READ = 46,
 	HACKRF_VENDOR_REQUEST_SET_LEDS = 47,
+	HACKRF_VENDOR_REQUEST_SET_USER_BIAS_T_OPTS = 48,
 } hackrf_vendor_request;
 
 #define USB_CONFIG_STANDARD 0x1
@@ -507,6 +509,7 @@ int ADDCALL hackrf_init(void)
 	}
 }
 
+
 int ADDCALL hackrf_exit(void)
 {
 	if (open_devices == 0) {
@@ -777,7 +780,7 @@ static int hackrf_open_setup(libusb_device_handle* usb_device, hackrf_device** d
 	return HACKRF_SUCCESS;
 }
 
-int ADDCALL hackrf_android_init(int fileDescriptor, hackrf_device** device)
+int ADDCALL hackrf_init_on_android(int fileDescriptor, hackrf_device** device)
 {
 	int libusb_error;
 	if (device == NULL) {
@@ -1789,6 +1792,20 @@ static void* transfer_threadproc(void* arg)
 	hackrf_device* device = (hackrf_device*) arg;
 	int error;
 	struct timeval timeout = {0, 500000};
+
+	/*
+	 * hackrf_transfer uses pause() and SIGALRM to print statistics and
+	 * POSIX doesn't specify which thread must recieve the signal, block all
+	 * signals here, so we don't interrupt their reception by
+	 * hackrf_transfer or any other app which uses the library (#1323)
+	 */
+#ifndef _WIN32
+	sigset_t signal_mask;
+	sigfillset(&signal_mask);
+	if (pthread_sigmask(SIG_BLOCK, &signal_mask, NULL) != 0) {
+		return NULL;
+	}
+#endif
 
 	while (device->do_exit == false) {
 		error = libusb_handle_events_timeout(g_libusb_context, &timeout);
@@ -2968,6 +2985,52 @@ int ADDCALL hackrf_set_leds(hackrf_device* device, const uint8_t state)
 		LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR |
 			LIBUSB_RECIPIENT_DEVICE,
 		HACKRF_VENDOR_REQUEST_SET_LEDS,
+		state,
+		0,
+		NULL,
+		0,
+		0);
+
+	if (result != 0) {
+		last_libusb_error = result;
+		return HACKRF_ERROR_LIBUSB;
+	} else {
+		return HACKRF_SUCCESS;
+	}
+}
+
+int ADDCALL hackrf_set_user_bias_t_opts(
+	hackrf_device* device,
+	hackrf_bias_t_user_settting_req* req)
+{
+	USB_API_REQUIRED(device, 0x0108)
+	uint16_t state = 0; // Assume no modifications
+	if (req->off.do_update) {
+		state |= 0x4;
+		if (req->off.change_on_mode_entry) {
+			state |= 0x2 + req->off.enabled;
+		}
+	}
+
+	if (req->rx.do_update) {
+		state |= 0x20;
+		if (req->rx.change_on_mode_entry) {
+			state |= 0x10 + (req->rx.enabled << 3);
+		}
+	}
+
+	if (req->tx.do_update) {
+		state |= 0x100;
+		if (req->tx.change_on_mode_entry) {
+			state |= 0x80 + (req->tx.enabled << 6);
+		}
+	}
+
+	int result = libusb_control_transfer(
+		device->usb_device,
+		LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR |
+			LIBUSB_RECIPIENT_DEVICE,
+		HACKRF_VENDOR_REQUEST_SET_USER_BIAS_T_OPTS,
 		state,
 		0,
 		NULL,
