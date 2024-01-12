@@ -44,6 +44,7 @@ PY_BLOCKS_PER_TRANSFER = 16
 
 # hackrf sweep settings
 AVAILABLE_SAMPLING_RATES = (2_000_000, 4_000_000, 6_000_000, 8_000_000, 10_000_000, 12_000_000, 14_000_000, 16_000_000, 18_000_000, 20_000_000)
+AVAILABLE_BASEBAND_FILTER_BANDWIDTHS = (1_750_000, 2_500_000, 3_500_000, 5_000_000, 5_500_000, 6_000_000, 7_000_000, 8_000_000, 9_000_000, 10_000_000, 12_000_000, 14_000_000, 15_000_000, 20_000_000, 24_000_000, 28_000_000)
 BASEBAND_FILTER_BANDWIDTH_RATIO = 0.75
 INTERLEAVED_OFFSET_RATIO = 0.375
 LINEAR_OFFSET_RATIO = 0.5
@@ -79,16 +80,16 @@ cdef int pwr_1_stop = 0
 cdef int pwr_2_start = 0
 cdef int pwr_2_stop = 0
 cdef float norm_factor = 0
-cdef int start_frequency = 0
+cdef unsigned long start_frequency = 0
 
 sweep_started = False
 run_available = True
 check_max_num_sweeps = False
 
 cdef int max_num_sweeps = 0
-cdef unsigned int accepted_bytes = 0
+cdef unsigned long long accepted_bytes = 0
 cdef double sweep_rate = 0
-cdef unsigned int sweep_count = 0
+cdef unsigned long long sweep_count = 0
 
 
 def sigint_callback_handler(sig, frame):
@@ -116,7 +117,7 @@ cdef sweep_callback(buffer: np.ndarray[:], buffer_length: int, valid_length: int
     timestamp = datetime.datetime.now()
     time_str = timestamp.strftime("%Y-%m-%d, %H:%M:%S.%f")
 
-    cdef int frequency = 0
+    cdef unsigned long frequency = 0
     cdef int index = 0
     cdef int i, j
     for j in range(PY_BLOCKS_PER_TRANSFER):
@@ -228,7 +229,7 @@ cdef sweep_callback(buffer: np.ndarray[:], buffer_length: int, valid_length: int
 
 
 def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: int = 20, bin_width: int = 100_000,
-                   serial_number: str = None, amp_enable: bool = False, antenna_enable: bool = False, sample_rate: int = 20_000_000,
+                   serial_number: str = None, amp_enable: bool = False, antenna_enable: bool = False, sample_rate: int = 20_000_000, bandwidth: int = 15_000_000,
                    num_sweeps: int = None, binary_output: bool = False, one_shot: bool = False, use_queue: bool = False, filename: str = None, sweep_style: pyhackrf.py_sweep_style = pyhackrf.py_sweep_style.INTERLEAVED,
                    print_to_console: bool = True, device: pyhackrf.PyHackrfDevice = None):
 
@@ -249,6 +250,11 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
         SAMPLE_RATE = int(sample_rate)
     else:
         SAMPLE_RATE = 20_000_000
+    
+    if bandwidth in AVAILABLE_BASEBAND_FILTER_BANDWIDTHS:
+        BASEBAND_FILTER_BANDWIDTH = int(bandwidth)
+    else:
+        BASEBAND_FILTER_BANDWIDTH = int(SAMPLE_RATE * BASEBAND_FILTER_BANDWIDTH_RATIO)
 
     frequency_step_1 = sample_rate // 4
     frequency_step_2 = sample_rate // 2
@@ -260,7 +266,6 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
     accepted_bytes = 0
     sweep_started = False
 
-    BASEBAND_FILTER_BANDWIDTH = int(SAMPLE_RATE * BASEBAND_FILTER_BANDWIDTH_RATIO)
     if SWEEP_STYLE == pyhackrf.py_sweep_style.INTERLEAVED:
         OFFSET = int(SAMPLE_RATE * INTERLEAVED_OFFSET_RATIO)
     else:
