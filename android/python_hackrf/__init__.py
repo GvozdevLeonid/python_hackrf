@@ -5,7 +5,7 @@ import os
 
 
 class PythonHackrffRecipe(CythonRecipe):
-    version = '1.0.3'
+    version = '1.0.5'
     url = 'https://github.com/GvozdevLeonid/python_hackrf/releases/download/v.{version}/python_hackrf-{version}.tar.gz'
     depends = ['python3', 'setuptools', 'libusb']
     site_packages_name = 'python_hackrf'

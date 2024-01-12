@@ -7,3 +7,6 @@ dist/
 .pypirc
 
 *.egg-info
+
+python_hackrf/libhackrf/hackrf_old.h
+python_hackrf/libhackrf/hackrf_old.c

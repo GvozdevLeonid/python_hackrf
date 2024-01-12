@@ -13,7 +13,7 @@ PYHACKrF_TOOLS_FILES = list(Path('python_hackrf/pyhackrf_tools').rglob('*.pyx'))
 
 INSTALL_REQUIRES = []
 SETUP_REQUIRES = []
-LIBRARY_RELEASE = '2023.01.1'
+LIBRARY_RELEASE = '2023.01.1+'
 LIBRARY_VERSION = '0.8'
 
 PLATFORM = sys.platform
@@ -47,7 +47,7 @@ setup(
     name='python_hackrf',
     author='Leonid Gvozdev',
     author_email='leo.gvozdev.dev@gmail.com',
-    version='1.0.4',
+    version='1.0.5',
     cmdclass={'build_ext': build_ext},
     install_requires=INSTALL_REQUIRES,
     setup_requires=SETUP_REQUIRES,
@@ -56,7 +56,7 @@ setup(
             name='python_hackrf.libhackrf.pyhackrf',
             sources=source_files,
             libraries=libraries,
-            include_dirs=['python_hackrf/libhackrf',  numpy.get_include()],
+            include_dirs=['python_hackrf/libhackrf', numpy.get_include()],
             define_macros=[("LIBRARY_VERSION", f'"{LIBRARY_VERSION}"'), ("LIBRARY_RELEASE", f'"{LIBRARY_RELEASE}"')],
             extra_compile_args=['-w'],
         ),
