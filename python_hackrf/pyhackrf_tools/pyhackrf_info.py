@@ -26,21 +26,23 @@ from python_hackrf import pyhackrf
 def pyhackrf_info(print_to_console: bool = True, initialize: bool = True) -> None | str:
     if initialize:
         pyhackrf.pyhackrf_init()
+
     print_info = ''
     device_list = pyhackrf.pyhackrf_device_list()
-    print_info += f'pyhackrf_info version: {pyhackrf.pyhackrf_library_release()}\n'
-    print_info += f'pylibhackrf version: {pyhackrf.pyhackrf_library_release()} ({pyhackrf.pyhackrf_library_version()})\n'
-    print_info += 'Found HackRF\n'
+    print_info += f'python_hackrf version: {pyhackrf.python_hackrf_library_version()}\n'
+    print_info += f'libhackrf version: {pyhackrf.pyhackrf_library_release()} ({pyhackrf.pyhackrf_library_version()})\n'
 
-    for i in range(device_list.devicecount):
-        device = pyhackrf.pyhackrf_open_by_serial(device_list.serial_numbers[i])
-        board_id, board_name = device.pyhackrf_board_id_read()
-        read_partid_serialno = device.pyhackrf_board_partid_serialno_read()
-        print_info += f'Index: {i}\n'
-        print_info += f'Serial number: {device_list.serial_numbers[i]}\n'
-        print_info += f'Board ID Number: {board_id} ({board_name})\n'
-        print_info += f'Firmware Version: {device.pyhackrf_version_string_read()} ({device.pyhackrf_usb_api_version_read()})\n'
-        print_info += f'Part ID Number: 0x{read_partid_serialno["part_id"][0]:08x} 0x{read_partid_serialno["part_id"][1]:08x}\n'
+    if device_list.devicecount > 0:
+        print_info += 'Found HackRF:\n'
+        for i in range(device_list.devicecount):
+            device = pyhackrf.pyhackrf_open_by_serial(device_list.serial_numbers[i])
+            board_id, board_name = device.pyhackrf_board_id_read()
+            read_partid_serialno = device.pyhackrf_board_partid_serialno_read()
+            print_info += f'Index: {i}\n'
+            print_info += f'Serial number: {device_list.serial_numbers[i]}\n'
+            print_info += f'Board ID Number: {board_id} ({board_name})\n'
+            print_info += f'Firmware Version: {device.pyhackrf_version_string_read()} ({device.pyhackrf_usb_api_version_read()})\n'
+            print_info += f'Part ID Number: 0x{read_partid_serialno["part_id"][0]:08x} 0x{read_partid_serialno["part_id"][1]:08x}\n'
 
     if print_to_console:
         print(print_info)

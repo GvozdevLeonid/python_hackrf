@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 # cython: language_level=3str
+from python_hackrf import __version__
 from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t
 from libc.stdlib cimport malloc, free
 from . cimport chackrf
@@ -229,11 +230,6 @@ cdef class PyHackrfDevice:
 
 
     # ---- configuration ---- #
-    def pyhackrf_compute_baseband_filter_bw_round_down_lt(self, bandwidth_hz: int) -> int:
-        return chackrf.hackrf_compute_baseband_filter_bw_round_down_lt(<uint32_t> bandwidth_hz)
-
-    def pyhackrf_compute_baseband_filter_bw(self, bandwidth_hz: int) -> int:
-        return chackrf.hackrf_compute_baseband_filter_bw(<uint32_t> bandwidth_hz)
 
     def pyhackrf_set_baseband_filter_bandwidth(self, bandwidth_hz: int):
         result = chackrf.hackrf_set_baseband_filter_bandwidth(self.__hackrf_device, <uint32_t> bandwidth_hz)
@@ -562,6 +558,9 @@ def pyhackrf_exit() -> int:
 
 
 # Hackrf library info
+def python_hackrf_library_version() -> str:
+    return __version__
+
 def pyhackrf_library_version() -> str:
     return chackrf.hackrf_library_version().decode('utf-8')
 
@@ -604,3 +603,10 @@ def pyhackrf_open_by_serial(desired_serial_number: str) -> PyHackrfDevice | None
         return hackrf_device
 
     raise RuntimeError(f'pyhackrf_open_by_serial() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
+
+# baseband filter
+def pyhackrf_compute_baseband_filter_bw_round_down_lt(bandwidth_hz: int) -> int:
+    return chackrf.hackrf_compute_baseband_filter_bw_round_down_lt(<uint32_t> bandwidth_hz)
+
+def pyhackrf_compute_baseband_filter_bw(bandwidth_hz: int) -> int:
+    return chackrf.hackrf_compute_baseband_filter_bw(<uint32_t> bandwidth_hz)

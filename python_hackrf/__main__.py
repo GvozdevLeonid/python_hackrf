@@ -1,5 +1,5 @@
 from .pyhackrf_tools import pyhackrf_info, pyhackrf_sweep
-from .libhackrf import pyhackrf
+from .pylibhackrf import pyhackrf
 import argparse
 
 if __name__ == '__main__':
@@ -16,7 +16,7 @@ if __name__ == '__main__':
     pyhackrf_info_parser.add_argument('-s', '--serial_numbers', action='store_true', help='show only founded serial_numbers')
 
     pyhackrf_sweep_parser = subparsers.add_parser(
-        'sweep', help='a command-line spectrum analyzer.', usage='python -m python_hackrf sweep [-h] [-d] [-a] [-f] [-p] [-l] [-g] [-w] [-1] [-N] [-B] [-s] [-SR] [-r]'
+        'sweep', help='a command-line spectrum analyzer.', usage='python -m python_hackrf sweep [-h] [-d] [-a] [-f] [-p] [-l] [-g] [-w] [-1] [-N] [-B] [-s] [-SR] [-BF] [-r]'
     )
     pyhackrf_sweep_parser.add_argument('-d', action='store', help='serial_number. serial number of desired HackRF', metavar='')
     pyhackrf_sweep_parser.add_argument('-a', action='store_true', help='amp_enable. RX RF amplifier. If specified = Enable')
@@ -30,6 +30,7 @@ if __name__ == '__main__':
     pyhackrf_sweep_parser.add_argument('-B', action='store_true', help='binary output. If specified = Enable')
     pyhackrf_sweep_parser.add_argument('-s', action='store', help='sweep style ("L" - LINEAR, "I" - INTERLEAVED). Default is INTERLEAVED', metavar='', default='I')
     pyhackrf_sweep_parser.add_argument('-SR', action='store', help='sample rate (2, 4, 6, 8, 10, 12, 14, 16, 18, 20). Default is 20', metavar='', default=20)
+    pyhackrf_sweep_parser.add_argument('-BF', action='store', help='baseband filter (1.75, 2.5, 3.5, 5.0, 5.5, 6.0, 7.0, 8.0, 9.0, 10.0, 12.0, 14.0, 15.0 20.0, 24.0, 28.0). Default is 15.0', metavar='', default=15.0)
     pyhackrf_sweep_parser.add_argument('-r', action='store', help='filename. output file', metavar='')
     args, unparsed_args = parser.parse_known_args()
 
@@ -69,5 +70,6 @@ if __name__ == '__main__':
                                       filename=args.r,
                                       sweep_style=pyhackrf.py_sweep_style.LINEAR if args.s == 'L' else pyhackrf.py_sweep_style.INTERLEAVED,
                                       sample_rate=int(args.SR) * 1e6,
+                                      baseband_filter=float(args.BF) * 1e6,
                                       print_to_console=True,
                                       )

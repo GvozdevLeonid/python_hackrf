@@ -64,7 +64,7 @@ options:
   -s, --serial_numbers  show only founded serial_numbers
 ```
 ```
-usage: python -m python_hackrf sweep [-h] [-d] [-a] [-f] [-p] [-l] [-g] [-w] [-1] [-N] [-B] [-s] [-SR] [-r]
+usage: python -m python_hackrf sweep [-h] [-d] [-a] [-f] [-p] [-l] [-g] [-w] [-1] [-N] [-B] [-s] [-SR] [-BF] [-r]
 
 options:
   -h, --help  show this help message and exit
@@ -80,6 +80,7 @@ options:
   -B          binary output. If specified = Enable
   -s          sweep style ("L" - LINEAR, "I" - INTERLEAVED). Default is INTERLEAVED
   -SR         sample rate (2, 4, 6, 8, 10, 12, 14, 16, 18, 20). Default is 20
+  -BF         baseband filter (1.75, 2.5, 3.5, 5.0, 5.5, 6.0, 7.0, 8.0, 9.0, 10.0, 12.0, 14.0, 15.0 20.0, 24.0, 28.0). Default is 15.0
   -r          filename. output file
 ```
 ## Note

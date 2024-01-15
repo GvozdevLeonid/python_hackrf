@@ -45,7 +45,6 @@ PY_BLOCKS_PER_TRANSFER = 16
 # hackrf sweep settings
 AVAILABLE_SAMPLING_RATES = (2_000_000, 4_000_000, 6_000_000, 8_000_000, 10_000_000, 12_000_000, 14_000_000, 16_000_000, 18_000_000, 20_000_000)
 AVAILABLE_BASEBAND_FILTER_BANDWIDTHS = (1_750_000, 2_500_000, 3_500_000, 5_000_000, 5_500_000, 6_000_000, 7_000_000, 8_000_000, 9_000_000, 10_000_000, 12_000_000, 14_000_000, 15_000_000, 20_000_000, 24_000_000, 28_000_000)
-BASEBAND_FILTER_BANDWIDTH_RATIO = 0.75
 INTERLEAVED_OFFSET_RATIO = 0.375
 LINEAR_OFFSET_RATIO = 0.5
 
@@ -229,7 +228,7 @@ cdef sweep_callback(buffer: np.ndarray[:], buffer_length: int, valid_length: int
 
 
 def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: int = 20, bin_width: int = 100_000,
-                   serial_number: str = None, amp_enable: bool = False, antenna_enable: bool = False, sample_rate: int = 20_000_000, bandwidth: int = 15_000_000,
+                   serial_number: str = None, amp_enable: bool = False, antenna_enable: bool = False, sample_rate: int = 20_000_000, baseband_filter: int = 15_000_000,
                    num_sweeps: int = None, binary_output: bool = False, one_shot: bool = False, use_queue: bool = False, filename: str = None, sweep_style: pyhackrf.py_sweep_style = pyhackrf.py_sweep_style.INTERLEAVED,
                    print_to_console: bool = True, device: pyhackrf.PyHackrfDevice = None):
 
@@ -250,11 +249,13 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
         SAMPLE_RATE = int(sample_rate)
     else:
         SAMPLE_RATE = 20_000_000
-    
-    if bandwidth in AVAILABLE_BASEBAND_FILTER_BANDWIDTHS:
-        BASEBAND_FILTER_BANDWIDTH = int(bandwidth)
+
+    SAMPLE_RATE = int(sample_rate)
+
+    if baseband_filter in AVAILABLE_BASEBAND_FILTER_BANDWIDTHS:
+        BASEBAND_FILTER_BANDWIDTH = int(baseband_filter)
     else:
-        BASEBAND_FILTER_BANDWIDTH = int(SAMPLE_RATE * BASEBAND_FILTER_BANDWIDTH_RATIO)
+        BASEBAND_FILTER_BANDWIDTH = pyhackrf.pyhackrf_compute_baseband_filter_bw(int(baseband_filter))
 
     frequency_step_1 = sample_rate // 4
     frequency_step_2 = sample_rate // 2

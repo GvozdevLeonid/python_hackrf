@@ -8,7 +8,7 @@ import numpy
 
 libraries = ['usb-1.0']
 
-LIBHACKRF_FILES = list(Path('python_hackrf/libhackrf').rglob('*.pyx'))
+LIBHACKRF_FILES = list(Path('python_hackrf/pylibhackrf').rglob('*.pyx'))
 PYHACKrF_TOOLS_FILES = list(Path('python_hackrf/pyhackrf_tools').rglob('*.pyx'))
 
 INSTALL_REQUIRES = []
@@ -41,22 +41,21 @@ else:
     LIBHACKRF_FILES = [fn.with_suffix('.c') for fn in LIBHACKRF_FILES]
 
 source_files = [str(fn) for fn in LIBHACKRF_FILES]
-source_files.append('python_hackrf/libhackrf/hackrf.c')
+source_files.append('python_hackrf/pylibhackrf/hackrf.c')
 
 setup(
     name='python_hackrf',
     author='Leonid Gvozdev',
     author_email='leo.gvozdev.dev@gmail.com',
-    version='1.0.5',
     cmdclass={'build_ext': build_ext},
     install_requires=INSTALL_REQUIRES,
     setup_requires=SETUP_REQUIRES,
     ext_modules=[
         Extension(
-            name='python_hackrf.libhackrf.pyhackrf',
+            name='python_hackrf.pylibhackrf.pyhackrf',
             sources=source_files,
             libraries=libraries,
-            include_dirs=['python_hackrf/libhackrf', numpy.get_include()],
+            include_dirs=['python_hackrf/pylibhackrf', numpy.get_include()],
             define_macros=[("LIBRARY_VERSION", f'"{LIBRARY_VERSION}"'), ("LIBRARY_RELEASE", f'"{LIBRARY_RELEASE}"')],
             extra_compile_args=['-w'],
         ),

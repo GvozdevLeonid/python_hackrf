@@ -8,5 +8,5 @@ dist/
 
 *.egg-info
 
-python_hackrf/libhackrf/hackrf_old.h
-python_hackrf/libhackrf/hackrf_old.c
+python_hackrf/pylibhackrf/hackrf_old.h
+python_hackrf/pylibhackrf/hackrf_old.c
