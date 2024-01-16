@@ -43,7 +43,7 @@ Almost all the functionality of the standard library is implemented. Some featur
 
 ## usage
 ```
-usage: python -m python_hackrf [-h] {info, sweep} ...
+usage: python_hackrf [-h] {info, sweep} ...
 
 python_hackrf is a Python wrapper for libhackrf and hackrf-tools.
 
@@ -56,7 +56,7 @@ Available commands:
     sweep       a command-line spectrum analyzer.
 ```
 ```
-usage: python -m python_hackrf info [-h] [-f] [-s]
+usage: python_hackrf info [-h] [-f] [-s]
 
 options:
   -h, --help            show this help message and exit
@@ -64,7 +64,7 @@ options:
   -s, --serial_numbers  show only founded serial_numbers
 ```
 ```
-usage: python -m python_hackrf sweep [-h] [-d] [-a] [-f] [-p] [-l] [-g] [-w] [-1] [-N] [-B] [-s] [-SR] [-BF] [-r]
+usage: python_hackrf sweep [-h] [-d] [-a] [-f] [-p] [-l] [-g] [-w] [-1] [-N] [-B] [-s] [-SR] [-BF] [-r]
 
 options:
   -h, --help  show this help message and exit

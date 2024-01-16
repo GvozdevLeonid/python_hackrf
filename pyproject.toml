@@ -1,6 +1,6 @@
 [project]
 name = "python_hackrf"
-version = "1.0.6"
+version = "1.0.7"
 authors = [
   {name="Leonid Gvozdev", email="leo.gvozdev.dev@gmail.com"},
 ]
@@ -25,3 +25,6 @@ requires = [
     "wheel",
     "numpy"
 ]
+
+[project.scripts]
+python_hackrf= "python_hackrf.__main__:main"
