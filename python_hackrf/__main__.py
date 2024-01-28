@@ -1,6 +1,7 @@
 from .pyhackrf_tools import pyhackrf_info, pyhackrf_sweep
 from .pylibhackrf import pyhackrf
 import argparse
+import sys
 
 
 def main():
@@ -33,50 +34,51 @@ def main():
     pyhackrf_sweep_parser.add_argument('-SR', action='store', help='sample rate (2, 4, 6, 8, 10, 12, 14, 16, 18, 20). Default is 20', metavar='', default=20)
     pyhackrf_sweep_parser.add_argument('-BF', action='store', help='baseband filter (1.75, 2.5, 3.5, 5.0, 5.5, 6.0, 7.0, 8.0, 9.0, 10.0, 12.0, 14.0, 15.0 20.0, 24.0, 28.0). Default is 15.0', metavar='', default=15.0)
     pyhackrf_sweep_parser.add_argument('-r', action='store', help='filename. output file', metavar='')
-    args, unparsed_args = parser.parse_known_args()
 
-    if not hasattr(args, 'command'):
+    if len(sys.argv) == 1:
         parser.print_help()
-    else:
-        if args.command == 'info':
-            if args.serial_numbers:
-                pyhackrf_info.pyhackrf_serial_numbers_list_info()
-            else:
-                pyhackrf_info.pyhackrf_info()
+        sys.exit(0)
 
-        if args.command == 'sweep':
-            str_frequencies = args.f.split(',')
-            frequencies = []
-            for frequency_range in str_frequencies:
-                frequency_range = frequency_range.split(':')
-                freq_min, freq_max = None, None
-                try:
-                    freq_min = int(frequency_range[0])
-                except Exception:
-                    pass
-                try:
-                    freq_max = int(frequency_range[1])
-                except Exception:
-                    pass
-                if freq_min is not None and freq_max is not None:
-                    frequencies.extend([freq_min, freq_max])
+    args, unparsed_args = parser.parse_known_args()
+    if args.command == 'info':
+        if args.serial_numbers:
+            pyhackrf_info.pyhackrf_serial_numbers_list_info()
+        else:
+            pyhackrf_info.pyhackrf_info()
 
-            pyhackrf_sweep.pyhackrf_sweep(frequencies=frequencies,
-                                        lna_gain=int(args.l),
-                                        vga_gain=int(args.g),
-                                        bin_width=int(args.w),
-                                        serial_number=args.d,
-                                        amp_enable=args.a,
-                                        antenna_enable=args.p,
-                                        num_sweeps=int(args.N) if args.N is not None else None,
-                                        binary_output=args.B,
-                                        one_shot=args.__dict__.get('1'),
-                                        filename=args.r,
-                                        sweep_style=pyhackrf.py_sweep_style.LINEAR if args.s == 'L' else pyhackrf.py_sweep_style.INTERLEAVED,
-                                        sample_rate=int(args.SR) * 1e6,
-                                        baseband_filter=float(args.BF) * 1e6,
-                                        print_to_console=True,
-                                        )
+    if args.command == 'sweep':
+        str_frequencies = args.f.split(',')
+        frequencies = []
+        for frequency_range in str_frequencies:
+            frequency_range = frequency_range.split(':')
+            freq_min, freq_max = None, None
+            try:
+                freq_min = int(frequency_range[0])
+            except Exception:
+                pass
+            try:
+                freq_max = int(frequency_range[1])
+            except Exception:
+                pass
+            if freq_min is not None and freq_max is not None:
+                frequencies.extend([freq_min, freq_max])
+
+        pyhackrf_sweep.pyhackrf_sweep(frequencies=frequencies,
+                                      lna_gain=int(args.l),
+                                      vga_gain=int(args.g),
+                                      bin_width=int(args.w),
+                                      serial_number=args.d,
+                                      amp_enable=args.a,
+                                      antenna_enable=args.p,
+                                      num_sweeps=int(args.N) if args.N is not None else None,
+                                      binary_output=args.B,
+                                      one_shot=args.__dict__.get('1'),
+                                      filename=args.r,
+                                      sweep_style=pyhackrf.py_sweep_style.LINEAR if args.s == 'L' else (pyhackrf.py_sweep_style.INTERLEAVED if args.s == 'I' else -1),
+                                      sample_rate=int(args.SR) * 1e6,
+                                      baseband_filter=float(args.BF) * 1e6,
+                                      print_to_console=True,
+                                      )
 
 
 if __name__ == '__main__':

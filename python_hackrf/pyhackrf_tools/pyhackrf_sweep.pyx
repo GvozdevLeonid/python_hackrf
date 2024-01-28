@@ -165,6 +165,7 @@ cdef sweep_callback(buffer: np.ndarray[:], buffer_length: int, valid_length: int
                 line += struct.pack('Q', frequency + frequency_step_2)
                 line += struct.pack('Q', frequency + frequency_step_3)
                 line += struct.pack('<' + 'f' * (fftSize // 4), *pwr[pwr_2_start: pwr_2_stop])
+
             else:
                 record_length = 16 + fftSize * 4
                 line = struct.pack('I', record_length)
@@ -211,6 +212,7 @@ cdef sweep_callback(buffer: np.ndarray[:], buffer_length: int, valid_length: int
                 for i in range(len(pwr_2)):
                     line += f'{pwr_2[i]:.10f}, '
                 line = line[:-2] + '\n'
+
             else:
                 line = f'{time_str}, {frequency}, {frequency + SAMPLE_RATE}, {SAMPLE_RATE / fftSize}, {fftSize}, '
                 for i in range(len(pwr)):
@@ -267,12 +269,11 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
     accepted_bytes = 0
     sweep_started = False
 
+    TUNE_STEP = SAMPLE_RATE / 1e6
     if SWEEP_STYLE == pyhackrf.py_sweep_style.INTERLEAVED:
         OFFSET = int(SAMPLE_RATE * INTERLEAVED_OFFSET_RATIO)
     else:
         OFFSET = int(SAMPLE_RATE * LINEAR_OFFSET_RATIO)
-
-    TUNE_STEP = SAMPLE_RATE / 1e6
 
     init_signals()
 
@@ -323,7 +324,7 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
         frequencies[2 * i + 1] = int(frequencies[2 * i] + step_count * TUNE_STEP)
 
         if frequencies[2 * i] < PY_FREQ_MIN_MHZ:
-            raise RuntimeError(f'min frequency must must be greater than than {PY_FREQ_MIN_MHZ} MHz.')
+            raise RuntimeError(f'min frequency must must be greater than {PY_FREQ_MIN_MHZ} MHz.')
         if frequencies[2 * i + 1] > PY_FREQ_MAX_MHZ:
             raise RuntimeError(f'max frequency may not be higher {PY_FREQ_MAX_MHZ} MHz.')
 
@@ -334,9 +335,9 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
 
     fftSize = int(SAMPLE_RATE / bin_width)
     if fftSize < 4:
-        raise RuntimeError(f'bin_width should be between no more than {SAMPLE_RATE // 4} Hz')
+        raise RuntimeError(f'bin_width should be no more than {SAMPLE_RATE // 4} Hz')
     elif fftSize > 8180:
-        raise RuntimeError(f'bin_width should be between no less than {SAMPLE_RATE // 8180 + 1} Hz')
+        raise RuntimeError(f'bin_width should be no less than {SAMPLE_RATE // 8180 + 1} Hz')
 
     while ((fftSize + 4) % 8):
         fftSize += 1
@@ -349,7 +350,6 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
 
     norm_factor = 1.0 / fftSize
     data_length = fftSize * 2
-
     window = np.hanning(fftSize)
 
     device.pyhackrf_init_sweep(frequencies, num_ranges, pyhackrf.PY_BYTES_PER_BLOCK, int(TUNE_STEP * 1e6), OFFSET, sweep_style)
