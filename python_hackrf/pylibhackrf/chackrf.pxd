@@ -46,7 +46,7 @@ cdef extern from "hackrf.h":
         HACKRF_ERROR_USB_API_VERSION
         HACKRF_ERROR_NOT_LAST_DEVICE
         HACKRF_ERROR_OTHER
-    
+
     int HACKRF_BOARD_REV_GSG
     int HACKRF_PLATFORM_JAWBREAKER
     int HACKRF_PLATFORM_HACKRF1_OG
@@ -61,7 +61,7 @@ cdef extern from "hackrf.h":
         BOARD_ID_HACKRF1_R9
         BOARD_ID_UNRECOGNIZED
         BOARD_ID_UNDETECTED
-    
+
     int BOARD_ID_HACKRF_ONE
     int BOARD_ID_INVALID
 
@@ -78,18 +78,18 @@ cdef extern from "hackrf.h":
         BOARD_REV_GSG_HACKRF1_R9
         BOARD_REV_UNRECOGNIZED
         BOARD_REV_UNDETECTED
-    
+
     enum hackrf_usb_board_id:
         USB_BOARD_ID_JAWBREAKER
         USB_BOARD_ID_HACKRF_ONE
         USB_BOARD_ID_RAD1O
         USB_BOARD_ID_INVALID
-    
+
     enum rf_path_filter:
         RF_PATH_FILTER_BYPASS
         RF_PATH_FILTER_LOW_PASS
         RF_PATH_FILTER_HIGH_PASS
-    
+
     enum operacake_ports:
         OPERACAKE_PA1
         OPERACAKE_PA2
@@ -99,16 +99,16 @@ cdef extern from "hackrf.h":
         OPERACAKE_PB2
         OPERACAKE_PB3
         OPERACAKE_PB4
-    
+
     enum operacake_switching_mode:
         OPERACAKE_MODE_MANUAL
         OPERACAKE_MODE_FREQUENCY
         OPERACAKE_MODE_TIME
-    
+
     enum sweep_style:
         LINEAR
         INTERLEAVED
-    
+
     ctypedef struct hackrf_device:
         pass
 
@@ -119,15 +119,15 @@ cdef extern from "hackrf.h":
         int valid_length
         void* rx_ctx
         void* tx_ctx
-    
+
     ctypedef struct read_partid_serialno_t:
         uint32_t part_id[2]
         uint32_t serial_no[4]
-    
+
     ctypedef struct hackrf_operacake_dwell_time:
-        uint32_t dwells
+        uint32_t dwell
         uint8_t port
-    
+
     ctypedef struct hackrf_operacake_freq_range:
         uint16_t freq_min
         uint16_t freq_max
@@ -145,7 +145,7 @@ cdef extern from "hackrf.h":
         uint32_t threshold
         uint32_t next_mode
         uint32_t error
-    
+
     ctypedef struct hackrf_device_list_t:
         char** serial_numbers
         hackrf_usb_board_id* usb_board_ids
@@ -154,11 +154,11 @@ cdef extern from "hackrf.h":
         void** usb_devices
         int usb_devicecount
 
-    ctypedef int (*hackrf_sample_block_cb_fn)(hackrf_transfer* transfer)
-    
-    ctypedef void (*hackrf_tx_block_complete_cb_fn)(hackrf_transfer* transfer, int)
-    
-    ctypedef void (*hackrf_flush_cb_fn)(void* flush_ctx, int)
+    ctypedef int(*hackrf_sample_block_cb_fn)(hackrf_transfer* transfer)
+
+    ctypedef void(*hackrf_tx_block_complete_cb_fn)(hackrf_transfer* transfer, int)
+
+    ctypedef void(*hackrf_flush_cb_fn)(void* flush_ctx, int)
 
     int hackrf_init()
 
@@ -223,7 +223,7 @@ cdef extern from "hackrf.h":
     int hackrf_spiflash_read(hackrf_device* device, const uint32_t address, const uint16_t length, unsigned char* data)
 
     int hackrf_spiflash_status(hackrf_device* device, uint8_t* data)
-    
+
     int hackrf_spiflash_clear_status(hackrf_device* device)
 
     int hackrf_cpld_write(hackrf_device* device, unsigned char* data, const unsigned int total_length)
@@ -286,8 +286,6 @@ cdef extern from "hackrf.h":
 
     int hackrf_reset(hackrf_device* device)
 
-    int hackrf_set_operacake_ranges(hackrf_device* device, uint8_t* ranges, uint8_t num_ranges)
-
     int hackrf_set_clkout_enable(hackrf_device* device, const uint8_t value)
 
     int hackrf_get_clkin_status(hackrf_device* device, uint8_t* status)
@@ -306,7 +304,7 @@ cdef extern from "hackrf.h":
 
     int hackrf_board_rev_read(hackrf_device* device, uint8_t* value)
 
-    const char* hackrf_board_rev_name(hackrf_board_rev board_rev)
+    const char* hackrf_board_rev_name(uint8_t board_rev)
 
     int hackrf_supported_platform_read(hackrf_device* device, uint32_t* value)
 
