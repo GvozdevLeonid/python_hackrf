@@ -13,8 +13,8 @@ PYHACKrF_TOOLS_FILES = list(Path('python_hackrf/pyhackrf_tools').rglob('*.pyx'))
 
 INSTALL_REQUIRES = []
 SETUP_REQUIRES = []
-LIBRARY_RELEASE = '2023.01.1+'
-LIBRARY_VERSION = '0.8'
+LIBRARY_RELEASE = '2024.02.1'
+LIBRARY_VERSION = '0.9'
 
 PLATFORM = sys.platform
 
