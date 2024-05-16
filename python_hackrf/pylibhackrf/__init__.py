@@ -1,1 +1,1 @@
-from . import pyhackrf
+from . import pyhackrf  # noqa F401

@@ -23,7 +23,7 @@
 # cython: language_level=3str
 from python_hackrf import pyhackrf
 try:
-    from scipy.fft import fft, fftshift
+    from scipy.fft import fft, fftshift  # type: ignore
 except ImportError:
     from numpy.fft import fft, fftshift
 
@@ -39,7 +39,7 @@ import sys
 
 PY_FREQ_MIN_MHZ = 0  # 0 MHz
 PY_FREQ_MAX_MHZ = 7_250  # 7250 MHz
-PY_FREQ_MAX_HZ = PY_FREQ_MAX_MHZ * 1e6 # Hz
+PY_FREQ_MAX_HZ = PY_FREQ_MAX_MHZ * 1e6  # Hz
 PY_BLOCKS_PER_TRANSFER = 16
 
 # hackrf sweep settings
@@ -95,6 +95,7 @@ def sigint_callback_handler(sig, frame):
     global run_available
     run_available = False
     sys.stderr.write('\n')
+
 
 def init_signals():
     try:
@@ -375,7 +376,7 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
         if time_difference >= time_second:
             if print_to_console:
                 sweep_rate = sweep_count / (time_now - time_start)
-                sys.stderr.write(f'{sweep_count} total sweeps completed,{round(sweep_rate, 2)} sweeps/second\n')
+                sys.stderr.write(f'{sweep_count} total sweeps completed, {round(sweep_rate, 2)} sweeps/second\n')
 
             if accepted_bytes == 0:
                 if print_to_console:
@@ -399,7 +400,7 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
         sweep_rate = sweep_count / (time_now - time_start)
 
     if print_to_console:
-        sys.stderr.write(f'Total sweeps: {sweep_count} in {time_now - time_start:.5f} seconds ({sweep_rate :.2f}sweeps/second)\n')
+        sys.stderr.write(f'Total sweeps: {sweep_count} in {time_now - time_start:.5f} seconds ({sweep_rate :.2f} sweeps/second)\n')
 
     try:
         device.pyhackrf_close()
@@ -412,4 +413,5 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
     if print_to_console:
         sys.stderr.write('pyhackrf_exit() done\n')
 
+    queue.queue.clear()
     run_available = False
