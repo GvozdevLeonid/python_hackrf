@@ -7,22 +7,22 @@ import sys
 def main():
     parser = argparse.ArgumentParser(
         description="python_hackrf is a Python wrapper for libhackrf and hackrf-tools.",
-        usage="python -m python_hackrf [-h] {info, sweep} ..."
+        usage="python_hackrf [-h] {info, sweep} ..."
     )
     subparsers = parser.add_subparsers(dest="command", title="Available commands")
     subparsers.required = True
     pyhackrf_info_parser = subparsers.add_parser(
-        'info', help='Read device information from HackRF such as serial number and firmware version.', usage="python -m python_hackrf info [-h] [-f] [-s]"
+        'info', help='Read device information from HackRF such as serial number and firmware version.', usage="python_hackrf info [-h] [-f] [-s]"
     )
     pyhackrf_info_parser.add_argument('-f', '--full', action='store_true', help='show info like in hackrf_info')
     pyhackrf_info_parser.add_argument('-s', '--serial_numbers', action='store_true', help='show only founded serial_numbers')
 
     pyhackrf_sweep_parser = subparsers.add_parser(
-        'sweep', help='a command-line spectrum analyzer.', usage='python -m python_hackrf sweep [-h] [-d] [-a] [-f] [-p] [-l] [-g] [-w] [-1] [-N] [-B] [-s] [-SR] [-BF] [-r]'
+        'sweep', help='a command-line spectrum analyzer.', usage='python_hackrf sweep [-h] [-d] [-a] [-f] [-p] [-l] [-g] [-w] [-1] [-N] [-B] [-s] [-SR] [-BF] [-r]'
     )
     pyhackrf_sweep_parser.add_argument('-d', action='store', help='serial_number. serial number of desired HackRF', metavar='')
     pyhackrf_sweep_parser.add_argument('-a', action='store_true', help='amp_enable. RX RF amplifier. If specified = Enable')
-    pyhackrf_sweep_parser.add_argument('-f', action='store', help='freq_min:freq_max. minimum and maximum frequencies in MHz srart:stop or start1:stop1,start2:stop2 (MAX_SWEEP_RANGES = 10)', metavar='', default='0:6000')
+    pyhackrf_sweep_parser.add_argument('-f', action='store', help='freq_min:freq_max. minimum and maximum frequencies in MHz start:stop or start1:stop1,start2:stop2 (MAX_SWEEP_RANGES = 10)', metavar='', default='0:6000')
     pyhackrf_sweep_parser.add_argument('-p', action='store_true', help='antenna_enable. Antenna port power. If specified = Enable')
     pyhackrf_sweep_parser.add_argument('-l', action='store', help='gain_db. RX LNA (IF) gain, 0-40dB, 8dB steps', metavar='', default=16)
     pyhackrf_sweep_parser.add_argument('-g', action='store', help='gain_db. RX VGA (baseband) gain, 0-62dB, 2dB steps', metavar='', default=20)
@@ -31,8 +31,8 @@ def main():
     pyhackrf_sweep_parser.add_argument('-N', action='store', help='num_sweeps. Number of sweeps to perform', metavar='')
     pyhackrf_sweep_parser.add_argument('-B', action='store_true', help='binary output. If specified = Enable')
     pyhackrf_sweep_parser.add_argument('-s', action='store', help='sweep style ("L" - LINEAR, "I" - INTERLEAVED). Default is INTERLEAVED', metavar='', default='I')
-    pyhackrf_sweep_parser.add_argument('-SR', action='store', help='sample rate (2, 4, 6, 8, 10, 12, 14, 16, 18, 20). Default is 20', metavar='', default=20)
-    pyhackrf_sweep_parser.add_argument('-BF', action='store', help='baseband filter (1.75, 2.5, 3.5, 5.0, 5.5, 6.0, 7.0, 8.0, 9.0, 10.0, 12.0, 14.0, 15.0 20.0, 24.0, 28.0). Default is 15.0', metavar='', default=15.0)
+    pyhackrf_sweep_parser.add_argument('-SR', action='store', help='sample rate in Hz (2, 4, 6, 8, 10, 12, 14, 16, 18, 20). Default is 20000000', metavar='', default=20)
+    pyhackrf_sweep_parser.add_argument('-BF', action='store', help='baseband filter bandwidth in Hz (1.75, 2.5, 3.5, 5.0, 5.5, 6.0, 7.0, 8.0, 9.0, 10.0, 12.0, 14.0, 15.0 20.0, 24.0, 28.0). Default is 15000000', metavar='', default=15.0)
     pyhackrf_sweep_parser.add_argument('-r', action='store', help='filename. output file', metavar='')
 
     if len(sys.argv) == 1:
