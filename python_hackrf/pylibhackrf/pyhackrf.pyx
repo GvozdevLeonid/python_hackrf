@@ -130,7 +130,7 @@ cdef class PyHackRFDeviceList:
         if self.__hackrf_device_list is not NULL:
             chackrf.hackrf_device_list_free(self.__hackrf_device_list)
 
-    property devicecount:
+    property device_count:
         def __get__(self):
             if self.__hackrf_device_list is not NULL:
                 return self.__hackrf_device_list[0].devicecount
@@ -614,12 +614,12 @@ def pyhackrf_init() -> int:
     return chackrf.hackrf_init()
 
 
-def pyhackrf_init_on_android(int fileDescriptor) -> PyHackrfDevice | None:
-    hackrf_device = PyHackrfDevice()
-    result = chackrf.hackrf_init_on_android(fileDescriptor, hackrf_device.get_hackrf_device_double_ptr())
+def pyhackrf_init_on_android(fileDescriptor: int) -> PyHackrfDevice | None:
+    pyhackrf_device = PyHackrfDevice()
+    result = chackrf.hackrf_init_on_android(fileDescriptor, pyhackrf_device.get_hackrf_device_double_ptr())
     if result == chackrf.hackrf_error.HACKRF_SUCCESS:
-        hackrf_device._setup_callbacks()
-        return hackrf_device
+        pyhackrf_device._setup_callbacks()
+        return pyhackrf_device
 
     raise RuntimeError(f'pyhackrf_init_on_android() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
@@ -646,37 +646,37 @@ def pyhackrf_device_list() -> PyHackRFDeviceList:
     return PyHackRFDeviceList()
 
 
-def pyhackrf_device_list_open(hackrf_device_list: PyHackRFDeviceList, index: int) -> PyHackrfDevice | None:
-    hackrf_device = PyHackrfDevice()
-    result = chackrf.hackrf_device_list_open(hackrf_device_list.get_hackrf_device_list_ptr(), index, hackrf_device.get_hackrf_device_double_ptr())
+def pyhackrf_device_list_open(pyhackrf_device_list: PyHackRFDeviceList, index: int) -> PyHackrfDevice | None:
+    pyhackrf_device = PyHackrfDevice()
+    result = chackrf.hackrf_device_list_open(pyhackrf_device_list.get_hackrf_device_list_ptr(), index, pyhackrf_device.get_hackrf_device_double_ptr())
 
     if result == chackrf.hackrf_error.HACKRF_SUCCESS:
-        hackrf_device._setup_callbacks()
-        return hackrf_device
+        pyhackrf_device._setup_callbacks()
+        return pyhackrf_device
 
     raise RuntimeError(f'pyhackrf_device_list_open() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
 
 def pyhackrf_open() -> PyHackrfDevice | None:
-    hackrf_device = PyHackrfDevice()
+    pyhackrf_device = PyHackrfDevice()
 
-    result = chackrf.hackrf_open(hackrf_device.get_hackrf_device_double_ptr())
+    result = chackrf.hackrf_open(pyhackrf_device.get_hackrf_device_double_ptr())
 
     if result == chackrf.hackrf_error.HACKRF_SUCCESS:
-        hackrf_device._setup_callbacks()
-        return hackrf_device
+        pyhackrf_device._setup_callbacks()
+        return pyhackrf_device
 
     raise RuntimeError(f'pyhackrf_open() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
 
 def pyhackrf_open_by_serial(desired_serial_number: str) -> PyHackrfDevice | None:
-    hackrf_device = PyHackrfDevice()
+    pyhackrf_device = PyHackrfDevice()
 
-    result = chackrf.hackrf_open_by_serial(desired_serial_number.encode('utf-8'), hackrf_device.get_hackrf_device_double_ptr())
+    result = chackrf.hackrf_open_by_serial(desired_serial_number.encode('utf-8'), pyhackrf_device.get_hackrf_device_double_ptr())
 
     if result == chackrf.hackrf_error.HACKRF_SUCCESS:
-        hackrf_device._setup_callbacks()
-        return hackrf_device
+        pyhackrf_device._setup_callbacks()
+        return pyhackrf_device
 
     raise RuntimeError(f'pyhackrf_open_by_serial() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 

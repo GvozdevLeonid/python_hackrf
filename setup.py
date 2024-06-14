@@ -9,7 +9,7 @@ import numpy
 libraries = ['usb-1.0']
 
 LIBHACKRF_FILES = list(Path('python_hackrf/pylibhackrf').rglob('*.pyx'))
-PYHACKrF_TOOLS_FILES = list(Path('python_hackrf/pyhackrf_tools').rglob('*.pyx'))
+PYHACKRF_TOOLS_FILES = list(Path('python_hackrf/pyhackrf_tools').rglob('*.pyx'))
 
 INSTALL_REQUIRES = []
 SETUP_REQUIRES = []
@@ -27,15 +27,21 @@ if PLATFORM != 'android':
     INSTALL_REQUIRES.append('cython==0.29.36')
     INSTALL_REQUIRES.append('numpy>=1.26')
 
+    cflags = environ.get('CFLAGS', '')
+    ldflags = environ.get('LDFLAGS', '')
+
     if PLATFORM == 'darwin':
-        environ["CFLAGS"] = "-I/opt/homebrew/include/libusb-1.0"
-        environ["LDFLAGS"] = "-L/opt/homebrew/Cellar/libusb/1.0.26/lib"
+        new_cflags = '-I/opt/homebrew/include/libusb-1.0'
+        new_ldflags = '-L/opt/homebrew/lib'
     elif PLATFORM.startswith('linux'):
-        environ["CFLAGS"] = "-I/usr/include/libusb-1.0"
-        environ["LDFLAGS"] = "-L/usr/lib64"
-        environ["LDFLAGS"] = "-L/usr/lib"
+        new_cflags = '-I/usr/include/libusb-1.0'
+        new_ldflags = '-L/usr/lib64 -L/usr/lib'
     elif PLATFORM == 'win32':
         pass
+
+    environ['CFLAGS'] = f'{cflags} {new_cflags}'.strip()
+    environ['LDFLAGS'] = f'{ldflags} {new_ldflags}'.strip()
+
 else:
     libraries = ['usb1.0']
     LIBHACKRF_FILES = [fn.with_suffix('.c') for fn in LIBHACKRF_FILES]
@@ -59,11 +65,12 @@ setup(
         ),
         Extension(
             name='python_hackrf.pyhackrf_tools.pyhackrf_sweep',
-            sources=[str(fn) for fn in PYHACKrF_TOOLS_FILES],
+            sources=[str(fn) for fn in PYHACKRF_TOOLS_FILES],
             include_dirs=['python_hackrf/pyhackrf_tools', numpy.get_include()],
             extra_compile_args=['-w'],
         )
     ],
     packages=find_packages(),
-    package_dir={'': '.'}
+    package_dir={'': '.'},
+    include_package_data=True,
 )
