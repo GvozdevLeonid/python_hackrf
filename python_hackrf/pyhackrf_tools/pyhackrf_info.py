@@ -32,8 +32,8 @@ def pyhackrf_info(print_to_console: bool = True, initialize: bool = True) -> Non
     print_info += f'python_hackrf version: {pyhackrf.python_hackrf_library_version()}\n'
     print_info += f'libhackrf version: {pyhackrf.pyhackrf_library_release()} ({pyhackrf.pyhackrf_library_version()})\n'
 
-    if device_list.devicecount > 0:
-        for i in range(device_list.devicecount):
+    if device_list.device_count > 0:
+        for i in range(device_list.device_count):
             print_info += 'Found HackRF:\n'
             device = pyhackrf.pyhackrf_open_by_serial(device_list.serial_numbers[i])
             board_id, board_id_name = device.pyhackrf_board_id_read()
@@ -76,8 +76,8 @@ def pyhackrf_serial_numbers_list_info(print_to_console: bool = True, initialize:
     device_list = pyhackrf.pyhackrf_device_list()
 
     if print_to_console:
-        print(f'Serial numbers [{device_list.devicecount}]: {device_list.serial_numbers}')
+        print(f'Serial numbers [{device_list.device_count}]: {device_list.serial_numbers}')
     else:
-        return device_list.devicecount, device_list.serial_numbers
+        return device_list.device_count, device_list.serial_numbers
     if initialize:
         pyhackrf.pyhackrf_exit()
