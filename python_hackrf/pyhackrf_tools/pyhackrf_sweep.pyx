@@ -21,13 +21,17 @@
 # SOFTWARE.
 
 # cython: language_level=3str
-from python_hackrf import pyhackrf
-try:
-    from scipy.fft import fft, fftshift  # type: ignore
-except ImportError:
-    from numpy.fft import fft, fftshift
 
-from queue import Queue
+try:
+    from pyfftw.interfaces.numpy_fft import fft, fftshift  # type: ignore
+except ImportError:
+    try:
+        from scipy.fft import fft, fftshift  # type: ignore
+    except ImportError:
+        from numpy.fft import fft, fftshift  # type: ignore
+
+from libc.stdint cimport uint32_t, uint64_t
+from python_hackrf import pyhackrf
 cimport numpy as np
 import numpy as np
 import datetime
@@ -60,9 +64,8 @@ cdef int frequency_step_3 = 0
 binary_output_mode = False
 one_shot_mode = False
 file_object = None
-queue_mode = False
+queue = None
 
-queue = Queue()
 window = None
 
 cdef double time_start = 0.
@@ -73,22 +76,26 @@ cdef double time_second = 1.
 cdef int fftSize = 20
 cdef int data_length = 0
 
-
 cdef int pwr_1_start = 0
 cdef int pwr_1_stop = 0
 cdef int pwr_2_start = 0
 cdef int pwr_2_stop = 0
-cdef float norm_factor = 0
-cdef unsigned long start_frequency = 0
+cdef double norm_factor = 0
+cdef uint64_t start_frequency = 0
 
 sweep_started = False
 run_available = True
 check_max_num_sweeps = False
 
 cdef int max_num_sweeps = 0
-cdef unsigned long long accepted_bytes = 0
+cdef uint32_t accepted_bytes = 0
 cdef double sweep_rate = 0
-cdef unsigned long long sweep_count = 0
+cdef uint64_t sweep_count = 0
+
+
+def clear_queue(queue_to_clear: object):
+    while not queue_to_clear.empty():
+        queue_to_clear.get_nowait()
 
 
 def sigint_callback_handler(sig, frame):
@@ -112,13 +119,14 @@ cdef sweep_callback(buffer: np.ndarray[:], buffer_length: int, valid_length: int
     global fftSize, window, pwr_1_start, pwr_1_stop, pwr_2_start, pwr_2_stop, norm_factor, data_length, SAMPLE_RATE
     global start_frequency, sweep_count, sweep_started, max_num_sweeps, check_max_num_sweeps, accepted_bytes, one_shot_mode, run_available
     global binary_output_mode, file_object, queue_mode, SWEEP_STYLE
+    global frequency_step_1, frequency_step_2, frequency_step_3
     global queue
 
     timestamp = datetime.datetime.now()
     time_str = timestamp.strftime("%Y-%m-%d, %H:%M:%S.%f")
 
-    cdef unsigned long frequency = 0
-    cdef int index = 0
+    cdef uint64_t frequency = 0
+    cdef uint32_t index = 0
     cdef int i, j
     for j in range(PY_BLOCKS_PER_TRANSFER):
         if buffer[index] == 127 and buffer[index + 1] == 127:
@@ -150,11 +158,13 @@ cdef sweep_callback(buffer: np.ndarray[:], buffer_length: int, valid_length: int
 
         fftwOut = fft((buffer[index: index + data_length: 2].astype(np.int8, copy=False) / 128 + 1j * buffer[index + 1: index + data_length: 2].astype(np.int8, copy=False) / 128) * window)
         pwr = np.log10(np.abs(fftwOut * norm_factor) ** 2) * 10.0
-
+        sys.stderr.write('1')
         if SWEEP_STYLE == pyhackrf.py_sweep_style.LINEAR:
             pwr = fftshift(pwr)
 
         index += data_length
+        sys.stderr.write('2')
+        sys.stderr.write(f'2.5 ({len(pwr)}, {fftSize})')
         if binary_output_mode:
             if SWEEP_STYLE == pyhackrf.py_sweep_style.INTERLEAVED:
                 record_length = 16 + (fftSize // 4) * 4
@@ -179,15 +189,15 @@ cdef sweep_callback(buffer: np.ndarray[:], buffer_length: int, valid_length: int
             else:
                 file_object.write(line)
 
-        elif queue_mode:
+        elif queue is not None:
             if SWEEP_STYLE == pyhackrf.py_sweep_style.INTERLEAVED:
-                queue.put_nowait({
+                queue.put({
                     'timestamp': time_str,
                     'start_frequency': frequency,
                     'stop_frequency': frequency + frequency_step_1,
                     'array': pwr[pwr_1_start: pwr_1_stop]
                 })
-                queue.put_nowait({
+                queue.put({
                     'timestamp': time_str,
                     'start_frequency': frequency + frequency_step_2,
                     'stop_frequency': frequency + frequency_step_3,
@@ -195,7 +205,7 @@ cdef sweep_callback(buffer: np.ndarray[:], buffer_length: int, valid_length: int
                 })
 
             else:
-                queue.put_nowait({
+                queue.put({
                     'timestamp': time_str,
                     'start_frequency': frequency,
                     'stop_frequency': frequency + SAMPLE_RATE,
@@ -225,15 +235,17 @@ cdef sweep_callback(buffer: np.ndarray[:], buffer_length: int, valid_length: int
             else:
                 file_object.write(line)
 
+        sys.stderr.write('3\n')
     accepted_bytes += valid_length
+    sys.stderr.write('\n\n')
 
     return 0
 
 
 def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: int = 20, bin_width: int = 100_000,
                    serial_number: str = None, amp_enable: bool = False, antenna_enable: bool = False, sample_rate: int = 20_000_000, baseband_filter: int = 15_000_000,
-                   num_sweeps: int = None, binary_output: bool = False, one_shot: bool = False, use_queue: bool = False, filename: str = None, sweep_style: pyhackrf.py_sweep_style = pyhackrf.py_sweep_style.INTERLEAVED,
-                   print_to_console: bool = True, device: pyhackrf.PyHackrfDevice = None):
+                   num_sweeps: int = None, binary_output: bool = False, one_shot: bool = False, filename: str = None, sweep_style: pyhackrf.py_sweep_style = pyhackrf.py_sweep_style.INTERLEAVED,
+                   print_to_console: bool = True, device: pyhackrf.PyHackrfDevice = None, sweep_queue: object = None):
 
     global fftSize, window, pwr_1_start, pwr_1_stop, pwr_2_start, pwr_2_stop, norm_factor, data_length, SAMPLE_RATE
     global start_frequency, sweep_count, sweep_started, max_num_sweeps, check_max_num_sweeps, accepted_bytes, one_shot_mode, run_available
@@ -241,12 +253,11 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
     global frequency_step_1, frequency_step_2, frequency_step_3
     global queue
 
-    queue = Queue()
-
+    queue = sweep_queue
     if sweep_style in pyhackrf.py_sweep_style:
         SWEEP_STYLE = sweep_style
     else:
-        SWEEP_STYLE = pyhackrf.sweep_stylepyhackrf.py_sweep_style.INTERLEAVED
+        SWEEP_STYLE = pyhackrf.py_sweep_style.INTERLEAVED
 
     if sample_rate in AVAILABLE_SAMPLING_RATES:
         SAMPLE_RATE = int(sample_rate)
@@ -283,7 +294,6 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
 
     binary_output_mode = binary_output
     one_shot_mode = one_shot
-    queue_mode = use_queue
 
     if device is None:
         pyhackrf.pyhackrf_init()
@@ -383,6 +393,7 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
                     sys.stderr.write('Couldn\'t transfer any data for one second.\n')
                     break
 
+            accepted_bytes = 0
             time_prev = time_now
 
     if filename is not None:
@@ -413,5 +424,5 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
     if print_to_console:
         sys.stderr.write('pyhackrf_exit() done\n')
 
-    queue.queue.clear()
+    clear_queue(sweep_queue)
     run_available = False
