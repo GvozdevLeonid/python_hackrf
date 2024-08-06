@@ -235,7 +235,6 @@ cdef sweep_callback(buffer: np.ndarray[:], buffer_length: int, valid_length: int
                 file_object.write(line)
 
     accepted_bytes += valid_length
-    sys.stderr.write('\n\n')
 
     return 0
 
