@@ -158,13 +158,12 @@ cdef sweep_callback(buffer: np.ndarray[:], buffer_length: int, valid_length: int
 
         fftwOut = fft((buffer[index: index + data_length: 2].astype(np.int8, copy=False) / 128 + 1j * buffer[index + 1: index + data_length: 2].astype(np.int8, copy=False) / 128) * window)
         pwr = np.log10(np.abs(fftwOut * norm_factor) ** 2) * 10.0
-        sys.stderr.write('1')
+
         if SWEEP_STYLE == pyhackrf.py_sweep_style.LINEAR:
             pwr = fftshift(pwr)
 
         index += data_length
-        sys.stderr.write('2')
-        sys.stderr.write(f'2.5 ({len(pwr)}, {fftSize})')
+
         if binary_output_mode:
             if SWEEP_STYLE == pyhackrf.py_sweep_style.INTERLEAVED:
                 record_length = 16 + (fftSize // 4) * 4
@@ -235,7 +234,6 @@ cdef sweep_callback(buffer: np.ndarray[:], buffer_length: int, valid_length: int
             else:
                 file_object.write(line)
 
-        sys.stderr.write('3\n')
     accepted_bytes += valid_length
     sys.stderr.write('\n\n')
 
