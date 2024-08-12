@@ -5,13 +5,13 @@ try:
     from jnius import autoclass
 except ImportError:
     def autoclass(item):
-        raise RuntimeError("autoclass not available")
+        raise RuntimeError('autoclass not available')
 
 try:
     from android.broadcast import BroadcastReceiver
 except ImportError:
     def BroadcastReceiver(item):
-        raise RuntimeError("BroadcastReceiver not available")
+        raise RuntimeError('BroadcastReceiver not available')
 
 
 class USBBroadcastReceiver:
@@ -43,7 +43,7 @@ def get_usb_device_descriptor():
 
     activity = autoclass('org.kivy.android.PythonActivity').mActivity
     usb_manager = activity.getSystemService(Context.USB_SERVICE)
-    permission_intent = "libusb.android.USB_PERMISSION"
+    permission_intent = 'libusb.android.USB_PERMISSION'
 
     flags = PendingIntent.FLAG_IMMUTABLE
     mPermissionIntent = PendingIntent.getBroadcast(activity, 0, autoclass('android.content.Intent')(permission_intent), flags)
@@ -72,6 +72,6 @@ def get_device():
     file_descriptor = get_usb_device_descriptor()
 
     if file_descriptor is not None:
-        device = pyhackrf.pyhackrf_init_on_android(file_descriptor)
+        device = pyhackrf.pyhackrf_open(file_descriptor)
 
     return device

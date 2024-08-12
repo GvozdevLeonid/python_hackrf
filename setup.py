@@ -1,4 +1,3 @@
-from pathlib import Path
 from os import getenv, environ
 import sys
 
@@ -6,15 +5,13 @@ from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
 import numpy
 
-libraries = ['usb-1.0']
+libraries = ['usb-1.0', 'hackrf']
 
-LIBHACKRF_FILES = list(Path('python_hackrf/pylibhackrf').rglob('*.pyx'))
-PYHACKRF_TOOLS_FILES = list(Path('python_hackrf/pyhackrf_tools').rglob('*.pyx'))
+LIBHACKRF_FILES = ['python_hackrf/pylibhackrf/pyhackrf.pyx', 'python_hackrf/pylibhackrf/chackrf.pxd']
+PYHACKRF_TOOLS_FILES = ['python_hackrf/pyhackrf_tools/pyhackrf_sweep.pyx']
 
 INSTALL_REQUIRES = []
 SETUP_REQUIRES = []
-LIBRARY_RELEASE = '2024.02.1'
-LIBRARY_VERSION = '0.9'
 
 PLATFORM = sys.platform
 
@@ -31,10 +28,10 @@ if PLATFORM != 'android':
     ldflags = environ.get('LDFLAGS', '')
 
     if PLATFORM == 'darwin':
-        new_cflags = '-I/opt/homebrew/include/libusb-1.0'
+        new_cflags = '-I/opt/homebrew/include/libusb-1.0 -I/opt/homebrew/include/libhackrf'
         new_ldflags = '-L/opt/homebrew/lib'
     elif PLATFORM.startswith('linux'):
-        new_cflags = '-I/usr/include/libusb-1.0'
+        new_cflags = '-I/usr/include/libusb-1.0 -I/usr/include/libhackrf'
         new_ldflags = '-L/usr/lib64 -L/usr/lib'
     elif PLATFORM == 'win32':
         pass
@@ -43,11 +40,7 @@ if PLATFORM != 'android':
     environ['LDFLAGS'] = f'{ldflags} {new_ldflags}'.strip()
 
 else:
-    libraries = ['usb1.0']
-    LIBHACKRF_FILES = [fn.with_suffix('.c') for fn in LIBHACKRF_FILES]
-
-source_files = [str(fn) for fn in LIBHACKRF_FILES]
-source_files.append('python_hackrf/pylibhackrf/hackrf.c')
+    LIBHACKRF_FILES = ['python_hackrf/pylibhackrf/pyhackrf_android.pyx', 'python_hackrf/pylibhackrf/chackrf_android.pxd', 'python_hackrf/pylibhackrf/hackrf_android.c']
 
 setup(
     name='python_hackrf',
@@ -57,15 +50,14 @@ setup(
     ext_modules=[
         Extension(
             name='python_hackrf.pylibhackrf.pyhackrf',
-            sources=source_files,
+            sources=LIBHACKRF_FILES,
             libraries=libraries,
             include_dirs=['python_hackrf/pylibhackrf', numpy.get_include()],
-            define_macros=[("LIBRARY_VERSION", f'"{LIBRARY_VERSION}"'), ("LIBRARY_RELEASE", f'"{LIBRARY_RELEASE}"')],
             extra_compile_args=['-w'],
         ),
         Extension(
             name='python_hackrf.pyhackrf_tools.pyhackrf_sweep',
-            sources=[str(fn) for fn in PYHACKRF_TOOLS_FILES],
+            sources=PYHACKRF_TOOLS_FILES,
             include_dirs=['python_hackrf/pyhackrf_tools', numpy.get_include()],
             extra_compile_args=['-w'],
         )

@@ -23,8 +23,8 @@
 # cython: language_level=3str
 from python_hackrf import __version__
 from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t
+from . cimport chackrf_android as chackrf
 from libc.stdlib cimport malloc, free
-from . cimport chackrf
 
 
 from enum import IntEnum
@@ -611,7 +611,7 @@ cdef class PyHackrfDevice:
 
 # ---- initialization and exit ---- #
 def pyhackrf_init():
-    result = chackrf.hackrf_init()
+    result = chackrf.hackrf_init_on_android()
     if result != chackrf.hackrf_error.HACKRF_SUCCESS:
         raise RuntimeError(f'pyhackrf_init() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
@@ -637,25 +637,16 @@ def pyhackrf_library_release() -> str:
 
 # ---- device ---- #
 def pyhackrf_device_list() -> PyHackRFDeviceList:
-    return PyHackRFDeviceList()
+    raise NotImplementedError('pyhackrf_device_list is not implemented for the Android platform')
 
 
 def pyhackrf_device_list_open(pyhackrf_device_list: PyHackRFDeviceList, index: int) -> PyHackrfDevice | None:
+    raise NotImplementedError('pyhackrf_device_list_open is not implemented for the Android platform')
+
+
+def pyhackrf_open(fileDescriptor: int) -> PyHackrfDevice | None:
     pyhackrf_device = PyHackrfDevice()
-    result = chackrf.hackrf_device_list_open(pyhackrf_device_list.get_hackrf_device_list_ptr(), index, pyhackrf_device.get_hackrf_device_double_ptr())
-
-    if result == chackrf.hackrf_error.HACKRF_SUCCESS:
-        pyhackrf_device._setup_callbacks()
-        return pyhackrf_device
-
-    raise RuntimeError(f'pyhackrf_device_list_open() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
-
-
-def pyhackrf_open() -> PyHackrfDevice | None:
-    pyhackrf_device = PyHackrfDevice()
-
-    result = chackrf.hackrf_open(pyhackrf_device.get_hackrf_device_double_ptr())
-
+    result = chackrf.hackrf_open_on_android(fileDescriptor, pyhackrf_device.get_hackrf_device_double_ptr())
     if result == chackrf.hackrf_error.HACKRF_SUCCESS:
         pyhackrf_device._setup_callbacks()
         return pyhackrf_device
@@ -664,15 +655,7 @@ def pyhackrf_open() -> PyHackrfDevice | None:
 
 
 def pyhackrf_open_by_serial(desired_serial_number: str) -> PyHackrfDevice | None:
-    pyhackrf_device = PyHackrfDevice()
-
-    result = chackrf.hackrf_open_by_serial(desired_serial_number.encode('utf-8'), pyhackrf_device.get_hackrf_device_double_ptr())
-
-    if result == chackrf.hackrf_error.HACKRF_SUCCESS:
-        pyhackrf_device._setup_callbacks()
-        return pyhackrf_device
-
-    raise RuntimeError(f'pyhackrf_open_by_serial() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
+    raise NotImplementedError('pyhackrf_open_by_serial is not implemented for the Android platform')
 
 
 # ---- baseband filter bandwidth ---- #

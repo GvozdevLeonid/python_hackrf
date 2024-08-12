@@ -57,6 +57,8 @@ def pyhackrf_info(print_to_console: bool = True, initialize: bool = True) -> Non
             for operacake_board_address in operacake_boards:
                 mode = device.pyhackrf_get_operacake_mode(operacake_board_address)
                 print_info += f'Opera Cake found, address: {operacake_board_address} | switching mode: {mode}'
+
+            device.pyhackrf_close()
     else:
         print_info += 'No HackRF boards found.'
 

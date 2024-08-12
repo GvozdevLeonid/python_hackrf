@@ -25,12 +25,14 @@ from python_hackrf import pyhackrf
 
 def pyhackrf_operacake_info(device: pyhackrf.PyHackrfDevice = None,
                             serial_number: str = None,
-                            print_to_console: bool = True, ) -> None | str:
+                            print_to_console: bool = True,
+                            ) -> None | str:
 
     initialize = True if device is None else False
 
     if initialize:
         pyhackrf.pyhackrf_init()
+
         if serial_number is not None:
             device = pyhackrf.pyhackrf_open_by_serial(serial_number)
         else:
@@ -53,16 +55,25 @@ def pyhackrf_operacake_info(device: pyhackrf.PyHackrfDevice = None,
         return operacake_info
 
     if initialize:
+        device.pyhackrf_close()
         pyhackrf.pyhackrf_exit()
 
 
-def pyhackrf_set_operacake_mode(address: int, mode: str, serial_number: str = None) -> None:
-    pyhackrf.pyhackrf_init()
+def pyhackrf_set_operacake_mode(address: int,
+                                mode: str,
+                                serial_number: str = None,
+                                device: pyhackrf.PyHackrfDevice = None,
+                                ) -> None:
 
-    if serial_number is not None:
-        device = pyhackrf.pyhackrf_open_by_serial(serial_number)
-    else:
-        device = pyhackrf.pyhackrf_open()
+    initialize = True if device is None else False
+
+    if initialize:
+        pyhackrf.pyhackrf_init()
+
+        if serial_number is not None:
+            device = pyhackrf.pyhackrf_open_by_serial(serial_number)
+        else:
+            device = pyhackrf.pyhackrf_open()
 
     if mode == 'frequency':
         mode = pyhackrf.py_operacake_switching_mode.OPERACAKE_MODE_FREQUENCY
@@ -73,55 +84,93 @@ def pyhackrf_set_operacake_mode(address: int, mode: str, serial_number: str = No
 
     device.pyhackrf_set_operacake_mode(address, mode)
 
-    pyhackrf.pyhackrf_exit()
+    if initialize:
+        device.pyhackrf_close()
+        pyhackrf.pyhackrf_exit()
 
 
-def pyhackrf_set_operacake_freq_ranges(freq_ranges: list, serial_number: str = None) -> None:
-    pyhackrf.pyhackrf_init()
+def pyhackrf_set_operacake_freq_ranges(freq_ranges: list,
+                                       serial_number: str = None,
+                                       device: pyhackrf.PyHackrfDevice = None,
+                                       ) -> None:
 
-    if serial_number is not None:
-        device = pyhackrf.pyhackrf_open_by_serial(serial_number)
-    else:
-        device = pyhackrf.pyhackrf_open()
+    initialize = True if device is None else False
+
+    if initialize:
+        pyhackrf.pyhackrf_init()
+
+        if serial_number is not None:
+            device = pyhackrf.pyhackrf_open_by_serial(serial_number)
+        else:
+            device = pyhackrf.pyhackrf_open()
 
     device.pyhackrf_set_operacake_freq_ranges(freq_ranges)
 
-    pyhackrf.pyhackrf_exit()
+    if initialize:
+        device.pyhackrf_close()
+        pyhackrf.pyhackrf_exit()
 
 
-def pyhackrf_set_operacake_dwell_times(dwell_times: list, serial_number: str = None) -> None:
-    pyhackrf.pyhackrf_init()
+def pyhackrf_set_operacake_dwell_times(dwell_times: list,
+                                       serial_number: str = None,
+                                       device: pyhackrf.PyHackrfDevice = None,
+                                       ) -> None:
 
-    if serial_number is not None:
-        device = pyhackrf.pyhackrf_open_by_serial(serial_number)
-    else:
-        device = pyhackrf.pyhackrf_open()
+    initialize = True if device is None else False
+
+    if initialize:
+        pyhackrf.pyhackrf_init()
+
+        if serial_number is not None:
+            device = pyhackrf.pyhackrf_open_by_serial(serial_number)
+        else:
+            device = pyhackrf.pyhackrf_open()
 
     device.pyhackrf_set_operacake_dwell_times(dwell_times)
 
-    pyhackrf.pyhackrf_exit()
+    if initialize:
+        device.pyhackrf_close()
+        pyhackrf.pyhackrf_exit()
 
 
-def pyhackrf_set_operacake_ports(address: int, port_a: str, port_b: str, serial_number: str = None, ) -> None:
-    pyhackrf.pyhackrf_init()
+def pyhackrf_set_operacake_ports(address: int,
+                                 port_a: str,
+                                 port_b: str,
+                                 serial_number: str = None,
+                                 device: pyhackrf.PyHackrfDevice = None,
+                                 ) -> None:
 
-    if serial_number is not None:
-        device = pyhackrf.pyhackrf_open_by_serial(serial_number)
-    else:
-        device = pyhackrf.pyhackrf_open()
+    initialize = True if device is None else False
+
+    if initialize:
+        pyhackrf.pyhackrf_init()
+
+        if serial_number is not None:
+            device = pyhackrf.pyhackrf_open_by_serial(serial_number)
+        else:
+            device = pyhackrf.pyhackrf_open()
 
     device.pyhackrf_set_operacake_ports(address, port_a, port_b)
 
-    pyhackrf.pyhackrf_exit()
+    if initialize:
+        device.pyhackrf_close()
+        pyhackrf.pyhackrf_exit()
 
 
-def pyhackrf_operacake_gpio_test(address: int, serial_number: str = None, ) -> None:
-    pyhackrf.pyhackrf_init()
+def pyhackrf_operacake_gpio_test(address: int,
+                                 serial_number: str = None,
+                                 device: pyhackrf.PyHackrfDevice = None,
+                                 ) -> None:
 
-    if serial_number is not None:
-        device = pyhackrf.pyhackrf_open_by_serial(serial_number)
-    else:
-        device = pyhackrf.pyhackrf_open()
+    initialize = True if device is None else False
+
+    if initialize:
+        pyhackrf.pyhackrf_init()
+
+        if serial_number is not None:
+            device = pyhackrf.pyhackrf_open_by_serial(serial_number)
+        else:
+            device = pyhackrf.pyhackrf_open()
 
     test_result = device.pyhackrf_operacake_gpio_test(address)
     if test_result == 0xFFFF:
@@ -145,4 +194,7 @@ def pyhackrf_operacake_gpio_test(address: int, serial_number: str = None, ) -> N
         print("u1ctrl \t%d\t%d\t%d\n", (reg >> 2) & 1, (reg >> 1) & 1, reg & 1)
     else:
         print('GPIO test passed')
-    pyhackrf.pyhackrf_exit()
+
+    if initialize:
+        device.pyhackrf_close()
+        pyhackrf.pyhackrf_exit()

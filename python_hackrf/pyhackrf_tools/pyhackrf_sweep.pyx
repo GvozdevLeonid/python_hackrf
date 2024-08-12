@@ -421,5 +421,7 @@ def pyhackrf_sweep(frequencies: list = [0, 6000], lna_gain: int = 16, vga_gain: 
     if print_to_console:
         sys.stderr.write('pyhackrf_exit() done\n')
 
-    clear_queue(sweep_queue)
+    if sweep_queue is not None:
+        clear_queue(sweep_queue)
+
     run_available = False
