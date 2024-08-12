@@ -1,0 +1,12 @@
+diff -ruN hackrf/host/libhackrf/src/hackrf.c patched/host/libhackrf/src/hackrf.c
+--- hackrf/host/libhackrf/src/hackrf.c	2024-02-23 01:20:25
++++ patched/host/libhackrf/src/hackrf.c	2024-08-10 22:22:58
+@@ -699,7 +699,7 @@
+ 	return usb_device;
+ }
+ 
+-static int hackrf_open_setup(libusb_device_handle* usb_device, hackrf_device** device)
++int hackrf_open_setup(libusb_device_handle* usb_device, hackrf_device** device)
+ {
+ 	int result;
+ 	hackrf_device* lib_device;
