@@ -41,7 +41,7 @@ if PLATFORM != 'android':
 
 else:
     libraries = ['usb1.0', 'hackrf']
-    LIBHACKRF_FILES = ['python_hackrf/pylibhackrf/pyhackrf_android.pyx', 'python_hackrf/pylibhackrf/chackrf_android.pxd', 'hackrf.c']
+    LIBHACKRF_FILES = ['python_hackrf/pylibhackrf/pyhackrf_android.pyx', 'python_hackrf/pylibhackrf/chackrf_android.pxd', 'python_hackrf/pylibhackrf/hackrf.c']
 
 setup(
     name='python_hackrf',
