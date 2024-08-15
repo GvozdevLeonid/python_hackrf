@@ -162,6 +162,8 @@ cdef extern from 'hackrf.h':
 
     int hackrf_init()
 
+    int hackrf_init_on_android()
+
     int hackrf_exit()
 
     const char* hackrf_library_version()
@@ -173,6 +175,8 @@ cdef extern from 'hackrf.h':
     void hackrf_device_list_free(hackrf_device_list_t* list)
 
     int hackrf_device_list_open(hackrf_device_list_t* list, int idx, hackrf_device** device)
+
+    int hackrf_open_on_android(int fileDescriptor, hackrf_device** device)
 
     int hackrf_open(hackrf_device** device)
 
@@ -307,10 +311,3 @@ cdef extern from 'hackrf.h':
     int hackrf_supported_platform_read(hackrf_device* device, uint32_t* value)
 
     int hackrf_set_leds(hackrf_device* device, const uint8_t state)
-
-
-cdef extern from 'hackrf_android.c':
-
-    int hackrf_init_on_android()
-
-    int hackrf_open_on_android(int fileDescriptor, hackrf_device** device)

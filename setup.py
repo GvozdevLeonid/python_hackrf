@@ -40,7 +40,8 @@ if PLATFORM != 'android':
     environ['LDFLAGS'] = f'{ldflags} {new_ldflags}'.strip()
 
 else:
-    LIBHACKRF_FILES = ['python_hackrf/pylibhackrf/pyhackrf_android.pyx', 'python_hackrf/pylibhackrf/chackrf_android.pxd', 'python_hackrf/pylibhackrf/hackrf_android.c']
+    libraries = ['usb1.0', 'hackrf']
+    LIBHACKRF_FILES = ['python_hackrf/pylibhackrf/pyhackrf_android.pyx', 'python_hackrf/pylibhackrf/chackrf_android.pxd', 'hackrf.c']
 
 setup(
     name='python_hackrf',

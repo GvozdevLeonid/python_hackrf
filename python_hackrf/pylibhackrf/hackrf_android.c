@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <hackrf.h>
+#include "hackrf_android.h"
 #include <libusb.h>
 
 int hackrf_init_on_android(void) {
@@ -34,11 +34,13 @@ int hackrf_init_on_android(void) {
 
     libusb_error = libusb_set_option(NULL, LIBUSB_OPTION_WEAK_AUTHORITY, NULL);
     if (libusb_error != LIBUSB_SUCCESS) {
+        last_libusb_error = libusb_error;
         return HACKRF_ERROR_LIBUSB;
     }
 
     libusb_error = libusb_init(&g_libusb_context);
     if (libusb_error != 0) {
+        last_libusb_error = libusb_error;
         return HACKRF_ERROR_LIBUSB;
     }
     else {
@@ -48,8 +50,8 @@ int hackrf_init_on_android(void) {
 }
 
 int hackrf_open_on_android(int fileDescriptor, hackrf_device** device) {
-    int libusb_error;
 
+    int libusb_error;
     if (device == NULL) {
         return HACKRF_ERROR_INVALID_PARAM;
     }
@@ -57,6 +59,7 @@ int hackrf_open_on_android(int fileDescriptor, hackrf_device** device) {
 
     libusb_error = libusb_wrap_sys_device(g_libusb_context, (intptr_t)fileDescriptor, &usb_device);
     if (libusb_error < 0) {
+        last_libusb_error = libusb_error;
         return HACKRF_ERROR_LIBUSB;
     }
 
