@@ -23,19 +23,11 @@
 APP_ABI := all
 
 APP_CFLAGS := \
-  -Werror=implicit-function-declaration \
-  -Werror=missing-prototypes \
-  -Werror=strict-prototypes \
-  -Werror=format-security \
-  -Werror=uninitialized \
-  -Werror=implicit-int \
-  -Werror=init-self \
   -Wwrite-strings \
-  -Werror=undef \
   -std=gnu11 \
   -Wshadow \
   -Wunused \
   -Wextra \
-  -Wall \
+  -Wall
 
 APP_LDFLAGS := -llog

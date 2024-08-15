@@ -17,9 +17,6 @@ class LibusbRecipe(NDKRecipe):
     def should_build(self, arch):
         return True
 
-    def get_lib_dir(self, arch):
-        return os.path.join(self.get_build_dir(arch.arch), 'android', 'obj', 'local', arch.arch)
-
     def get_jni_dir(self, arch):
         return os.path.join(self.get_build_dir(arch.arch), 'android', 'jni')
 
@@ -36,7 +33,7 @@ class LibusbRecipe(NDKRecipe):
                 _env=env
             )
 
-        shutil.copyfile(os.path.join(self.get_build_dir(arch.arch), 'android', 'obj', 'local', arch.arch, 'libusb1.0.so'), os.path.join(self.ctx.get_libs_dir(arch.arch), 'libusb-1.0.so'))
+        shutil.copyfile(os.path.join(self.get_build_dir(arch.arch), 'android', 'libs', arch.arch, 'libusb1.0.so'), os.path.join(self.ctx.get_libs_dir(arch.arch), 'libusb1.0.so'))
 
 
 recipe = LibusbRecipe()

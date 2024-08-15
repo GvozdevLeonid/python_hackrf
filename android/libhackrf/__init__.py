@@ -10,7 +10,7 @@ import os
 class LibhackrfRecipe(NDKRecipe):
 
     url = 'https://github.com/greatscottgadgets/hackrf/releases/download/v{version}/hackrf-{version}.tar.xz'
-    patches = ['public_hackrf_open_setup.patch']
+    patches = ['hackrf_android.patch']
     generated_libraries = ['libhackrf.so']
     site_packages_name = 'libhackrf'
     version = '2024.02.1'
@@ -24,6 +24,7 @@ class LibhackrfRecipe(NDKRecipe):
         super().prebuild_arch(arch)
 
         if not os.path.exists(os.path.join(self.get_build_dir(arch.arch), 'android')):
+            libusb_recipe = Recipe.get_recipe('libusb', arch)
 
             os.mkdir(os.path.join(self.get_build_dir(arch.arch), 'android'))
             os.mkdir(os.path.join(self.get_build_dir(arch.arch), 'android', 'jni'))
@@ -33,31 +34,28 @@ class LibhackrfRecipe(NDKRecipe):
             shutil.copy(os.path.join(self.get_recipe_dir(), 'jni', 'libhackrf.mk'), os.path.join(self.get_build_dir(arch.arch), 'android', 'jni'))
             shutil.copy(os.path.join(self.get_recipe_dir(), 'jni', 'Android.mk'), os.path.join(self.get_build_dir(arch.arch), 'android', 'jni'))
 
-    def get_lib_dir(self, arch):
-        return os.path.join(self.get_build_dir(arch.arch), 'android', 'obj', 'local', arch.arch)
+            shutil.copy(os.path.join(libusb_recipe.get_build_dir(arch), 'libusb', 'libusb.h'), os.path.join(self.get_build_dir(arch.arch), 'android', 'libusb'))
+
+    def get_recipe_env(self, arch):
+        env = super().get_recipe_env(arch)
+        env['LDFLAGS'] += f'-L{self.ctx.get_libs_dir(arch.arch)}'
+
+        return env
 
     def get_jni_dir(self, arch):
         return os.path.join(self.get_build_dir(arch.arch), 'android', 'jni')
 
     def build_arch(self, arch, *extra_args):
-        if not os.path.exists(os.path.join(self.get_build_dir(arch.arch), 'android', 'libusb', 'libusb-1.0.so')):
-            libusb_recipe = Recipe.get_recipe('libusb', arch)
-            shutil.copy(os.path.join(libusb_recipe.get_lib_dir(arch), 'libusb1.0.so'), os.path.join(self.get_build_dir(arch.arch), 'android', 'libusb', 'libusb-1.0.so'))
-            shutil.copy(os.path.join(libusb_recipe.get_build_dir(arch), 'libusb', 'libusb.h'), os.path.join(self.get_build_dir(arch.arch), 'android', 'libusb'))
-
         env = self.get_recipe_env(arch)
         with current_directory(self.get_build_dir(arch.arch)):
             shprint(
                 sh.Command(os.path.join(self.ctx.ndk_dir, 'ndk-build')),
                 'NDK_PROJECT_PATH=' + self.get_build_dir(arch.arch) + '/android',
-                'APP_PLATFORM=android-' + str(self.ctx.ndk_api),
-                'NDK='+self.ctx.ndk_dir,
-                'APP_ABI=' + arch.arch,
                 *extra_args,
                 _env=env
             )
 
-        shutil.copyfile(os.path.join(self.get_build_dir(arch.arch), 'android', 'obj', 'local', arch.arch, 'libhackrf.so'), os.path.join(self.ctx.get_libs_dir(arch.arch), 'libhackrf.so'))
+        shutil.copyfile(os.path.join(self.get_build_dir(arch.arch), 'android', 'libs', arch.arch, 'libhackrf.so'), os.path.join(self.ctx.get_libs_dir(arch.arch), 'libhackrf.so'))
 
 
 recipe = LibhackrfRecipe()

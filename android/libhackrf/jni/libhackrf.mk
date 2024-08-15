@@ -29,16 +29,12 @@ LIBHACKRF_ROOT_ABS := $(LOCAL_PATH)/../..
 include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES := $(LIBHACKRF_ROOT_REL)/host/libhackrf/src/hackrf.c
-
-LOCAL_C_INCLUDES += $(LIBHACKRF_ROOT_ABS)/android/libusb
+LOCAL_EXPORT_C_INCLUDES := $(LIBUSB_ROOT_ABS)/host/libhackrf/src
 
 LOCAL_CFLAGS := \
 	-I$(LIBHACKRF_ROOT_ABS)/android/libusb \
 	-fvisibility=hidden \
-	-pthread \
-	-w
-
-LOCAL_LDFLAGS := -L$(LIBHACKRF_ROOT_ABS)/android/libusb
+	-pthread
 
 LOCAL_LDLIBS := -llog
 

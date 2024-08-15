@@ -1,0 +1,84 @@
+diff -ruN hackrf/host/libhackrf/src/hackrf.c patched/host/libhackrf/src/hackrf.c
+--- hackrf/host/libhackrf/src/hackrf.c	2024-02-23 01:20:25
++++ patched/host/libhackrf/src/hackrf.c	2024-08-14 05:30:49
+@@ -509,6 +509,30 @@
+ 	}
+ }
+ 
++int ADDCALL hackrf_init_on_android(void) {
++
++    int libusb_error;
++    if (g_libusb_context != NULL) {
++        return HACKRF_SUCCESS;
++    }
++
++    libusb_error = libusb_set_option(NULL, LIBUSB_OPTION_WEAK_AUTHORITY, NULL);
++    if (libusb_error != LIBUSB_SUCCESS) {
++        last_libusb_error = libusb_error;
++        return HACKRF_ERROR_LIBUSB;
++    }
++
++    libusb_error = libusb_init(&g_libusb_context);
++    if (libusb_error != 0) {
++        last_libusb_error = libusb_error;
++        return HACKRF_ERROR_LIBUSB;
++    }
++    else {
++        return HACKRF_SUCCESS;
++    }
++
++}
++
+ int ADDCALL hackrf_exit(void)
+ {
+ 	if (open_devices == 0) {
+@@ -811,6 +835,28 @@
+ 	}
+ 
+ 	return hackrf_open_setup(usb_device, device);
++}
++
++int ADDCALL hackrf_open_on_android(int fileDescriptor, hackrf_device** device) {
++
++    int libusb_error;
++    if (device == NULL) {
++        return HACKRF_ERROR_INVALID_PARAM;
++    }
++    libusb_device_handle* usb_device;
++
++    libusb_error = libusb_wrap_sys_device(g_libusb_context, (intptr_t)fileDescriptor, &usb_device);
++    if (libusb_error < 0) {
++        last_libusb_error = libusb_error;
++        return HACKRF_ERROR_LIBUSB;
++    }
++
++    if (usb_device == NULL) {
++        return HACKRF_ERROR_NOT_FOUND;
++    }
++
++    return hackrf_open_setup(usb_device, device);
++
+ }
+ 
+ int ADDCALL hackrf_open_by_serial(
+diff -ruN hackrf/host/libhackrf/src/hackrf.h patched/host/libhackrf/src/hackrf.h
+--- hackrf/host/libhackrf/src/hackrf.h	2024-02-23 01:20:25
++++ patched/host/libhackrf/src/hackrf.h	2024-08-14 05:32:27
+@@ -1059,6 +1059,8 @@
+  */
+ extern ADDAPI int ADDCALL hackrf_init();
+ 
++extern ADDAPI int ADDCALL hackrf_init_on_android();
++
+ /**
+  * Exit libhackrf
+  * 
+@@ -1120,6 +1122,8 @@
+  * @ingroup device
+  */
+ extern ADDAPI int ADDCALL hackrf_open(hackrf_device** device);
++
++extern ADDAPI int ADDCALL hackrf_open_on_android(int fileDescriptor, hackrf_device** device);
+ 
+ /**
+  * Open HackRF device by serial number
