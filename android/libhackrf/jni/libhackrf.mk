@@ -36,7 +36,7 @@ LOCAL_CFLAGS := \
 	-fvisibility=hidden \
 	-pthread
 
-LOCAL_LDLIBS := -llog
+LOCAL_LDLIBS := -L$(LOCAL_PATH) -lusb1.0 -llog
 
 LOCAL_MODULE := libhackrf
 

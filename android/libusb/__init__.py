@@ -20,6 +20,9 @@ class LibusbRecipe(NDKRecipe):
     def get_jni_dir(self, arch):
         return os.path.join(self.get_build_dir(arch.arch), 'android', 'jni')
 
+    def get_lib_dir(self, arch):
+        return os.path.join(self.get_build_dir(arch.arch), 'android', 'obj', 'local', arch.arch)
+
     def build_arch(self, arch, *extra_args):
         env = self.get_recipe_env(arch)
         with current_directory(self.get_build_dir(arch.arch)):
