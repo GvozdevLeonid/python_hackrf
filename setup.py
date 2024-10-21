@@ -1,11 +1,12 @@
 from os import getenv, environ
+import subprocess
 import sys
 
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
 import numpy
 
-libraries = ['usb-1.0', 'hackrf']
+libraries = ['hackrf']
 
 LIBHACKRF_FILES = ['python_hackrf/pylibhackrf/pyhackrf.pyx', 'python_hackrf/pylibhackrf/chackrf.pxd']
 PYHACKRF_TOOLS_FILES = ['python_hackrf/pyhackrf_tools/pyhackrf_sweep.pyx']
@@ -27,21 +28,39 @@ if PLATFORM != 'android':
     cflags = environ.get('CFLAGS', '')
     ldflags = environ.get('LDFLAGS', '')
 
-    if PLATFORM == 'darwin':
-        new_cflags = '-I/opt/homebrew/include/libusb-1.0 -I/opt/homebrew/include/libhackrf'
-        new_ldflags = '-L/opt/homebrew/lib'
-    elif PLATFORM.startswith('linux'):
-        new_cflags = '-I/usr/include/libusb-1.0 -I/usr/include/libhackrf'
-        new_ldflags = '-L/usr/lib64 -L/usr/lib'
+    if PLATFORM in ('linux', 'darwin'):
+        if environ.get('PYTHON_HACKRF_CFLAGS', None) is None:
+            try:
+                new_cflags = subprocess.check_output(['pkg-config', '--cflags', 'libhackrf']).decode('utf-8').strip()
+            except Exception:
+                new_cflags = ''
+        else:
+            new_cflags = environ.get('PYTHON_HACKRF_CFLAGS', '')
+
+        if environ.get('PYTHON_HACKRF_LDFLAGS', None) is None:
+            try:
+                new_ldflags = subprocess.check_output(['pkg-config', '--libs', 'libhackrf']).decode('utf-8').strip()
+            except Exception:
+                new_ldflags = ''
+        else:
+            new_ldflags = environ.get('PYTHON_HACKRF_LDFLAGS', '')
+
     elif PLATFORM == 'win32':
-        pass
+        if environ.get('PYTHON_HACKRF_CFLAGS', None) is None:
+            new_cflags = '/I"C:\\Program Files\\Hackrf\\include"'
+        else:
+            new_cflags = environ.get('PYTHON_HACKRF_CFLAGS', '')
+
+        if environ.get('PYTHON_HACKRF_LDFLAGS', None) is None:
+            new_ldflags = '/LIBPATH"C:\\Program Files\\Hackrf\\lib"'
+        else:
+            new_ldflags = environ.get('PYTHON_HACKRF_LDFLAGS', '')
 
     environ['CFLAGS'] = f'{cflags} {new_cflags}'.strip()
     environ['LDFLAGS'] = f'{ldflags} {new_ldflags}'.strip()
 
 else:
-    libraries = ['usb1.0', 'hackrf']
-    LIBHACKRF_FILES = ['python_hackrf/pylibhackrf/pyhackrf_android.pyx', 'python_hackrf/pylibhackrf/chackrf_android.pxd', 'python_hackrf/pylibhackrf/hackrf.c']
+    LIBHACKRF_FILES = ['python_hackrf/pylibhackrf/pyhackrf_android.pyx', 'python_hackrf/pylibhackrf/chackrf_android.pxd']
 
 setup(
     name='python_hackrf',
