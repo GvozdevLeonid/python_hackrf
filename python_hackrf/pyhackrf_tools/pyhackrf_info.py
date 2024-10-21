@@ -62,13 +62,13 @@ def pyhackrf_info(print_to_console: bool = True, initialize: bool = True) -> Non
     else:
         print_info += 'No HackRF boards found.'
 
+    if initialize:
+        pyhackrf.pyhackrf_exit()
+
     if print_to_console:
         print(print_info)
     else:
         return print_info
-
-    if initialize:
-        pyhackrf.pyhackrf_exit()
 
 
 def pyhackrf_serial_numbers_list_info(print_to_console: bool = True, initialize: bool = True) -> None | tuple[int, list]:
@@ -77,9 +77,10 @@ def pyhackrf_serial_numbers_list_info(print_to_console: bool = True, initialize:
 
     device_list = pyhackrf.pyhackrf_device_list()
 
+    if initialize:
+        pyhackrf.pyhackrf_exit()
+
     if print_to_console:
         print(f'Serial numbers [{device_list.device_count}]: {device_list.serial_numbers}')
     else:
         return device_list.device_count, device_list.serial_numbers
-    if initialize:
-        pyhackrf.pyhackrf_exit()

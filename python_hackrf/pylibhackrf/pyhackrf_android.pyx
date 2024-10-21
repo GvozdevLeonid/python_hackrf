@@ -23,6 +23,7 @@
 # cython: language_level=3str
 from python_hackrf import __version__
 from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t
+from .__android import get_usb_devices_info
 from . cimport chackrf_android as chackrf
 from libc.stdlib cimport malloc, free
 
@@ -74,18 +75,18 @@ cdef dict operacake_ports = {
 cdef int __rx_callback(chackrf.hackrf_transfer* transfer) nogil:
     global global_callbacks
     with gil:
-        np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]>transfer.buffer)  # type: ignore
+        np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer)  # type: ignore
         if global_callbacks[<size_t> transfer.device]['__rx_callback'] is not None:
-            result = global_callbacks[<size_t> transfer.device]['__rx_callback'](np_buffer, transfer.buffer_length, transfer.valid_length)
+            result = global_callbacks[<size_t> transfer.device]['__rx_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length)
             return result
     return -1
 
 cdef int __tx_callback(chackrf.hackrf_transfer* transfer) nogil:
     global global_callbacks
     with gil:
-        np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]>transfer.buffer)  # type: ignore
+        np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer)  # type: ignore
         if global_callbacks[<size_t> transfer.device]['__tx_callback'] is not None:
-            result, buffer, valid_length = global_callbacks[<size_t> transfer.device]['__tx_callback'](np_buffer, transfer.buffer_length, transfer.valid_length)
+            result, buffer, valid_length = global_callbacks[<size_t> transfer.device]['__tx_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length)
 
             for i in range(valid_length):
                 transfer.buffer[i] = buffer[i]
@@ -97,57 +98,55 @@ cdef int __tx_callback(chackrf.hackrf_transfer* transfer) nogil:
 cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) nogil:
     global global_callbacks
     with gil:
-        np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]>transfer.buffer)  # type: ignore
+        np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer)  # type: ignore
         if global_callbacks[<size_t> transfer.device]['__sweep_callback'] is not None:
-            result = global_callbacks[<size_t> transfer.device]['__sweep_callback'](np_buffer, transfer.buffer_length, transfer.valid_length)
+            result = global_callbacks[<size_t> transfer.device]['__sweep_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length)
             return result
     return -1
 
 cdef void __tx_complete_callback(chackrf.hackrf_transfer* transfer, int success) nogil:
     global global_callbacks
     with gil:
-        np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]>transfer.buffer)  # type: ignore
+        np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer)  # type: ignore
         if global_callbacks[<size_t> transfer.device]['__tx_complete_callback'] is not None:
-            global_callbacks[<size_t> transfer.device]['__tx_complete_callback'](np_buffer, transfer.buffer_length, transfer.valid_length, success)
+            global_callbacks[<size_t> transfer.device]['__tx_complete_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length, success)
 
 cdef void __tx_flush_callback(void* flush_ctx, int success) nogil:
     global global_callbacks
+    cdef size_t device_ptr = <size_t> flush_ctx
     with gil:
-        if global_callbacks['__tx_flush_callback'] is not None:
-            global_callbacks['__tx_flush_callback'](success)
+        if global_callbacks[device_ptr]['__tx_flush_callback'] is not None:
+            global_callbacks[device_ptr]['__tx_flush_callback'](global_callbacks[device_ptr]['device'], success)
 
 
 cdef class PyHackRFDeviceList:
-    cdef chackrf.hackrf_device_list_t* __hackrf_device_list
-
-    cdef chackrf.hackrf_device_list_t* get_hackrf_device_list_ptr(self):
-        return self.__hackrf_device_list
 
     def __cinit__(self):
-        self.__hackrf_device_list = chackrf.hackrf_device_list()
-
-    def __dealloc__(self):
-        if self.__hackrf_device_list is not NULL:
-            chackrf.hackrf_device_list_free(self.__hackrf_device_list)
+        self.__hackrf_device_list = get_usb_devices_info()
 
     property device_count:
         def __get__(self):
-            if self.__hackrf_device_list is not NULL:
-                return self.__hackrf_device_list[0].devicecount
+            if len(self.__hackrf_device_list):
+                return len(self.__hackrf_device_list)
 
     property serial_numbers:
         def __get__(self):
-            if self.__hackrf_device_list is not NULL:
-                return [self.__hackrf_device_list[0].serial_numbers[i].decode('utf-8') for i in range(self.__hackrf_device_list[0].devicecount)]
+            if len(self.__hackrf_device_list):
+                return [self.__hackrf_device_list[i][2] for i in range(self.device_count)]
 
     property usb_board_ids:
         def __get__(self):
-            if self.__hackrf_device_list is not NULL:
-                return [self.__hackrf_device_list[0].usb_board_ids[i] for i in range(self.__hackrf_device_list[0].devicecount)]
+            if len(self.__hackrf_device_list):
+                return [self.__hackrf_device_list[i][1] for i in range(self.device_count)]
+
+    property file_descriptors:
+        def __get__(self):
+            if len(self.__hackrf_device_list):
+                return [self.__hackrf_device_list[i][0] for i in range(self.device_count)]
 
     def pyhackrf_board_id_name(self, index: int) -> str:
-        if self.__hackrf_device_list is not NULL:
-            return chackrf.hackrf_board_id_name(self.__hackrf_device_list[0].usb_board_ids[index]).decode('utf-8')
+        if len(self.__hackrf_device_list):
+            return chackrf.hackrf_board_id_name(self.__hackrf_device_list[index][1]).decode('utf-8')
 
 cdef class PyHackrfDevice:
 
@@ -182,13 +181,14 @@ cdef class PyHackrfDevice:
         global global_callbacks
 
         if self.__hackrf_device is not NULL:
-            global_callbacks[<size_t>self.__hackrf_device] = {
+            global_callbacks[<size_t> self.__hackrf_device] = {
                 '__rx_callback': None,
                 '__tx_callback': None,
                 '__sweep_callback': None,
                 '__tx_complete_callback': None,
+                '__tx_flush_callback': None,
+                'device': self,
             }
-            global_callbacks['__tx_flush_callback'] = None
             return
 
         raise RuntimeError(f'_setup_callbacks() failed: Device not initialized!')
@@ -342,7 +342,7 @@ cdef class PyHackrfDevice:
                             ) -> None:
 
         cdef uint16_t* frequencies
-        frequencies = <uint16_t*>malloc(chackrf.MAX_SWEEP_RANGES * 2 * sizeof(uint16_t))
+        frequencies = <uint16_t*> malloc(chackrf.MAX_SWEEP_RANGES * 2 * sizeof(uint16_t))
 
         for index, frequency in enumerate(frequency_list):
             frequencies[index] = frequency
@@ -392,7 +392,7 @@ cdef class PyHackrfDevice:
             raise RuntimeError(f'pyhackrf_set_tx_block_complete_callback() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
     def pyhackrf_enable_tx_flush(self) -> None:
-        result = chackrf.hackrf_enable_tx_flush(self.__hackrf_device, __tx_flush_callback, NULL)
+        result = chackrf.hackrf_enable_tx_flush(self.__hackrf_device, __tx_flush_callback, <void*> self.__hackrf_device)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_enable_tx_flush() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
@@ -459,15 +459,15 @@ cdef class PyHackrfDevice:
     def set_rx_callback(self, rx_callback_function) -> None:
         global global_callbacks
         """
-        Accept a 3 args that contains the buffer, the maximum length and the length of the buffer data.
-        buffer: numpy.array(dtype=numpy.uint8), buffer_length: int, valid_length: int
+        Accept a 4 args that contains the device, buffer, the maximum length and the length of the buffer data.
+        device: PyHackrfDevice, buffer: numpy.array(dtype=numpy.uint8), buffer_length: int, valid_length: int
 
-        Should copy/process the contents of the transfer buffer's valid part.
+        Should copy/process the contents of the buffer's valid part.
 
         The callback should return 0 if it wants to be called again, and any other value otherwise.
         """
         if self.__hackrf_device is not NULL:
-            global_callbacks[<size_t>self.__hackrf_device]['__rx_callback'] = rx_callback_function
+            global_callbacks[<size_t> self.__hackrf_device]['__rx_callback'] = rx_callback_function
             return
 
         raise RuntimeError(f'set_rx_callback() failed: Device not initialized!')
@@ -475,14 +475,14 @@ cdef class PyHackrfDevice:
     def set_tx_callback(self, tx_callback_function) -> None:
         global global_callbacks
         """
-        Accept a 3 args that contains the buffer, the maximum length and the length of the buffer data.
-        buffer: numpy.array(dtype=numpy.uint8), buffer_length: int, valid_length: int
+        Accept a 4 args that contains the device, buffer, the maximum length and the length of the buffer data.
+        device: PyHackrfDevice, buffer: numpy.array(dtype=numpy.uint8), buffer_length: int, valid_length: int
 
 
         The callback should return 0 if it wants to be called again, and any other value otherwise, numpy array(buffer) and new valid_length
         """
         if self.__hackrf_device is not NULL:
-            global_callbacks[<size_t>self.__hackrf_device]['__tx_callback'] = tx_callback_function
+            global_callbacks[<size_t> self.__hackrf_device]['__tx_callback'] = tx_callback_function
             return
 
         raise RuntimeError(f'set_tx_callback() failed: Device not initialized!')
@@ -490,16 +490,16 @@ cdef class PyHackrfDevice:
     def set_sweep_callback(self, sweep_callback_function) -> None:
         global global_callbacks
         """
-        Accept a 3 args that contains the buffer, the maximum length and the length of the buffer data.
-        buffer: numpy.array(dtype=numpy.uint8), buffer_length: int, valid_length: int
+        Accept a 4 args that contains the device, buffer, the maximum length and the length of the buffer data.
+        device: PyHackrfDevice, buffer: numpy.array(dtype=numpy.uint8), buffer_length: int, valid_length: int
 
-        Must copy/process the contents of a valid portion of the send buffer.
+        Should copy/process the contents of the buffer's valid part.
 
         The callback should return 0 if it wants to be called again, and any other value otherwise.
         * In this mode, with one data transfer (one callback call)
         """
         if self.__hackrf_device is not NULL:
-            global_callbacks[<size_t>self.__hackrf_device]['__sweep_callback'] = sweep_callback_function
+            global_callbacks[<size_t> self.__hackrf_device]['__sweep_callback'] = sweep_callback_function
             return
 
         raise RuntimeError(f'set_sweep_callback() failed: Device not initialized!')
@@ -507,13 +507,13 @@ cdef class PyHackrfDevice:
     def set_tx_complete_callback(self, tx_complete_callback_function) -> None:
         global global_callbacks
         """
-        Accept a 4 args that contains the buffer, the maximum length and the length of the buffer data.
-        buffer: numpy.array(dtype=numpy.uint8), buffer_length: int, valid_length: int
+        Accept a 5 args that contains the device, buffer, the maximum length and the length of the buffer data.
+        device: PyHackrfDevice, buffer: numpy.array(dtype=numpy.uint8), buffer_length: int, valid_length: int
         and
         success: int # if the transfer was successful or not
         """
         if self.__hackrf_device is not NULL:
-            global_callbacks[<size_t>self.__hackrf_device]['__tx_complete_callback'] = tx_complete_callback_function
+            global_callbacks[<size_t> self.__hackrf_device]['__tx_complete_callback'] = tx_complete_callback_function
             return
 
         raise RuntimeError(f'set_tx_complete_callback() failed: Device not initialized!')
@@ -521,12 +521,12 @@ cdef class PyHackrfDevice:
     def set_tx_flush_callback(self, tx_flush_callback_function) -> None:
         global global_callbacks
         """
-        Accept one argument of type int.
+        Accept 2 args that contains device and success flag
+        device: PyHackrfDevice, success: int
         This callback will be called when all the data was transmitted and all data transfers were completed.
-        Prameter is success flag.
         """
 
-        global_callbacks['__tx_flush_callback'] = tx_flush_callback_function
+        global_callbacks[<size_t> self.__hackrf_device]['__tx_flush_callback'] = tx_flush_callback_function
 
     # ---- library ---- #
     def pyhackrf_get_transfer_buffer_size(self) -> int:
@@ -538,7 +538,7 @@ cdef class PyHackrfDevice:
     # ---- operacake ---- #
     def pyhackrf_get_operacake_boards(self) -> list:
         self.pyoperacakes.clear()
-        cdef uint8_t* operacakes = <uint8_t*>malloc(8 * sizeof(uint8_t))
+        cdef uint8_t* operacakes = <uint8_t*> malloc(8 * sizeof(uint8_t))
         result = chackrf.hackrf_get_operacake_boards(self.__hackrf_device, &operacakes[0])
 
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
@@ -577,7 +577,7 @@ cdef class PyHackrfDevice:
             raise RuntimeError(f'pyhackrf_set_operacake_ports() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
     def pyhackrf_set_operacake_dwell_times(self, dwell_times: list) -> None:
-        cdef chackrf.hackrf_operacake_dwell_time* _dwell_times = <chackrf.hackrf_operacake_dwell_time*>malloc(PY_HACKRF_OPERACAKE_MAX_DWELL_TIMES * sizeof(chackrf.hackrf_operacake_dwell_time))
+        cdef chackrf.hackrf_operacake_dwell_time* _dwell_times = <chackrf.hackrf_operacake_dwell_time*> malloc(PY_HACKRF_OPERACAKE_MAX_DWELL_TIMES * sizeof(chackrf.hackrf_operacake_dwell_time))
         for index, (dwell, port) in enumerate(dwell_times):
             _dwell_times[index].dwell = dwell
             _dwell_times[index].port = <uint8_t> operacake_ports[port]
@@ -589,7 +589,7 @@ cdef class PyHackrfDevice:
             raise RuntimeError(f'pyhackrf_set_operacake_dwell_times() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
     def pyhackrf_set_operacake_freq_ranges(self, freq_ranges: list) -> None:
-        cdef chackrf.hackrf_operacake_freq_range* _freq_ranges = <chackrf.hackrf_operacake_freq_range*>malloc(PY_HACKRF_OPERACAKE_MAX_FREQ_RANGES * sizeof(chackrf.hackrf_operacake_freq_range))
+        cdef chackrf.hackrf_operacake_freq_range* _freq_ranges = <chackrf.hackrf_operacake_freq_range*> malloc(PY_HACKRF_OPERACAKE_MAX_FREQ_RANGES * sizeof(chackrf.hackrf_operacake_freq_range))
         for index, (port, freq_min, freq_max) in enumerate(freq_ranges):
             _freq_ranges[index].freq_min = freq_min
             _freq_ranges[index].freq_max = freq_max
@@ -637,25 +637,48 @@ def pyhackrf_library_release() -> str:
 
 # ---- device ---- #
 def pyhackrf_device_list() -> PyHackRFDeviceList:
-    raise NotImplementedError('pyhackrf_device_list is not implemented for the Android platform')
+    return PyHackRFDeviceList()
 
 
 def pyhackrf_device_list_open(pyhackrf_device_list: PyHackRFDeviceList, index: int) -> PyHackrfDevice | None:
-    raise NotImplementedError('pyhackrf_device_list_open is not implemented for the Android platform')
-
-
-def pyhackrf_open(fileDescriptor: int) -> PyHackrfDevice | None:
     pyhackrf_device = PyHackrfDevice()
-    result = chackrf.hackrf_open_on_android(fileDescriptor, pyhackrf_device.get_hackrf_device_double_ptr())
+    result = chackrf.hackrf_open_on_android(pyhackrf_device_list.file_descriptors[index], pyhackrf_device.get_hackrf_device_double_ptr())
+
     if result == chackrf.hackrf_error.HACKRF_SUCCESS:
         pyhackrf_device._setup_callbacks()
         return pyhackrf_device
+
+    raise RuntimeError(f'pyhackrf_device_list_open() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
+
+
+def pyhackrf_open() -> PyHackrfDevice | None:
+    devices_info = get_usb_devices_info(1)
+    result = chackrf.hackrf_error.HACKRF_ERROR_NOT_FOUND
+
+    if len(devices_info):
+        pyhackrf_device = PyHackrfDevice()
+        result = chackrf.hackrf_open_on_android(devices_info[0][0], pyhackrf_device.get_hackrf_device_double_ptr())
+        if result == chackrf.hackrf_error.HACKRF_SUCCESS:
+            pyhackrf_device._setup_callbacks()
+            return pyhackrf_device
 
     raise RuntimeError(f'pyhackrf_open() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
 
 def pyhackrf_open_by_serial(desired_serial_number: str) -> PyHackrfDevice | None:
-    raise NotImplementedError('pyhackrf_open_by_serial is not implemented for the Android platform')
+    devices_info = get_usb_devices_info()
+    result = chackrf.hackrf_error.HACKRF_ERROR_NOT_FOUND
+
+    if len(devices_info):
+        for file_descriptor, board_id, serial_number in devices_info:
+            if serial_number == desired_serial_number:
+                pyhackrf_device = PyHackrfDevice()
+                result = chackrf.hackrf_open_on_android(file_descriptor, pyhackrf_device.get_hackrf_device_double_ptr())
+                if result == chackrf.hackrf_error.HACKRF_SUCCESS:
+                    pyhackrf_device._setup_callbacks()
+                    return pyhackrf_device
+
+    raise RuntimeError(f'pyhackrf_open_by_serial() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
 
 # ---- baseband filter bandwidth ---- #

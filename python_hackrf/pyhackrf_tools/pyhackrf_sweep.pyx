@@ -115,7 +115,7 @@ def init_signals():
         pass
 
 
-cdef sweep_callback(buffer: np.ndarray[:], buffer_length: int, valid_length: int):
+cdef sweep_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[:], buffer_length: int, valid_length: int):
     global fftSize, window, pwr_1_start, pwr_1_stop, pwr_2_start, pwr_2_stop, norm_factor, data_length, SAMPLE_RATE
     global start_frequency, sweep_count, sweep_started, max_num_sweeps, check_max_num_sweeps, accepted_bytes, one_shot_mode, run_available
     global binary_output_mode, file_object, queue_mode, SWEEP_STYLE
