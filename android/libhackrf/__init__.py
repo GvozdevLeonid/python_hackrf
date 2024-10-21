@@ -14,6 +14,8 @@ class LibhackrfRecipe(NDKRecipe):
     generated_libraries = ['libhackrf.so']
     site_packages_name = 'libhackrf'
     version = '2024.02.1'
+    library_release = '2024.02.1'
+    library_version = '0.9'
     depends = ['libusb']
     name = 'libhackrf'
 
@@ -58,6 +60,8 @@ class LibhackrfRecipe(NDKRecipe):
                 sh.Command(os.path.join(self.ctx.ndk_dir, 'ndk-build')),
                 'NDK_PROJECT_PATH=' + self.get_build_dir(arch.arch) + '/android',
                 'APP_PLATFORM=android-' + str(self.ctx.ndk_api),
+                'LIBRARY_VERSION=' + self.library_version,
+                'LIBRARY_RELEASE=' + self.library_release,
                 'NDK='+self.ctx.ndk_dir,
                 'APP_ABI=' + arch.arch,
                 *extra_args,

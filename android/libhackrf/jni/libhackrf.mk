@@ -33,7 +33,8 @@ LOCAL_EXPORT_C_INCLUDES := $(LIBUSB_ROOT_ABS)/host/libhackrf/src
 
 LOCAL_CFLAGS := \
 	-I$(LIBHACKRF_ROOT_ABS)/android/libusb \
-	-fvisibility=hidden \
+	-DLIBRARY_VERSION=\"$(LIBRARY_VERSION)\" \
+    -DLIBRARY_RELEASE=\"$(LIBRARY_RELEASE)\" \
 	-pthread
 
 LOCAL_LDLIBS := -L$(LOCAL_PATH) -lusb1.0 -llog
