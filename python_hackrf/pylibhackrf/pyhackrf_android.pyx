@@ -666,6 +666,9 @@ def pyhackrf_open() -> PyHackrfDevice | None:
 
 
 def pyhackrf_open_by_serial(desired_serial_number: str) -> PyHackrfDevice | None:
+    if desired_serial_number in (None, ''):
+        return pyhackrf_open()
+
     devices_info = get_usb_devices_info()
     result = chackrf.hackrf_error.HACKRF_ERROR_NOT_FOUND
 
