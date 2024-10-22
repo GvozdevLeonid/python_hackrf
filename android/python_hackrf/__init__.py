@@ -1,6 +1,5 @@
 from pythonforandroid.recipe import CythonRecipe  # type: ignore
 from pythonforandroid.recipe import Recipe  # type: ignore
-import shutil
 import os
 
 
@@ -9,7 +8,7 @@ class PythonHackrfRecipe(CythonRecipe):
     depends = ['python3', 'setuptools', 'numpy', 'pyjnius', 'libhackrf']
     site_packages_name = 'python_hackrf'
     name = 'python_hackrf'
-    version = '1.1.1'
+    version = '1.1.2'
 
     def get_recipe_env(self, arch):
         env = super().get_recipe_env(arch)
@@ -22,5 +21,6 @@ class PythonHackrfRecipe(CythonRecipe):
         env['CFLAGS'] += f' -I{libhackrf_h_dir}'
 
         return env
+
 
 recipe = PythonHackrfRecipe()
