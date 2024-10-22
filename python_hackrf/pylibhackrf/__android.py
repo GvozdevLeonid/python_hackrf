@@ -15,6 +15,7 @@ except ImportError:
 hackrf_usb_vid = 0x1d50
 hackrf_usb_pids = (0x604b, 0x6089, 0xcc15)
 
+
 class USBBroadcastReceiver:
     def __init__(self, events):
         self.events = events
@@ -31,7 +32,7 @@ class USBBroadcastReceiver:
         if action == 'libusb.android.USB_PERMISSION':
             UsbManager = autoclass('android.hardware.usb.UsbManager')
             usb_device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE)
-            granted = intent.getBooleanExtra(autoclass('android.content.Intent').EXTRA_PERMISSION_GRANTED, False)
+            granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, False)
             device_name = usb_device.getDeviceName()
             print(device_name, granted)
             if device_name in self.events:
@@ -40,7 +41,7 @@ class USBBroadcastReceiver:
                 self.events[device_name]['event'].set()
 
 
-def get_usb_devices_info(num_devices: int = None):
+def get_usb_devices_info(num_devices: int = None) -> list:
     events = {}
     device_file_descriptors = []
 
@@ -72,7 +73,7 @@ def get_usb_devices_info(num_devices: int = None):
                 else:
                     events[device_name] = {'event': Event(), 'granted': False, 'device': None}
                     usb_manager.requestPermission(usb_device, mPermissionIntent)
-                
+
                 if num_devices is not None and idx + 1 == num_devices:
                     break
 
