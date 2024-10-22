@@ -121,7 +121,7 @@ cdef void __tx_flush_callback(void* flush_ctx, int success) nogil:
 
 cdef class PyHackRFDeviceList:
 
-    def __cinit__(self):
+    def __init__(self):
         self.__hackrf_device_list = get_usb_devices_info()
 
     property device_count:
