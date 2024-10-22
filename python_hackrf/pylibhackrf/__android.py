@@ -30,11 +30,9 @@ class USBBroadcastReceiver:
     def on_broadcast(self, context, intent):
         action = intent.getAction()
         if action == 'libusb.android.USB_PERMISSION':
-            Context = autoclass('android.content.Context')
-            activity = autoclass('org.kivy.android.PythonActivity').mActivity
-            usb_manager = activity.getSystemService(Context.USB_SERVICE)
-            usb_device = intent.getParcelableExtra(usb_manager.EXTRA_DEVICE)
-            granted = intent.getBooleanExtra(usb_manager.EXTRA_PERMISSION_GRANTED, False)
+            UsbManager = autoclass('android.hardware.usb.UsbManager')
+            usb_device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE)
+            granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, False)
             device_name = usb_device.getDeviceName()
             print(device_name, granted)
             if device_name in self.events:
