@@ -1,6 +1,6 @@
 [project]
 name = "python_hackrf"
-version = "1.1.1"
+version = "1.1.2"
 authors = [
   {name="Leonid Gvozdev", email="leo.gvozdev.dev@gmail.com"},
 ]
@@ -12,6 +12,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: MacOS",
     "Operating System :: POSIX :: Linux",
+    "Operating System :: Windows",
     "Operating System :: Android",
 ]
 
