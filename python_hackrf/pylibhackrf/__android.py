@@ -52,7 +52,7 @@ class USBBroadcastReceiver:
 
 def get_usb_devices_info(num_devices: int = None) -> list:
     events = {}
-    device_file_descriptors = []
+    devices_info = []
 
     Context = autoclass('android.content.Context')
     PendingIntent = autoclass('android.app.PendingIntent')
@@ -75,7 +75,7 @@ def get_usb_devices_info(num_devices: int = None) -> list:
                 if usb_manager.hasPermission(usb_device):
                     usb_device_connection = usb_manager.openDevice(usb_device)
                     file_descriptor = usb_device_connection.getFileDescriptor()
-                    device_file_descriptors.append((file_descriptor, usb_device.getProductId(), usb_device.getSerialNumber()))
+                    devices_info.append((file_descriptor, usb_device.getProductId(), usb_device.getSerialNumber()))
                 else:
                     permission_intent = PendingIntent.getBroadcast(this.getApplicationContext(), 0, autoclass('android.content.Intent')(usb_action_permission), PendingIntent.FLAG_MUTABLE)
                     events[device_name] = {'event': Event(), 'granted': False, 'device': None}
@@ -95,6 +95,6 @@ def get_usb_devices_info(num_devices: int = None) -> list:
                     usb_device = info['device']
                     usb_device_connection = usb_manager.openDevice(usb_device)
                     file_descriptor = usb_device_connection.getFileDescriptor()
-                    device_file_descriptors.append((file_descriptor, usb_device.getProductId(), usb_device.getSerialNumber()))
+                    devices_info.append((file_descriptor, usb_device.getProductId(), usb_device.getSerialNumber()))
 
-    return device_file_descriptors
+    return devices_info
