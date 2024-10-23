@@ -1,46 +1,40 @@
 # python_hackrf
 
-python_hackrf is a cython wrapper for hackrf (https://github.com/greatscottgadgets/hackrf).
+python_hackrf is a cython wrapper for [hackrf](https://github.com/greatscottgadgets/hackrf).
+
+Before installing python_hackrf library, you must have hackrf host software installed. Because this library uses dynamic linking with an existing library file.
 
 You can install this library using
 ```
 pip install python_hackrf
 ```
-Or assemble it manually using the following steps:
 
-In order to build the library you need to go to the python_hackrf directory
+If your hackrf files are in non-standard paths and the library cannot find hackrf.h and the library file, you can specify the paths via environment variables
 ```
-cd python_hackrf
+export PYTHON_HACKRF_CFLAGS=path_to_hackrf.h
+export PYTHON_HACKRF_LDFLAGS=path_to_hackrf.(so, dylib, dll)
 ```
-call
-```
-python setup.py build_ext --inplace.
-```
-If the build fails, you will need to specify the paths for the libusb library.
-```
-CFLAGS="-I/path to libusb.h" \
-LDFLAGS="-L/path to libusb-1.0.so" \
-python setup.py build_ext --inplace
-```
+
 ## Requirements:
-* libusb-1.0 (https://github.com/libusb/libusb)
 * Cython==0.29.36
 * Numpy>=1.26
 * Scipy (optional, for faster work)
 * pyFFTW (optional, for faster work)
+* pyjnius and android (only for android)
+
 
 ## hackrf:
-Almost all the functionality of the standard library is implemented. Some features will be added later. (operacake).
+All functions from libhackrf are ported. On Android, connection to hackrf and obtaining a list of devices are changed.
 
 ## hackrf tools:
-* hackrf_clock.c (Not implemented)
-* hackrf_cpldjtag.c (Not implemented)
-* hackrf_debug.c (Not implemented. But functions for this are implemented)
-* hackrf_info.c (Implemented + additionally added output of only serial numbers)
-* hackrf_operacake.c (Not implemented and the functions are also not implemented. Will be added in the future)
-* hackrf_spiflash.c (Not implement. I won’t implement them because this is a dangerous zone)
+* hackrf_info.c (Implemented)
+* hackrf_operacake.c (Implemented)
 * hackrf_sweep.c (Implemented)
 * hackrf_transfer.c (Not implemented. Will be added in the future)
+* hackrf_clock.c (Will not be implemented)
+* hackrf_cpldjtag.c (Will not be implemented)
+* hackrf_debug.c (Will not be implemented)
+* hackrf_spiflash.c (Will not be implemented)
 
 ## usage
 ```
@@ -104,7 +98,32 @@ options:
   -l, --list       list available Opera Cake boards
   -g, --gpio_test  test GPIO functionality of an Opera Cake
 ```
-## Note
-This library can work on android. To do this, go to the android directory and download two recipes for p4a.
+## Android
+This library can work on android. To do this, go to the android directory and download 3 recipes for [p4a](https://github.com/kivy/python-for-android).
+
+buildozer.spec
+```
+requirements = python3,android,pyjnius,numpy,libusb,libhackrf,python_hackrf
+p4a.local_recipes = path_to_pythonforandroidrecipes_folder
+```
+
+#### Your recipes folder should contain at least the following files:
+```
+pythonforandroidrecipes/
+    __init__.py
+    libusb/
+        __init__.py
+    python_hackrf/
+        __init__.py
+    libhackrf/
+        __init__.py
+        hackrf_android.patch
+        jni/
+            Android.mk
+            Application.mk
+            libhackrf.mk
+```
+
+
 ## Examples
-Examples will be added later.
+You can see a basic example of working with python_hackrf in [this](https://pysdr.org/content/hackrf.html) tutorial 
