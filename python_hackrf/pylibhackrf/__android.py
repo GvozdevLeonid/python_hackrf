@@ -1,13 +1,19 @@
 from threading import Event
 
 try:
-    from jnius import autoclass
+    from jnius import (  # type: ignore
+        autoclass,
+        cast,
+    )
 except ImportError:
     def autoclass(item):
         raise RuntimeError('autoclass not available')
 
+    def cast(item):
+        raise RuntimeError('cast not available')
+
 try:
-    from android.broadcast import BroadcastReceiver
+    from android.broadcast import BroadcastReceiver  # type: ignore
 except ImportError:
     def BroadcastReceiver(item):
         raise RuntimeError('BroadcastReceiver not available')
@@ -18,10 +24,11 @@ hackrf_usb_pids = (0x604b, 0x6089, 0xcc15)
 
 class USBBroadcastReceiver:
     def __init__(self, events):
+        self.usb_action_permission = 'libusb.android.USB_PERMISSION'
         self.events = events
 
     def start(self):
-        self.br = BroadcastReceiver(self.on_broadcast, actions=['libusb.android.USB_PERMISSION'])
+        self.br = BroadcastReceiver(self.on_broadcast, actions=[self.usb_action_permission])
         self.br.start()
 
     def stop(self):
@@ -29,35 +36,34 @@ class USBBroadcastReceiver:
 
     def on_broadcast(self, context, intent):
         action = intent.getAction()
-        if action == 'libusb.android.USB_PERMISSION':
-            UsbManager = autoclass('android.hardware.usb.UsbManager')
-            usb_device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE)
-            granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, False)
-            device_name = usb_device.getDeviceName()
-            print(device_name, granted)
-            if device_name in self.events:
-                self.events[device_name]['granted'] = granted
-                self.events[device_name]['device'] = usb_device
-                self.events[device_name]['event'].set()
+        UsbManager = autoclass('android.hardware.usb.UsbManager')
+        if action == self.usb_action_permission:
+            usb_device = cast('android.hardware.usb.UsbDevice', intent.getParcelableExtra(UsbManager.EXTRA_DEVICE))
+
+            if usb_device is not None:
+                granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, False)
+                device_name = usb_device.getDeviceName()
+
+                if device_name in self.events:
+                    self.events[device_name]['granted'] = granted
+                    self.events[device_name]['device'] = usb_device
+                    self.events[device_name]['event'].set()
 
 
 def get_usb_devices_info(num_devices: int = None) -> list:
     events = {}
     device_file_descriptors = []
 
-    usb_broadcast_receiver = USBBroadcastReceiver(events)
-
     Context = autoclass('android.content.Context')
     PendingIntent = autoclass('android.app.PendingIntent')
+    this = autoclass('org.kivy.android.PythonActivity').mActivity
 
-    activity = autoclass('org.kivy.android.PythonActivity').mActivity
-    usb_manager = activity.getSystemService(Context.USB_SERVICE)
-    permission_intent = 'libusb.android.USB_PERMISSION'
-
-    flags = PendingIntent.FLAG_IMMUTABLE
-    mPermissionIntent = PendingIntent.getBroadcast(activity, 0, autoclass('android.content.Intent')(permission_intent), flags)
-
+    usb_manager = this.getSystemService(Context.USB_SERVICE)
     device_list = usb_manager.getDeviceList()
+
+    usb_action_permission = 'libusb.android.USB_PERMISSION'
+    usb_broadcast_receiver = USBBroadcastReceiver(events)
+
     if device_list:
         for idx, usb_device in enumerate(device_list.values()):
             device_name = usb_device.getDeviceName()
@@ -71,8 +77,9 @@ def get_usb_devices_info(num_devices: int = None) -> list:
                     file_descriptor = usb_device_connection.getFileDescriptor()
                     device_file_descriptors.append((file_descriptor, usb_device.getProductId(), usb_device.getSerialNumber()))
                 else:
+                    permission_intent = PendingIntent.getBroadcast(this.getApplicationContext(), 0, autoclass('android.content.Intent')(usb_action_permission), PendingIntent.FLAG_MUTABLE)
                     events[device_name] = {'event': Event(), 'granted': False, 'device': None}
-                    usb_manager.requestPermission(usb_device, mPermissionIntent)
+                    usb_manager.requestPermission(usb_device, permission_intent)
 
                 if num_devices is not None and idx + 1 == num_devices:
                     break
