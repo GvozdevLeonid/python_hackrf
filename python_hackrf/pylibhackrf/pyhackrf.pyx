@@ -666,8 +666,10 @@ def pyhackrf_open() -> PyHackrfDevice | None:
 
 
 def pyhackrf_open_by_serial(desired_serial_number: str) -> PyHackrfDevice | None:
-    pyhackrf_device = PyHackrfDevice()
+    if desired_serial_number in (None, ''):
+        return pyhackrf_open()
 
+    pyhackrf_device = PyHackrfDevice()
     result = chackrf.hackrf_open_by_serial(desired_serial_number.encode('utf-8'), pyhackrf_device.get_hackrf_device_double_ptr())
 
     if result == chackrf.hackrf_error.HACKRF_SUCCESS:
