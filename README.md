@@ -9,7 +9,7 @@ You can install this library using
 pip install python_hackrf
 ```
 
-If your hackrf files are in non-standard paths and the library cannot find hackrf.h and the library file, you can specify the paths via environment variables
+If your hackrf files are in non-standard paths and during installation the python_hackrf cannot find hackrf.h or the library file, you can specify the paths via environment variables
 ```
 export PYTHON_HACKRF_CFLAGS=path_to_hackrf.h
 export PYTHON_HACKRF_LDFLAGS=path_to_hackrf.(so, dylib, dll)
