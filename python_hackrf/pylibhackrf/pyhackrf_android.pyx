@@ -293,11 +293,13 @@ cdef class PyHackrfDevice:
             raise RuntimeError(f'pyhackrf_set_amp_enable() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
     def pyhackrf_set_lna_gain(self, value: int):
+        value = int(max(0, min(40, value)) / 8) * 8
         result = chackrf.hackrf_set_lna_gain(self.__hackrf_device, <uint32_t> value)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_set_lna_gain() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
     def pyhackrf_set_vga_gain(self, value: int):
+        value = int(max(0, min(62, value)) / 2) * 2
         result = chackrf.hackrf_set_vga_gain(self.__hackrf_device, <uint32_t> value)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_set_vga_gain() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
