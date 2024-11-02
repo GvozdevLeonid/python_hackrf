@@ -1,6 +1,6 @@
 # MIT License
 
-# Copyright (c) 2023 GvozdevLeonid
+# Copyright (c) 2023-2024 GvozdevLeonid
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -132,6 +132,16 @@ cdef extern from 'hackrf.h':
         uint16_t freq_min
         uint16_t freq_max
         uint8_t port
+
+    ctypedef struct hackrf_bool_user_settting:
+        int do_update
+        int change_on_mode_entry
+        int enabled
+
+    ctypedef struct hackrf_bias_t_user_settting_req:
+        hackrf_bool_user_settting tx
+        hackrf_bool_user_settting rx
+        hackrf_bool_user_settting off
 
     ctypedef struct hackrf_m0_state:
         uint16_t requested_mode
@@ -304,6 +314,6 @@ cdef extern from 'hackrf.h':
 
     const char* hackrf_board_rev_name(uint8_t board_rev)
 
-    int hackrf_supported_platform_read(hackrf_device* device, uint32_t* value)
-
     int hackrf_set_leds(hackrf_device* device, const uint8_t state)
+
+    int hackrf_set_user_bias_t_opts(hackrf_device* device, hackrf_bias_t_user_settting_req* req)
