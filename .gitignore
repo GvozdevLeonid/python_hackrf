@@ -5,3 +5,5 @@ dist/
 
 .DS_Store
 .pypirc
+
+python_hackrf.egg-info
