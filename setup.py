@@ -9,7 +9,7 @@ import numpy
 libraries = ['hackrf']
 
 LIBHACKRF_FILES = ['python_hackrf/pylibhackrf/pyhackrf.pyx', 'python_hackrf/pylibhackrf/chackrf.pxd']
-PYHACKRF_TOOLS_FILES = ['python_hackrf/pyhackrf_tools/pyhackrf_sweep.pyx']
+PYHACKRF_TOOLS_FILES = ['python_hackrf/pyhackrf_tools/pyhackrf_sweep.pyx', 'python_hackrf/pyhackrf_tools/pyhackrf_transfer.pyx']
 
 INSTALL_REQUIRES = []
 SETUP_REQUIRES = []
@@ -79,6 +79,12 @@ setup(
         ),
         Extension(
             name='python_hackrf.pyhackrf_tools.pyhackrf_sweep',
+            sources=PYHACKRF_TOOLS_FILES,
+            include_dirs=['python_hackrf/pyhackrf_tools', numpy.get_include()],
+            extra_compile_args=['-w'],
+        )
+        Extension(
+            name='python_hackrf.pyhackrf_tools.pyhackrf_transfer',
             sources=PYHACKRF_TOOLS_FILES,
             include_dirs=['python_hackrf/pyhackrf_tools', numpy.get_include()],
             extra_compile_args=['-w'],
