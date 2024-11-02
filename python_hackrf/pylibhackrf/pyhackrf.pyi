@@ -145,6 +145,9 @@ class PyHackrfDevice:
 
     If any of the functions returns not `HACKRF_SUCCESS`, then an exception will be raised.
 
+    **Do not use this class directly**
+        To open the device, use one of the functions: `pyhackrf_open`, `pyhackrf_open_by_serial`, `pyhackrf_device_list_open`
+
     Notes:
     - Before using the methods of this class, ensure the device is properly connected and initialized using `pyhackrf_init()`.
     - After finishing, it is recommended to call `pyhackrf_close()` to properly close the device.
@@ -299,7 +302,7 @@ class PyHackrfDevice:
 
         Enable or disable the **3.3V (max 50mA)** bias-tee (antenna port power). Defaults to disabled.
 
-        **NOTE:** the firmware auto-disables this after returning to IDLE mode, so a perma-set is not possible, which means all software supporting HackRF devices must support enabling bias-tee, as setting it externally is not possible.
+        **Note:** the firmware auto-disables this after returning to IDLE mode, so a perma-set is not possible, which means all software supporting HackRF devices must support enabling bias-tee, as setting it externally is not possible.
         '''
         ...
 
