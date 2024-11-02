@@ -163,7 +163,6 @@ cdef class PyHackrfDevice:
     def __cinit__(self):
         self.__hackrf_device = NULL
         self.__pyoperacakes = []
-        self.__setup_callbacks()
 
     def __dealloc__(self):
         global global_callbacks
@@ -185,7 +184,7 @@ cdef class PyHackrfDevice:
         return &self.__hackrf_device
 
     # ---- callbacks ---- #
-    def __setup_callbacks(self):
+    def _setup_callbacks(self):
         global global_callbacks
 
         if self.__hackrf_device is not NULL:
@@ -666,6 +665,7 @@ def pyhackrf_device_list_open(pyhackrf_device_list: PyHackRFDeviceList, index: i
     result = chackrf.hackrf_open_on_android(pyhackrf_device_list.file_descriptors[index], pyhackrf_device.get_hackrf_device_double_ptr())
 
     if result == chackrf.hackrf_error.HACKRF_SUCCESS:
+        pyhackrf_device._setup_callbacks()
         return pyhackrf_device
 
     raise RuntimeError(f'pyhackrf_device_list_open() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
@@ -679,6 +679,7 @@ def pyhackrf_open() -> PyHackrfDevice | None:
         pyhackrf_device = PyHackrfDevice()
         result = chackrf.hackrf_open_on_android(devices_info[0][0], pyhackrf_device.get_hackrf_device_double_ptr())
         if result == chackrf.hackrf_error.HACKRF_SUCCESS:
+            pyhackrf_device._setup_callbacks()
             return pyhackrf_device
 
     raise RuntimeError(f'pyhackrf_open() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
@@ -697,6 +698,7 @@ def pyhackrf_open_by_serial(desired_serial_number: str) -> PyHackrfDevice | None
                 pyhackrf_device = PyHackrfDevice()
                 result = chackrf.hackrf_open_on_android(file_descriptor, pyhackrf_device.get_hackrf_device_double_ptr())
                 if result == chackrf.hackrf_error.HACKRF_SUCCESS:
+                    pyhackrf_device._setup_callbacks()
                     return pyhackrf_device
 
     raise RuntimeError(f'pyhackrf_open_by_serial() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
