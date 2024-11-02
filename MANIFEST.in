@@ -1,5 +1,6 @@
 include python_hackrf/pylibhackrf/pyhackrf_android.pyx
 include python_hackrf/pylibhackrf/chackrf_android.pxd
+include python_hackrf/pylibhackrf/pyhackrf.pyi
 include python_hackrf/pylibhackrf/pyhackrf.pyx
 include python_hackrf/pylibhackrf/chackrf.pxd
 include pyproject.toml

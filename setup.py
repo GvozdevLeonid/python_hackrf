@@ -23,6 +23,8 @@ if getenv('LIBLINK'):
 if PLATFORM != 'android':
     SETUP_REQUIRES.append('cython==0.29.36')
     INSTALL_REQUIRES.append('cython==0.29.36')
+
+    SETUP_REQUIRES.append('numpy>=1.26')
     INSTALL_REQUIRES.append('numpy>=1.26')
 
     cflags = environ.get('CFLAGS', '')
