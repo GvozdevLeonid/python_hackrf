@@ -52,7 +52,7 @@ def main():
     pyhackrf_sweep_parser.add_argument('-S', action='store', help='sweep style ("L" - LINEAR, "I" - INTERLEAVED). Default is INTERLEAVED', metavar='', default='I')
     pyhackrf_sweep_parser.add_argument('-s', action='store', help='sample rate in MHz (2, 4, 6, 8, 10, 12, 14, 16, 18, 20). Default is 20', metavar='', default=20)
     pyhackrf_sweep_parser.add_argument('-b', action='store', help='baseband filter bandwidth in MHz (1.75, 2.5, 3.5, 5.0, 5.5, 6.0, 7.0, 8.0, 9.0, 10.0, 12.0, 14.0, 15.0 20.0, 24.0, 28.0). Default is 15.0', metavar='', default=15.0)
-    pyhackrf_sweep_parser.add_argument('-r', ation='store', help='<filename> output file', metavar='')
+    pyhackrf_sweep_parser.add_argument('-r', action='store', help='<filename> output file', metavar='')
 
     pyhackrf_transfer_parser = subparsers.add_parser(
         'transfer', help='Send and receive signals using HackRF. Input/output files consist of complex64 quadrature samples.', usage='python_hackrf transfer [-h] [-d] [-r] [-t] [-f] [-i] [-o] [-m] [-a] [-p] [-l] [-g] [-x] [-s] [-N] [-R] -[b] [-H]'
