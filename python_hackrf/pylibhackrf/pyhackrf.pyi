@@ -105,7 +105,7 @@ operacake_ports = {
 
 class PyHackRFDeviceList:
     '''
-        Class implementing list of devices hackrf.
+        Class implementing list of HackRF devices.
     '''
 
     def __init__(self) -> None:
@@ -640,7 +640,7 @@ def pyhackrf_device_list() -> PyHackRFDeviceList:
 
 
 def pyhackrf_device_list_open(pyhackrf_device_list: PyHackRFDeviceList, index: int) -> PyHackrfDevice | None:
-    '''Open a hackrf_device from a device list'''
+    '''Open a HackRF device from a device list'''
     ...
 
 
