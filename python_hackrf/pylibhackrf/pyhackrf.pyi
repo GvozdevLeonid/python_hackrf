@@ -191,6 +191,10 @@ class PyHackrfDevice:
         '''Read board part ID and serial number'''
         ...
 
+    def pyhackrf_serialno_read(self) -> str:
+        '''Read human-readable string of serial number'''
+        ...
+
     def pyhackrf_set_ui_enable(self, value: bool) -> None:
         '''
         Enable / disable UI display (RAD1O, PortaPack, etc.)

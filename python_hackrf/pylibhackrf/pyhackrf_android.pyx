@@ -271,6 +271,10 @@ cdef class PyHackrfDevice:
             )
         )
 
+    def pyhackrf_serialno_read(self) -> str:
+        read_partid_serialno = self.pyhackrf_board_partid_serialno_read()
+        return f'{read_partid_serialno[1][0]:08x}{read_partid_serialno[1][1]:08x}{read_partid_serialno[1][2]:08x}{read_partid_serialno[1][3]:08x}'
+
     def pyhackrf_set_ui_enable(self, value: bool) -> None:
         result = chackrf.hackrf_set_ui_enable(self.__hackrf_device, <uint8_t> 1 if value else 0)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
