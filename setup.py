@@ -82,7 +82,7 @@ setup(
             sources=PYHACKRF_TOOLS_FILES,
             include_dirs=['python_hackrf/pyhackrf_tools', numpy.get_include()],
             extra_compile_args=['-w'],
-        )
+        ),
         Extension(
             name='python_hackrf.pyhackrf_tools.pyhackrf_transfer',
             sources=PYHACKRF_TOOLS_FILES,
