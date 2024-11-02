@@ -1,6 +1,6 @@
 # MIT License
 
-# Copyright (c) 2023 GvozdevLeonid
+# Copyright (c) 2023-2024 GvozdevLeonid
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -31,9 +31,6 @@ from enum import IntEnum
 cimport numpy as np
 import numpy as np
 
-PY_BYTES_PER_BLOCK = chackrf.BYTES_PER_BLOCK
-PY_SAMPLES_PER_BLOCK = chackrf.SAMPLES_PER_BLOCK
-PY_MAX_SWEEP_RANGES = chackrf.MAX_SWEEP_RANGES
 PY_HACKRF_OPERACAKE_ADDRESS_INVALID = chackrf.HACKRF_OPERACAKE_ADDRESS_INVALID
 PY_HACKRF_OPERACAKE_MAX_BOARDS = chackrf.HACKRF_OPERACAKE_MAX_BOARDS
 PY_HACKRF_OPERACAKE_MAX_DWELL_TIMES = chackrf.HACKRF_OPERACAKE_MAX_DWELL_TIMES
@@ -45,16 +42,25 @@ class py_rf_path_filter(IntEnum):
     RF_PATH_FILTER_LOW_PASS = chackrf.rf_path_filter.RF_PATH_FILTER_LOW_PASS
     RF_PATH_FILTER_HIGH_PASS = chackrf.rf_path_filter.RF_PATH_FILTER_HIGH_PASS
 
+    def __str__(self) -> str:
+        return self.name
+
 
 class py_sweep_style(IntEnum):
     LINEAR = chackrf.sweep_style.LINEAR
     INTERLEAVED = chackrf.sweep_style.INTERLEAVED
+
+    def __str__(self) -> str:
+        return self.name
 
 
 class py_operacake_switching_mode(IntEnum):
     OPERACAKE_MODE_MANUAL = chackrf.operacake_switching_mode.OPERACAKE_MODE_MANUAL
     OPERACAKE_MODE_FREQUENCY = chackrf.operacake_switching_mode.OPERACAKE_MODE_FREQUENCY
     OPERACAKE_MODE_TIME = chackrf.operacake_switching_mode.OPERACAKE_MODE_TIME
+
+    def __str__(self) -> str:
+        return self.name
 
 
 cdef dict global_callbacks = {}
@@ -153,11 +159,12 @@ cdef class PyHackRFDeviceList:
 cdef class PyHackrfDevice:
 
     cdef chackrf.hackrf_device* __hackrf_device
-    cdef list pyoperacakes
+    cdef list __pyoperacakes
 
     def __cinit__(self):
         self.__hackrf_device = NULL
-        self.pyoperacakes = []
+        self.__pyoperacakes = []
+        self.__setup_callbacks()
 
     def __dealloc__(self):
         global global_callbacks
@@ -179,7 +186,7 @@ cdef class PyHackrfDevice:
         return &self.__hackrf_device
 
     # ---- callbacks ---- #
-    def _setup_callbacks(self):
+    def __setup_callbacks(self) -> None:
         global global_callbacks
 
         if self.__hackrf_device is not NULL:
@@ -193,10 +200,10 @@ cdef class PyHackrfDevice:
             }
             return
 
-        raise RuntimeError(f'_setup_callbacks() failed: Device not initialized!')
+        raise RuntimeError(f'__setup_callbacks() failed: Device not initialized!')
 
     # ---- device ---- #
-    def pyhackrf_close(self):
+    def pyhackrf_close(self) -> None:
         global global_callbacks
         if self.__hackrf_device is not NULL:
             if <size_t> self.__hackrf_device in global_callbacks.keys():
@@ -208,19 +215,19 @@ cdef class PyHackrfDevice:
             if result != chackrf.hackrf_error.HACKRF_SUCCESS:
                 raise RuntimeError(f'pyhackrf_close() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-    def pyhackrf_reset(self):
+    def pyhackrf_reset(self) -> None:
         result = chackrf.hackrf_reset(self.__hackrf_device)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_reset() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-    def pyhackrf_board_id_read(self) -> tuple(int, str):
+    def pyhackrf_board_id_read(self) -> tuple[int, str]:
         cdef uint8_t value
         result = chackrf.hackrf_board_id_read(self.__hackrf_device, &value)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_board_id_read() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
         return value, chackrf.hackrf_board_id_name(value).decode('utf-8')
 
-    def pyhackrf_board_rev_read(self) -> tuple(int, str):
+    def pyhackrf_board_rev_read(self) -> tuple[int, str]:
         cdef uint8_t value
         result = chackrf.hackrf_board_rev_read(self.__hackrf_device, &value)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
@@ -247,75 +254,108 @@ cdef class PyHackrfDevice:
             raise RuntimeError(f'pyhackrf_usb_api_version_read() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
         return 'API:{:x}.{:02x}'.format((version >> 8) & 0xFF, version & 0xFF)
 
-    def pyhackrf_board_partid_serialno_read(self):
+    def pyhackrf_board_partid_serialno_read(self) -> tuple[tuple[int, int], tuple[int, int, int, int]]:
         cdef chackrf.read_partid_serialno_t read_partid_serialno
         result = chackrf.hackrf_board_partid_serialno_read(self.__hackrf_device, &read_partid_serialno)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_board_partid_serialno_read() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
-        return read_partid_serialno
 
-    def pyhackrf_filter_path_name(self, path: py_rf_path_filter) -> str:
-        return chackrf.hackrf_filter_path_name(path).decode('utf-8')
+        return  (
+            (
+                read_partid_serialno.part_id[0],
+                read_partid_serialno.part_id[1]
+            ),
+            (
+                read_partid_serialno.serial_no[0],
+                read_partid_serialno.serial_no[1],
+                read_partid_serialno.serial_no[2],
+                read_partid_serialno.serial_no[3],
+            )
+        )
 
-    def pyhackrf_set_ui_enable(self, value: bool):
+    def pyhackrf_set_ui_enable(self, value: bool) -> None:
         result = chackrf.hackrf_set_ui_enable(self.__hackrf_device, <uint8_t> 1 if value else 0)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_set_ui_enable() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
+    def pyhackrf_set_leds(self, state: str) -> None:
+        result = chackrf.hackrf_set_leds(self.__hackrf_device, <uint8_t> int(state, 2))
+        if result != chackrf.hackrf_error.HACKRF_SUCCESS:
+            raise RuntimeError(f'pyhackrf_set_leds() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
+
+    def pyhackrf_set_user_bias_t_opts(self, rx: tuple[bool, bool, bool], tx: tuple[bool, bool, bool], off: tuple[bool, bool, bool]) -> None:
+        cdef chackrf.hackrf_bias_t_user_settting_req req
+
+        req.rx.do_update = rx[0]
+        req.rx.change_on_mode_entry = rx[1]
+        req.rx.enabled = rx[2]
+
+        req.rx.do_update = tx[0]
+        req.rx.change_on_mode_entry = tx[0]
+        req.rx.enabled = tx[0]
+
+        req.rx.do_update = off[0]
+        req.rx.change_on_mode_entry = off[0]
+        req.rx.enabled = off[0]
+
+        result = chackrf.hackrf_set_user_bias_t_opts(self.__hackrf_device, &req)
+        if result != chackrf.hackrf_error.HACKRF_SUCCESS:
+            raise RuntimeError(f'pyhackrf_set_user_bias_t_opts() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
+
     # ---- configuration ---- #
-    def pyhackrf_set_baseband_filter_bandwidth(self, bandwidth_hz: int):
+    def pyhackrf_set_baseband_filter_bandwidth(self, bandwidth_hz: int) -> None:
         result = chackrf.hackrf_set_baseband_filter_bandwidth(self.__hackrf_device, <uint32_t> bandwidth_hz)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_set_baseband_filter_bandwidth() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-    def pyhackrf_set_freq(self, freq_hz: int):
+    def pyhackrf_set_freq(self, freq_hz: int) -> None:
         result = chackrf.hackrf_set_freq(self.__hackrf_device, <uint64_t> freq_hz)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_set_freq() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-    def pyhackrf_set_freq_explicit(self, if_freq_hz: int, lo_freq_hz: int, path: py_rf_path_filter):
-        result = chackrf.hackrf_set_freq_explicit(self.__hackrf_device, <uint64_t> if_freq_hz, <uint64_t> lo_freq_hz, path)
+    def pyhackrf_set_freq_explicit(self, i_freq_hz: int, lo_freq_hz: int, path: py_rf_path_filter) -> None:
+        result = chackrf.hackrf_set_freq_explicit(self.__hackrf_device, <uint64_t> i_freq_hz, <uint64_t> lo_freq_hz, path)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_set_freq_explicit() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-    def pyhackrf_set_sample_rate_manual(self, freq_hz: int, divider: int):
+    def pyhackrf_set_sample_rate_manual(self, freq_hz: int, divider: int) -> None:
         result = chackrf.hackrf_set_sample_rate_manual(self.__hackrf_device, <uint32_t> freq_hz, <uint32_t> divider)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_set_sample_rate_manual() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-    def pyhackrf_set_sample_rate(self, freq_hz: float):
+    def pyhackrf_set_sample_rate(self, freq_hz: float) -> None:
         result = chackrf.hackrf_set_sample_rate(self.__hackrf_device, <double> freq_hz)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_set_sample_rate() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-    def pyhackrf_set_amp_enable(self, value: bool):
+    def pyhackrf_set_amp_enable(self, value: bool) -> None:
         result = chackrf.hackrf_set_amp_enable(self.__hackrf_device, <uint8_t> 1 if value else 0)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_set_amp_enable() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-    def pyhackrf_set_lna_gain(self, value: int):
+    def pyhackrf_set_lna_gain(self, value: int) -> None:
         value = int(max(0, min(40, value)) / 8) * 8
         result = chackrf.hackrf_set_lna_gain(self.__hackrf_device, <uint32_t> value)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_set_lna_gain() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-    def pyhackrf_set_vga_gain(self, value: int):
+    def pyhackrf_set_vga_gain(self, value: int) -> None:
         value = int(max(0, min(62, value)) / 2) * 2
         result = chackrf.hackrf_set_vga_gain(self.__hackrf_device, <uint32_t> value)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_set_vga_gain() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-    def pyhackrf_set_txvga_gain(self, value: int):
+    def pyhackrf_set_txvga_gain(self, value: int) -> None:
         result = chackrf.hackrf_set_txvga_gain(self.__hackrf_device, <uint32_t> value)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_set_txvga_gain() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-    def pyhackrf_set_antenna_enable(self, value: bool):
+    def pyhackrf_set_antenna_enable(self, value: bool) -> None:
         result = chackrf.hackrf_set_antenna_enable(self.__hackrf_device, <uint8_t> 1 if value else 0)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_set_antenna_enable() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-    def pyhackrf_set_clkout_enable(self, value: bool):
+    def pyhackrf_set_clkout_enable(self, value: bool) -> None:
         result = chackrf.hackrf_set_clkout_enable(self.__hackrf_device, <uint8_t> 1 if value else 0)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_set_clkout_enable() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
@@ -400,12 +440,12 @@ cdef class PyHackrfDevice:
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_enable_tx_flush() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-    def pyhackrf_set_tx_underrun_limit(self, value) -> None:
+    def pyhackrf_set_tx_underrun_limit(self, value: int) -> None:
         result = chackrf.hackrf_set_tx_underrun_limit(self.__hackrf_device, <uint32_t> value)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_set_tx_underrun_limit() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-    def pyhackrf_set_rx_overrun_limit(self, value) -> None:
+    def pyhackrf_set_rx_overrun_limit(self, value: int) -> None:
         result = chackrf.hackrf_set_rx_overrun_limit(self.__hackrf_device, <uint32_t> value)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_set_rx_overrun_limit() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
@@ -416,12 +456,25 @@ cdef class PyHackrfDevice:
             raise RuntimeError(f'pyhackrf_set_hw_sync_mode() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
     # ---- debug ---- #
-    def pyhackrf_get_m0_state(self) -> int:
+    def pyhackrf_get_m0_state(self) -> dict:
         cdef chackrf.hackrf_m0_state hackrf_m0_state
         result = chackrf.hackrf_get_m0_state(self.__hackrf_device, &hackrf_m0_state)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_get_m0_state() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
-        return hackrf_m0_state
+
+        return {
+            'requested_mode': hackrf_m0_state.requested_mode,
+            'request_flag': hackrf_m0_state.request_flag,
+            'active_mode': hackrf_m0_state.active_mode,
+            'm0_count': hackrf_m0_state.m0_count,
+            'm4_count': hackrf_m0_state.m4_count,
+            'num_shortfalls': hackrf_m0_state.num_shortfalls,
+            'longest_shortfall': hackrf_m0_state.longest_shortfall,
+            'shortfall_limit': hackrf_m0_state.shortfall_limit,
+            'threshold': hackrf_m0_state.threshold,
+            'next_mode': hackrf_m0_state.next_mode,
+            'error': hackrf_m0_state.error,
+        }
 
     def pyhackrf_max2837_read(self, register_number: int) -> int:
         cdef uint16_t value
@@ -447,7 +500,7 @@ cdef class PyHackrfDevice:
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_si5351c_write() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-    def pyhackrf_rffc5071_read(self, register_number) -> int:
+    def pyhackrf_rffc5071_read(self, register_number: int) -> int:
         cdef uint16_t value
         result = chackrf.hackrf_rffc5071_read(self.__hackrf_device, <uint8_t> register_number, &value)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
@@ -462,14 +515,7 @@ cdef class PyHackrfDevice:
     # ---- python callbacks setters ---- #
     def set_rx_callback(self, rx_callback_function) -> None:
         global global_callbacks
-        """
-        Accept a 4 args that contains the device, buffer, the maximum length and the length of the buffer data.
-        device: PyHackrfDevice, buffer: numpy.array(dtype=numpy.uint8), buffer_length: int, valid_length: int
 
-        Should copy/process the contents of the buffer's valid part.
-
-        The callback should return 0 if it wants to be called again, and any other value otherwise.
-        """
         if self.__hackrf_device is not NULL:
             global_callbacks[<size_t> self.__hackrf_device]['__rx_callback'] = rx_callback_function
             return
@@ -478,13 +524,7 @@ cdef class PyHackrfDevice:
 
     def set_tx_callback(self, tx_callback_function) -> None:
         global global_callbacks
-        """
-        Accept a 4 args that contains the device, buffer, the maximum length and the length of the buffer data.
-        device: PyHackrfDevice, buffer: numpy.array(dtype=numpy.uint8), buffer_length: int, valid_length: int
 
-
-        The callback should return 0 if it wants to be called again, and any other value otherwise, numpy array(buffer) and new valid_length
-        """
         if self.__hackrf_device is not NULL:
             global_callbacks[<size_t> self.__hackrf_device]['__tx_callback'] = tx_callback_function
             return
@@ -493,15 +533,7 @@ cdef class PyHackrfDevice:
 
     def set_sweep_callback(self, sweep_callback_function) -> None:
         global global_callbacks
-        """
-        Accept a 4 args that contains the device, buffer, the maximum length and the length of the buffer data.
-        device: PyHackrfDevice, buffer: numpy.array(dtype=numpy.uint8), buffer_length: int, valid_length: int
 
-        Should copy/process the contents of the buffer's valid part.
-
-        The callback should return 0 if it wants to be called again, and any other value otherwise.
-        * In this mode, with one data transfer (one callback call)
-        """
         if self.__hackrf_device is not NULL:
             global_callbacks[<size_t> self.__hackrf_device]['__sweep_callback'] = sweep_callback_function
             return
@@ -510,12 +542,7 @@ cdef class PyHackrfDevice:
 
     def set_tx_complete_callback(self, tx_complete_callback_function) -> None:
         global global_callbacks
-        """
-        Accept a 5 args that contains the device, buffer, the maximum length and the length of the buffer data.
-        device: PyHackrfDevice, buffer: numpy.array(dtype=numpy.uint8), buffer_length: int, valid_length: int
-        and
-        success: int # if the transfer was successful or not
-        """
+
         if self.__hackrf_device is not NULL:
             global_callbacks[<size_t> self.__hackrf_device]['__tx_complete_callback'] = tx_complete_callback_function
             return
@@ -524,13 +551,12 @@ cdef class PyHackrfDevice:
 
     def set_tx_flush_callback(self, tx_flush_callback_function) -> None:
         global global_callbacks
-        """
-        Accept 2 args that contains device and success flag
-        device: PyHackrfDevice, success: int
-        This callback will be called when all the data was transmitted and all data transfers were completed.
-        """
 
-        global_callbacks[<size_t> self.__hackrf_device]['__tx_flush_callback'] = tx_flush_callback_function
+        if self.__hackrf_device is not NULL:
+            global_callbacks[<size_t> self.__hackrf_device]['__tx_flush_callback'] = tx_flush_callback_function
+            return
+
+        raise RuntimeError(f'set_tx_flush_callback() failed: Device not initialized!')
 
     # ---- library ---- #
     def pyhackrf_get_transfer_buffer_size(self) -> int:
@@ -541,39 +567,31 @@ cdef class PyHackrfDevice:
 
     # ---- operacake ---- #
     def pyhackrf_get_operacake_boards(self) -> list:
-        self.pyoperacakes.clear()
-        cdef uint8_t* operacakes = <uint8_t*> malloc(8 * sizeof(uint8_t))
+        self.__pyoperacakes.clear()
+        cdef uint8_t* operacakes = <uint8_t*> malloc(PY_HACKRF_OPERACAKE_MAX_BOARDS * sizeof(uint8_t))
         result = chackrf.hackrf_get_operacake_boards(self.__hackrf_device, &operacakes[0])
 
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_get_operacake_boards() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
-        for i in range(8):
-            if operacakes[i] == chackrf.HACKRF_OPERACAKE_ADDRESS_INVALID:
+        for i in range(PY_HACKRF_OPERACAKE_MAX_BOARDS):
+            if operacakes[i] == PY_HACKRF_OPERACAKE_ADDRESS_INVALID:
                 break
-            self.pyoperacakes.append(operacakes[i])
+            self.__pyoperacakes.append(operacakes[i])
 
         free(operacakes)
-        return self.pyoperacakes
+        return self.__pyoperacakes
 
     def pyhackrf_set_operacake_mode(self, address: int, mode: py_operacake_switching_mode) -> None:
         result = chackrf.hackrf_set_operacake_mode(self.__hackrf_device, <uint8_t> address, mode)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_set_operacake_mode() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-    def pyhackrf_get_operacake_mode(self, address) -> str:
+    def pyhackrf_get_operacake_mode(self, address: int) -> py_operacake_switching_mode:
         cdef chackrf.operacake_switching_mode mode
         result = chackrf.hackrf_get_operacake_mode(self.__hackrf_device, <uint8_t> address, &mode)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_get_operacake_mode() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
-
-        if mode == py_operacake_switching_mode.OPERACAKE_MODE_MANUAL:
-            return 'manual'
-        elif mode == py_operacake_switching_mode.OPERACAKE_MODE_FREQUENCY:
-            return 'frequency'
-        elif mode == py_operacake_switching_mode.OPERACAKE_MODE_TIME:
-            return 'time'
-        else:
-            return 'unknown'
+        return mode
 
     def pyhackrf_set_operacake_ports(self, address: int, port_a: str, port_b: str) -> None:
         result = chackrf.hackrf_set_operacake_ports(self.__hackrf_device, <uint8_t> address, <uint8_t> operacake_ports[port_a], <uint8_t> operacake_ports[port_b])
@@ -605,7 +623,7 @@ cdef class PyHackrfDevice:
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_set_operacake_freq_ranges() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-    def pyhackrf_operacake_gpio_test(self, address) -> int:
+    def pyhackrf_operacake_gpio_test(self, address: int) -> int:
         cdef uint16_t test_result
         result = chackrf.hackrf_operacake_gpio_test(self.__hackrf_device, <uint8_t> address, &test_result)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
@@ -614,13 +632,13 @@ cdef class PyHackrfDevice:
 
 
 # ---- initialization and exit ---- #
-def pyhackrf_init():
+def pyhackrf_init() -> None:
     result = chackrf.hackrf_init()
     if result != chackrf.hackrf_error.HACKRF_SUCCESS:
         raise RuntimeError(f'pyhackrf_init() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
 
-def pyhackrf_exit():
+def pyhackrf_exit() -> None:
     result = chackrf.hackrf_exit()
     if result != chackrf.hackrf_error.HACKRF_SUCCESS:
         raise RuntimeError(f'pyhackrf_exit() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
@@ -649,7 +667,6 @@ def pyhackrf_device_list_open(pyhackrf_device_list: PyHackRFDeviceList, index: i
     result = chackrf.hackrf_device_list_open(pyhackrf_device_list.get_hackrf_device_list_ptr(), index, pyhackrf_device.get_hackrf_device_double_ptr())
 
     if result == chackrf.hackrf_error.HACKRF_SUCCESS:
-        pyhackrf_device._setup_callbacks()
         return pyhackrf_device
 
     raise RuntimeError(f'pyhackrf_device_list_open() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
@@ -661,7 +678,6 @@ def pyhackrf_open() -> PyHackrfDevice | None:
     result = chackrf.hackrf_open(pyhackrf_device.get_hackrf_device_double_ptr())
 
     if result == chackrf.hackrf_error.HACKRF_SUCCESS:
-        pyhackrf_device._setup_callbacks()
         return pyhackrf_device
 
     raise RuntimeError(f'pyhackrf_open() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
@@ -675,7 +691,6 @@ def pyhackrf_open_by_serial(desired_serial_number: str) -> PyHackrfDevice | None
     result = chackrf.hackrf_open_by_serial(desired_serial_number.encode('utf-8'), pyhackrf_device.get_hackrf_device_double_ptr())
 
     if result == chackrf.hackrf_error.HACKRF_SUCCESS:
-        pyhackrf_device._setup_callbacks()
         return pyhackrf_device
 
     raise RuntimeError(f'pyhackrf_open_by_serial() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
