@@ -31,6 +31,8 @@ from enum import IntEnum
 cimport numpy as np
 import numpy as np
 
+PY_BYTES_PER_BLOCK = chackrf.BYTES_PER_BLOCK
+PY_MAX_SWEEP_RANGES = chackrf.MAX_SWEEP_RANGES
 PY_HACKRF_OPERACAKE_ADDRESS_INVALID = chackrf.HACKRF_OPERACAKE_ADDRESS_INVALID
 PY_HACKRF_OPERACAKE_MAX_BOARDS = chackrf.HACKRF_OPERACAKE_MAX_BOARDS
 PY_HACKRF_OPERACAKE_MAX_DWELL_TIMES = chackrf.HACKRF_OPERACAKE_MAX_DWELL_TIMES
@@ -259,7 +261,7 @@ cdef class PyHackrfDevice:
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_board_partid_serialno_read() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-        return  (
+        return (
             (
                 read_partid_serialno.part_id[0],
                 read_partid_serialno.part_id[1]
@@ -271,7 +273,7 @@ cdef class PyHackrfDevice:
                 read_partid_serialno.serial_no[3],
             )
         )
-    
+
     def pyhackrf_serialno_read(self) -> str:
         read_partid_serialno = self.pyhackrf_board_partid_serialno_read()
 

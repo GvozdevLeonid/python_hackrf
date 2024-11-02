@@ -24,6 +24,12 @@ from typing import Self, Callable
 from enum import IntEnum
 import numpy as np
 
+PY_BYTES_PER_BLOCK: int
+'''Number of bytes per tuning for sweeping'''
+
+PY_MAX_SWEEP_RANGES: int
+'''Maximum number of sweep ranges to be specified for `pyhackrf_init_sweep`'''
+
 PY_HACKRF_OPERACAKE_ADDRESS_INVALID: int
 '''Invalid Opera Cake add-on board address, placeholder in hackrf_get_operacake_boards'''
 
