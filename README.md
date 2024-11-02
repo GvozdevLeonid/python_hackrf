@@ -153,5 +153,6 @@ pythonforandroidrecipes/
 
 
 ## Examples
-You can see a basic example of working with python_hackrf in [this](https://pysdr.org/content/hackrf.html) tutorial
+You can see a basic example of working with python_hackrf in [this](https://pysdr.org/content/hackrf.html) tutorial.
+
 Please use the original hackrf documentation
