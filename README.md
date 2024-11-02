@@ -34,7 +34,7 @@ All functions from libhackrf are ported. On Android, connection to hackrf and ob
 * hackrf_clock.c (Will not be implemented)
 * hackrf_cpldjtag.c (Will not be implemented)
 * hackrf_debug.c (Will not be implemented)
-* hackrf_spiflash.c (Will not be implemented)
+* hackrf_spiflash.c (Will not be implemented and features will not be ported)
 
 ## Usage
 ```
