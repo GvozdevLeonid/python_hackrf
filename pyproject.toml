@@ -25,6 +25,7 @@ classifiers = [
 requires = [
     "setuptools",
     "wheel",
+    "numpy",
 ]
 
 [project.scripts]
