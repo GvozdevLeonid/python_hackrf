@@ -78,7 +78,7 @@ cdef sweep_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[:], buff
     global run_available, device_data
 
     timestamp = datetime.datetime.now()
-    time_str = timestamp.strftime("%Y-%m-%d, %H:%M:%S.%f")
+    time_str = timestamp.strftime('%Y-%m-%d, %H:%M:%S.%f')
 
     current_device_data = device_data[device.pyhackrf_serialno_read()]
     norm_factor = 1.0 / current_device_data['fft_size']
@@ -88,11 +88,11 @@ cdef sweep_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[:], buff
     fft_size = current_device_data['fft_size']
     window = current_device_data['window']
 
-    pwr_1_start = 1 + (fft_size * 5) // 8
-    pwr_1_stop = 1 + (fft_size * 5) // 8 + fft_size // 4
+    cdef int pwr_1_start = 1 + (fft_size * 5) // 8
+    cdef int pwr_1_stop = 1 + (fft_size * 5) // 8 + fft_size // 4
 
-    pwr_2_start = 1 + fft_size // 8
-    pwr_2_stop = 1 + fft_size // 8 + fft_size // 4
+    cdef int pwr_2_start = 1 + fft_size // 8
+    cdef int pwr_2_stop = 1 + fft_size // 8 + fft_size // 4
 
     cdef uint64_t frequency = 0
     cdef uint32_t index = 0
@@ -233,7 +233,7 @@ def pyhackrf_sweep(frequencies: list = None, sample_rate: int = 20_000_000, base
         'sample_rate': sample_rate,
 
         'sweep_started': False,
-        'accepted_bytes': False,
+        'accepted_bytes': 0,
         'sweep_count': 0,
         'num_sweeps': num_sweeps,
 
