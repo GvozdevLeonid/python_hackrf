@@ -19,7 +19,7 @@ PLATFORM = sys.platform
 if getenv('LIBLINK'):
     PLATFORM = 'android'
 
-# detect cython
+
 if PLATFORM != 'android':
     SETUP_REQUIRES.append('cython==0.29.36')
     INSTALL_REQUIRES.append('cython==0.29.36')
