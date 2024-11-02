@@ -71,7 +71,7 @@ def init_signals():
 def rx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[:], buffer_length: int, valid_length: int):
     global run_available, device_data
 
-    current_device_data = device_data[device.get_hackrf_device_ptr()]
+    current_device_data = device_data[device.pyhackrf_serialno_read()]
 
     current_device_data['byte_count'] += valid_length
     current_device_data['stream_power'] += np.sum(buffer[:valid_length].astype(np.int8, copy=False) ** 2)
@@ -90,7 +90,7 @@ def rx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[:], buffer_l
         current_device_data['rx_file'].write(accepted_data.tobytes())
 
     if current_device_data['num_samples'] == 0:
-        run_available[device.get_hackrf_device_ptr()] = False
+        run_available[device.pyhackrf_serialno_read()] = False
         return -1
 
     return 0
@@ -99,7 +99,7 @@ def rx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[:], buffer_l
 def tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[:], buffer_length: int, valid_length: int):
     global run_available, device_data
 
-    current_device_data = device_data[device.get_hackrf_device_ptr()]
+    current_device_data = device_data[device.pyhackrf_serialno_read()]
 
     if current_device_data['tx_complete']:
         return -1, buffer, valid_length
@@ -129,12 +129,12 @@ def tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[:], buffer_l
             if current_device_data['tx_queue'].empty():
                 if writed:
                     current_device_data['tx_complete'] = True
-                    run_available[device.get_hackrf_device_ptr()] = False
+                    run_available[device.pyhackrf_serialno_read()] = False
                     valid_length = writed * 2
                     return 0, buffer, valid_length
                 else:
                     current_device_data['tx_complete'] = True
-                    run_available[device.get_hackrf_device_ptr()] = False
+                    run_available[device.pyhackrf_serialno_read()] = False
                     return -1, buffer, valid_length
 
             sent_data = current_device_data['tx_queue'].get_nowait()
@@ -155,7 +155,7 @@ def tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[:], buffer_l
         if len(raw_data):
             writed = len(raw_data) // 8
         elif current_device_data['tx_file'].tell() < 1:
-            run_available[device.get_hackrf_device_ptr()] = False
+            run_available[device.pyhackrf_serialno_read()] = False
             valid_length = 0
             return -1, buffer, valid_length
         else:
@@ -166,7 +166,7 @@ def tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[:], buffer_l
 
         if current_device_data['num_samples'] == 0:
             current_device_data['tx_complete'] = True
-            run_available[device.get_hackrf_device_ptr()] = False
+            run_available[device.pyhackrf_serialno_read()] = False
             valid_length = writed * 2
             return 0, buffer, valid_length
 
@@ -176,7 +176,7 @@ def tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[:], buffer_l
 
         if not current_device_data['repeat_tx'] and current_device_data['tx_file'].tell() < 1:
             current_device_data['tx_complete'] = True
-            run_available[device.get_hackrf_device_ptr()] = False
+            run_available[device.pyhackrf_serialno_read()] = False
             valid_length = writed * 2
             return 0, buffer, valid_length
 
@@ -188,7 +188,7 @@ def tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[:], buffer_l
                 rewrited = len(raw_data) // 8
             else:
                 current_device_data['tx_complete'] = True
-                run_available[device.get_hackrf_device_ptr()] = False
+                run_available[device.pyhackrf_serialno_read()] = False
                 valid_length = writed * 2
                 return 0, buffer, valid_length
 
@@ -204,10 +204,10 @@ def tx_complete_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[:],
     global run_available, device_data
 
     if not success:
-        run_available[device.get_hackrf_device_ptr()] = False
+        run_available[device.pyhackrf_serialno_read()] = False
         return
 
-    current_device_data = device_data[device.get_hackrf_device_ptr()]
+    current_device_data = device_data[device.pyhackrf_serialno_read()]
 
     current_device_data['byte_count'] += valid_length
     current_device_data['stream_power'] += np.sum(buffer[:valid_length].astype(np.int8, copy=False) ** 2)
@@ -216,12 +216,12 @@ def tx_complete_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[:],
 def flush_callback(device: pyhackrf.PyHackrfDevice, success: int):
     global run_available, device_data
 
-    current_device_data = device_data[device.get_hackrf_device_ptr()]
+    current_device_data = device_data[device.pyhackrf_serialno_read()]
 
     if success:
         current_device_data['flush_complete'] = True
 
-    run_available[device.get_hackrf_device_ptr()] = False
+    run_available[device.pyhackrf_serialno_read()] = False
 
 
 def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, baseband_filter_bandwidth: int = 7_000_000, i_frequency: int = None, lo_frequency: int = None, image_reject: pyhackrf.py_rf_path_filter = pyhackrf.py_rf_path_filter.RF_PATH_FILTER_BYPASS,
@@ -240,7 +240,7 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
     else:
         device = pyhackrf.pyhackrf_open_by_serial(serial_number)
 
-    run_available[device.get_hackrf_device_ptr()] = True
+    run_available[device.pyhackrf_serialno_read()] = True
 
     sample_rate = int(sample_rate) if int(sample_rate) in AVAILABLE_SAMPLING_RATES else 10_000_000
     baseband_filter_bandwidth = int(baseband_filter_bandwidth) if int(baseband_filter_bandwidth) in AVAILABLE_BASEBAND_FILTER_BANDWIDTHS else pyhackrf.pyhackrf_compute_baseband_filter_bw(int(baseband_filter_bandwidth))
@@ -261,7 +261,7 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
         'rx_queue': rx_queue,
         'tx_queue': tx_queue
     }
-    device_data[device.get_hackrf_device_ptr()] = current_device_data
+    device_data[device.pyhackrf_serialno_read()] = current_device_data
 
     if (rx_queue is not None or rx_filename is not None) and (tx_queue is not None or tx_filename is not None):
         raise RuntimeError('HackRF cannot receive and send IQ samples at the same time.')
@@ -365,7 +365,7 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
 
     time_start = time.time()
     time_prev = time.time()
-    while run_available[device.get_hackrf_device_ptr()]:
+    while run_available[device.pyhackrf_serialno_read()]:
         time.sleep(0.05)
         time_now = time.time()
         time_difference = time_now - time_prev
@@ -387,7 +387,7 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
             time_prev = time_now
 
     if print_to_console:
-        if not run_available[device.get_hackrf_device_ptr()]:
+        if not run_available[device.pyhackrf_serialno_read()]:
             sys.stderr.write('Exiting...\n')
         else:
             sys.stderr.write('Exiting... [ pyhackrf streaming stopped ]\n')
