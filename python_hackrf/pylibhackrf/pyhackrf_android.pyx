@@ -31,6 +31,7 @@ from libc.stdlib cimport malloc, free
 from enum import IntEnum
 cimport numpy as np
 import numpy as np
+import uuid
 
 PY_BYTES_PER_BLOCK = chackrf.BYTES_PER_BLOCK
 PY_MAX_SWEEP_RANGES = chackrf.MAX_SWEEP_RANGES
@@ -161,8 +162,10 @@ cdef class PyHackrfDevice:
 
     cdef chackrf.hackrf_device* __hackrf_device
     cdef list __pyoperacakes
+    cdef public str uuid
 
     def __cinit__(self):
+        self.uuid = str(uuid.uuid4())
         self.__hackrf_device = NULL
         self.__pyoperacakes = []
 
@@ -186,7 +189,7 @@ cdef class PyHackrfDevice:
         return &self.__hackrf_device
 
     # ---- callbacks ---- #
-    def _setup_callbacks(self):
+    cdef _setup_callbacks(self):
         global global_callbacks
 
         if self.__hackrf_device is not NULL:
@@ -274,13 +277,17 @@ cdef class PyHackrfDevice:
         )
 
     def pyhackrf_serialno_read(self) -> str:
-        read_partid_serialno = self.pyhackrf_board_partid_serialno_read()
+        cdef chackrf.read_partid_serialno_t read_partid_serialno
+        cdef int result
+        result = chackrf.hackrf_board_partid_serialno_read(self.__hackrf_device, &read_partid_serialno)
+        if result != chackrf.hackrf_error.HACKRF_SUCCESS:
+            raise RuntimeError(f'pyhackrf_serialno_read() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
         return '{0:08x}{1:08x}{2:08x}{3:08x}'.format(
-            read_partid_serialno[1][0],
-            read_partid_serialno[1][1],
-            read_partid_serialno[1][2],
-            read_partid_serialno[1][3]
+            read_partid_serialno.serial_no[0],
+            read_partid_serialno.serial_no[1],
+            read_partid_serialno.serial_no[2],
+            read_partid_serialno.serial_no[3]
         )
 
     def pyhackrf_set_ui_enable(self, value: bool) -> None:
@@ -440,7 +447,7 @@ cdef class PyHackrfDevice:
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_stop_tx() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-    def pyhackrf_set_tx_block_complete_callback(self) -> None:
+    def pyhackrf_enable_tx_block_complete_callback(self) -> None:
         result = chackrf.hackrf_set_tx_block_complete_callback(self.__hackrf_device, __tx_complete_callback)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_set_tx_block_complete_callback() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')

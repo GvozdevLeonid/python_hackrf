@@ -52,15 +52,14 @@ AVAILABLE_BASEBAND_FILTER_BANDWIDTHS = (1_750_000, 2_500_000, 3_500_000, 5_000_0
 INTERLEAVED_OFFSET_RATIO = 0.375
 LINEAR_OFFSET_RATIO = 0.5
 
-run_available = {}
-device_data = {}
+cdef dict run_available = {}
+cdef dict device_data = {}
 
 
 def sigint_callback_handler(sig, frame):
     global run_available
     for device in run_available.keys():
         run_available[device] = False
-    sys.stderr.write('\n')
 
 
 def init_signals():
@@ -80,7 +79,7 @@ cdef sweep_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[:], buff
     timestamp = datetime.datetime.now()
     time_str = timestamp.strftime('%Y-%m-%d, %H:%M:%S.%f')
 
-    current_device_data = device_data[device.pyhackrf_serialno_read()]
+    current_device_data = device_data[device.uuid]
     norm_factor = 1.0 / current_device_data['fft_size']
     data_length = current_device_data['fft_size'] * 2
     sweep_style = current_device_data['sweep_style']
@@ -109,14 +108,14 @@ cdef sweep_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[:], buff
             if current_device_data['sweep_started']:
                 current_device_data['sweep_count'] += 1
                 if (
-                    current_device_data['one_shot_mode'] or
+                    current_device_data['one_shot'] or
                     current_device_data['num_sweeps'] == current_device_data['sweep_count']
                 ):
-                    run_available[device.pyhackrf_serialno_read()] = False
+                    run_available[device.uuid] = False
+            else:
+                current_device_data['sweep_started'] = True
 
-            current_device_data['sweep_started'] = True
-
-        if not run_available[device.pyhackrf_serialno_read()]:
+        if not run_available[device.uuid]:
             return -1
 
         if not current_device_data['sweep_started']:
@@ -206,7 +205,7 @@ cdef sweep_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[:], buff
     return 0
 
 
-def pyhackrf_sweep(frequencies: list = None, sample_rate: int = 20_000_000, baseband_filter_bandwidth: int = 15_000_000,
+def pyhackrf_sweep(frequencies: list = None, sample_rate: int = 20_000_000, baseband_filter_bandwidth: int = None,
                    lna_gain: int = 16, vga_gain: int = 20, bin_width: int = 100_000, amp_enable: bool = False, antenna_enable: bool = False,
                    sweep_style: pyhackrf.py_sweep_style = pyhackrf.py_sweep_style.INTERLEAVED, serial_number: str = None,
                    binary_output: bool = False, one_shot: bool = False, num_sweeps: int = None,
@@ -223,10 +222,10 @@ def pyhackrf_sweep(frequencies: list = None, sample_rate: int = 20_000_000, base
     else:
         device = pyhackrf.pyhackrf_open_by_serial(serial_number)
 
-    run_available[device.pyhackrf_serialno_read()] = True
+    run_available[device.uuid] = True
 
     sample_rate = int(sample_rate) if int(sample_rate) in AVAILABLE_SAMPLING_RATES else 20_000_000
-    baseband_filter_bandwidth = int(baseband_filter_bandwidth) if int(baseband_filter_bandwidth) in AVAILABLE_BASEBAND_FILTER_BANDWIDTHS else pyhackrf.pyhackrf_compute_baseband_filter_bw(int(baseband_filter_bandwidth))
+    baseband_filter_bandwidth = int(baseband_filter_bandwidth) if baseband_filter_bandwidth in AVAILABLE_BASEBAND_FILTER_BANDWIDTHS else pyhackrf.pyhackrf_compute_baseband_filter_bw(int(sample_rate * .75))
 
     current_device_data = {
         'sweep_style': sweep_style if sweep_style in pyhackrf.py_sweep_style else pyhackrf.py_sweep_style.INTERLEAVED,
@@ -319,14 +318,14 @@ def pyhackrf_sweep(frequencies: list = None, sample_rate: int = 20_000_000, base
     current_device_data['start_frequency'] = int(frequencies[0] * 1e6)
     current_device_data['fft_size'] = fft_size
     current_device_data['window'] = np.hanning(fft_size)
-    device_data[device.pyhackrf_serialno_read()] = current_device_data
+    device_data[device.uuid] = current_device_data
 
     device.pyhackrf_init_sweep(frequencies, num_ranges, pyhackrf.PY_BYTES_PER_BLOCK, int(TUNE_STEP * 1e6), OFFSET, current_device_data['sweep_style'])
     device.pyhackrf_start_rx_sweep()
 
     time_start = time.time()
     time_prev = time.time()
-    while device.pyhackrf_is_streaming() and run_available[device.pyhackrf_serialno_read()]:
+    while device.pyhackrf_is_streaming() and run_available[device.uuid]:
         time.sleep(0.05)
         time_now = time.time()
         time_difference = time_now - time_prev
@@ -346,10 +345,10 @@ def pyhackrf_sweep(frequencies: list = None, sample_rate: int = 20_000_000, base
         current_device_data['file'].close()
 
     if print_to_console:
-        if not run_available[device.pyhackrf_serialno_read()]:
-            sys.stderr.write('Exiting...\n')
+        if not run_available[device.uuid]:
+            sys.stderr.write('\nExiting...\n')
         else:
-            sys.stderr.write('Exiting... [ pyhackrf streaming stopped ]\n')
+            sys.stderr.write('\nExiting... [ pyhackrf streaming stopped ]\n')
 
     time_now = time.time()
     time_difference = time_now - time_prev
@@ -359,8 +358,8 @@ def pyhackrf_sweep(frequencies: list = None, sample_rate: int = 20_000_000, base
     if print_to_console:
         sys.stderr.write(f'Total sweeps: {current_device_data["sweep_count"]} in {time_now - time_start:.5f} seconds ({sweep_rate :.2f} sweeps/second)\n')
 
-    device_data.pop(device.get_hackrf_device_double_ptr(), None)
-    run_available.pop(device.get_hackrf_device_double_ptr(), None)
+    device_data.pop(device.uuid, None)
+    run_available.pop(device.uuid, None)
 
     try:
         device.pyhackrf_close()

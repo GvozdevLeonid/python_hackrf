@@ -378,7 +378,7 @@ class PyHackrfDevice:
         '''Stop transmission'''
         ...
 
-    def pyhackrf_set_tx_block_complete_callback(self) -> None:
+    def pyhackrf_enable_tx_block_complete_callback(self) -> None:
         '''
         Setup callback to be called when an USB transfer is completed.
 
