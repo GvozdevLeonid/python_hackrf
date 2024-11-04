@@ -609,7 +609,7 @@ cdef class PyHackrfDevice:
         result = chackrf.hackrf_get_operacake_mode(self.__hackrf_device, <uint8_t> address, &mode)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_get_operacake_mode() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
-        return mode
+        return py_operacake_switching_mode(mode)
 
     def pyhackrf_set_operacake_ports(self, address: int, port_a: str, port_b: str) -> None:
         result = chackrf.hackrf_set_operacake_ports(self.__hackrf_device, <uint8_t> address, <uint8_t> operacake_ports[port_a], <uint8_t> operacake_ports[port_b])
