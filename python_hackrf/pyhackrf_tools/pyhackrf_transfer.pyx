@@ -403,13 +403,10 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
 
     if print_to_console:
         sys.stderr.write(f'Total time: {time_now - time_start:.5f} seconds\n')
+    time.sleep(.5)
 
-    if rx_filename is not None:
-        if rx_filename != '-':
-            current_device_data['rx_file'].close()
-        else:
-            sys.stdout.flush()
-        time.sleep(.5)
+    if rx_filename not in ('-', None):
+        current_device_data['rx_file'].close()
 
     if tx_filename not in ('-', None):
         current_device_data['tx_file'].close()
