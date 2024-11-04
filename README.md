@@ -38,7 +38,7 @@ All functions from libhackrf are ported. On Android, connection to hackrf and ob
 
 ## Usage
 ```
-usage: python_hackrf [-h] {info, sweep, operacake} ...
+usage: python_hackrf [-h] {info, sweep, operacake, transfer} ...
 
 python_hackrf is a Python wrapper for libhackrf and hackrf-tools.
 
@@ -46,7 +46,7 @@ options:
   -h, --help            show this help message and exit
 
 Available commands:
-  {info,operacake,sweep}
+  {info,operacake,sweep,transfer}
     info                Read device information from HackRF such as serial number and firmware version.
     operacake           Specify either list, mode, or GPIO test option.
     sweep               Command-line spectrum analyzer.
