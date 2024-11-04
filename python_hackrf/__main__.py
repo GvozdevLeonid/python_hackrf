@@ -51,7 +51,7 @@ def main():
     pyhackrf_sweep_parser.add_argument('-B', action='store_true', help='binary output. If specified = Enable')
     pyhackrf_sweep_parser.add_argument('-S', action='store', help='sweep style ("L" - LINEAR, "I" - INTERLEAVED). Default is INTERLEAVED', metavar='', default='I')
     pyhackrf_sweep_parser.add_argument('-s', action='store', help='sample rate in MHz (2, 4, 6, 8, 10, 12, 14, 16, 18, 20). Default is 20', metavar='', default=20)
-    pyhackrf_sweep_parser.add_argument('-b', action='store', help='baseband filter bandwidth in MHz (1.75, 2.5, 3.5, 5.0, 5.5, 6.0, 7.0, 8.0, 9.0, 10.0, 12.0, 14.0, 15.0 20.0, 24.0, 28.0). Default is 15.0', metavar='')
+    pyhackrf_sweep_parser.add_argument('-b', action='store', help='baseband filter bandwidth in MHz (1.75, 2.5, 3.5, 5.0, 5.5, 6.0, 7.0, 8.0, 9.0, 10.0, 12.0, 14.0, 15.0 20.0, 24.0, 28.0). Default .75 * sample rate', metavar='')
     pyhackrf_sweep_parser.add_argument('-r', action='store', help='<filename> output file', metavar='')
 
     pyhackrf_transfer_parser = subparsers.add_parser(
@@ -72,7 +72,7 @@ def main():
     pyhackrf_transfer_parser.add_argument('-s', action='store', help='sample rate in MHz (2, 4, 6, 8, 10, 12, 14, 16, 18, 20). Default is 10', metavar='', default=10)
     pyhackrf_transfer_parser.add_argument('-N', action='store', help='number of samples to transfer (default is unlimited)', metavar='')
     pyhackrf_transfer_parser.add_argument('-R', action='store_true', help='repeat TX mode. Fefault is off')
-    pyhackrf_transfer_parser.add_argument('-b', action='store', help='baseband filter bandwidth in MHz (1.75, 2.5, 3.5, 5.0, 5.5, 6.0, 7.0, 8.0, 9.0, 10.0, 12.0, 14.0, 15.0 20.0, 24.0, 28.0). Default is 15.0', metavar='')
+    pyhackrf_transfer_parser.add_argument('-b', action='store', help='baseband filter bandwidth in MHz (1.75, 2.5, 3.5, 5.0, 5.5, 6.0, 7.0, 8.0, 9.0, 10.0, 12.0, 14.0, 15.0 20.0, 24.0, 28.0). Default .75 * sample rate', metavar='')
     pyhackrf_transfer_parser.add_argument('-H', action='store_true', help='synchronize RX/TX to external trigger input')
 
     if len(sys.argv) == 1:

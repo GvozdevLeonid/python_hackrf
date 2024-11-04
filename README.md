@@ -80,7 +80,7 @@ options:
   -B          binary output. If specified = Enable
   -S          sweep style ("L" - LINEAR, "I" - INTERLEAVED). Default is INTERLEAVED
   -s          sample rate in MHz (2, 4, 6, 8, 10, 12, 14, 16, 18, 20). Default is 20
-  -b          baseband filter bandwidth in MHz (1.75, 2.5, 3.5, 5.0, 5.5, 6.0, 7.0, 8.0, 9.0, 10.0, 12.0, 14.0, 15.0 20.0, 24.0, 28.0). Default is 15
+  -b          baseband filter bandwidth in MHz (1.75, 2.5, 3.5, 5.0, 5.5, 6.0, 7.0, 8.0, 9.0, 10.0, 12.0, 14.0, 15.0 20.0, 24.0, 28.0). Default .75 * sample rate
   -r          <filename> output file
 ```
 ##### python_hackrf operacake
@@ -122,7 +122,7 @@ options:
   -s                  sample rate in MHz (2, 4, 6, 8, 10, 12, 14, 16, 18, 20). Default is 10
   -N                  number of samples to transfer (default is unlimited)
   -R                  repeat TX mode. Fefault is off
-  -b                  baseband filter bandwidth in MHz (1.75, 2.5, 3.5, 5.0, 5.5, 6.0, 7.0, 8.0, 9.0, 10.0, 12.0, 14.0, 15.0 20.0, 24.0, 28.0). Default is 15.0
+  -b                  baseband filter bandwidth in MHz (1.75, 2.5, 3.5, 5.0, 5.5, 6.0, 7.0, 8.0, 9.0, 10.0, 12.0, 14.0, 15.0 20.0, 24.0, 28.0). Default .75 * sample rate
   -H                  synchronize RX/TX to external trigger input
 ```
 ## Android
