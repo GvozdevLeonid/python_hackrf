@@ -261,7 +261,7 @@ def main():
         pyhackrf_transfer.pyhackrf_transfer(
             frequency=int(args.freq_hz),
             sample_rate=int(args.s) * 1e6,
-            baseband_filter_bandwidth=float(args.b) * 1e6,
+            baseband_filter_bandwidth=float(args.b) * 1e6 if args.b is not None else None,
             i_frequency=int(args.i_freq_hz) if args.i_freq_hz is not None else None,
             lo_frequency=int(args.lo_freq_hz) if args.lo_freq_hz is not None else None,
             image_reject=pyhackrf.py_rf_path_filter.RF_PATH_FILTER_BYPASS if args.image_reject == 'bypass' else (pyhackrf.py_rf_path_filter.RF_PATH_FILTER_LOW_PASS if args.image_reject == 'low' else (pyhackrf.py_rf_path_filter.RF_PATH_FILTER_HIGH_PASS if args.image_reject == 'high' else -1)),
