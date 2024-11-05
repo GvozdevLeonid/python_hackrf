@@ -364,6 +364,7 @@ cdef class PyHackrfDevice:
             raise RuntimeError(f'pyhackrf_set_vga_gain() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
     def pyhackrf_set_txvga_gain(self, value: int) -> None:
+        value = int(max(0, min(47, value)))
         result = chackrf.hackrf_set_txvga_gain(self.__hackrf_device, <uint32_t> value)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_set_txvga_gain() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
