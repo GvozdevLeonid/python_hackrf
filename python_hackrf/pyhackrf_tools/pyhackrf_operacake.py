@@ -24,7 +24,7 @@ from python_hackrf import pyhackrf
 
 
 def pyhackrf_operacake_info(device: pyhackrf.PyHackrfDevice = None,
-                            serial_number: str = None,
+                            serial_number: str | None = None,
                             print_to_console: bool = True,
                             ) -> None | str:
 
@@ -49,19 +49,20 @@ def pyhackrf_operacake_info(device: pyhackrf.PyHackrfDevice = None,
     else:
         operacake_info = 'Opera Cakes found: None'
 
-    if print_to_console:
-        print(operacake_info)
-    else:
-        return operacake_info
-
     if initialize:
         device.pyhackrf_close()
         pyhackrf.pyhackrf_exit()
 
+    if print_to_console:
+        print(operacake_info)
+        return None
+
+    return operacake_info
+
 
 def pyhackrf_set_operacake_mode(address: int,
                                 mode: str,
-                                serial_number: str = None,
+                                serial_number: str | None = None,
                                 device: pyhackrf.PyHackrfDevice = None,
                                 ) -> None:
 
@@ -90,7 +91,7 @@ def pyhackrf_set_operacake_mode(address: int,
 
 
 def pyhackrf_set_operacake_freq_ranges(freq_ranges: list,
-                                       serial_number: str = None,
+                                       serial_number: str | None = None,
                                        device: pyhackrf.PyHackrfDevice = None,
                                        ) -> None:
 
@@ -112,7 +113,7 @@ def pyhackrf_set_operacake_freq_ranges(freq_ranges: list,
 
 
 def pyhackrf_set_operacake_dwell_times(dwell_times: list,
-                                       serial_number: str = None,
+                                       serial_number: str | None = None,
                                        device: pyhackrf.PyHackrfDevice = None,
                                        ) -> None:
 
@@ -136,7 +137,7 @@ def pyhackrf_set_operacake_dwell_times(dwell_times: list,
 def pyhackrf_set_operacake_ports(address: int,
                                  port_a: str,
                                  port_b: str,
-                                 serial_number: str = None,
+                                 serial_number: str | None = None,
                                  device: pyhackrf.PyHackrfDevice = None,
                                  ) -> None:
 
@@ -158,7 +159,7 @@ def pyhackrf_set_operacake_ports(address: int,
 
 
 def pyhackrf_operacake_gpio_test(address: int,
-                                 serial_number: str = None,
+                                 serial_number: str | None = None,
                                  device: pyhackrf.PyHackrfDevice = None,
                                  ) -> None:
 

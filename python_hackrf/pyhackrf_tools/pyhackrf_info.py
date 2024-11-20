@@ -44,7 +44,7 @@ def pyhackrf_info(print_to_console: bool = True, initialize: bool = True) -> Non
             print_info += f'Board ID Number: {board_id} ({board_id_name})\n'
             print_info += f'Firmware Version: {device.pyhackrf_version_string_read()} ({device.pyhackrf_usb_api_version_read()})\n'
             print_info += f'Part ID Number: 0x{read_partid_serialno[0][0]:08x} 0x{read_partid_serialno[0][1]:08x}\n'
-            if board_rev not in (0xFE, 0xFF):
+            if board_rev not in {0xFE, 0xFF}:
                 print_info += f'Hardware Revision: {board_rev_name}\n'
                 if board_rev > 0:
                     if (board_rev & 0x80):
@@ -67,8 +67,9 @@ def pyhackrf_info(print_to_console: bool = True, initialize: bool = True) -> Non
 
     if print_to_console:
         print(print_info)
-    else:
-        return print_info
+        return None
+
+    return print_info
 
 
 def pyhackrf_serial_numbers_list_info(print_to_console: bool = True, initialize: bool = True) -> None | tuple[int, list]:
@@ -82,5 +83,6 @@ def pyhackrf_serial_numbers_list_info(print_to_console: bool = True, initialize:
 
     if print_to_console:
         print(f'Serial numbers [{device_list.device_count}]: {device_list.serial_numbers}')
-    else:
-        return device_list.device_count, device_list.serial_numbers
+        return None
+
+    return device_list.device_count, device_list.serial_numbers

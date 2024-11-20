@@ -1,29 +1,30 @@
-from .pyhackrf_tools import (
-    pyhackrf_operacake,
-    pyhackrf_transfer,
-    pyhackrf_sweep,
-    pyhackrf_info,
-)
-from .pylibhackrf import pyhackrf
 import argparse
 import sys
 
+from .pyhackrf_tools import (
+    pyhackrf_info,
+    pyhackrf_operacake,
+    pyhackrf_sweep,
+    pyhackrf_transfer,
+)
+from .pylibhackrf import pyhackrf
 
-def main():
+
+def main() -> None:
     parser = argparse.ArgumentParser(
         description='python_hackrf is a Python wrapper for libhackrf and hackrf-tools.',
-        usage='python_hackrf [-h] {info, sweep, operacake} ...'
+        usage='python_hackrf [-h] {info, sweep, operacake} ...',
     )
     subparsers = parser.add_subparsers(dest='command', title='Available commands')
     subparsers.required = True
     pyhackrf_info_parser = subparsers.add_parser(
-        'info', help='Read device information from HackRF such as serial number and firmware version.', usage='python_hackrf info [-h] [-f] [-s]'
+        'info', help='Read device information from HackRF such as serial number and firmware version.', usage='python_hackrf info [-h] [-f] [-s]',
     )
     pyhackrf_info_parser.add_argument('-f', '--full', action='store_true', help='show info like in hackrf_info')
     pyhackrf_info_parser.add_argument('-s', '--serial_numbers', action='store_true', help='show only founded serial_numbers')
 
     pyhackrf_operacake_parser = subparsers.add_parser(
-        'operacake', help='Configure Opera Cake antenna switch connected to HackRF.', usage='python_hackrf operacake [-h] [-d] [-o] [-m] [-a] [-b] [-f] [-t] [-w] [-l] [-g]'
+        'operacake', help='Configure Opera Cake antenna switch connected to HackRF.', usage='python_hackrf operacake [-h] [-d] [-o] [-m] [-a] [-b] [-f] [-t] [-w] [-l] [-g]',
     )
     pyhackrf_operacake_parser.add_argument('-d', action='store', help='serial_number. serial number of desired HackRF', metavar='')
     pyhackrf_operacake_parser.add_argument('-o', '--address', action='store', help='specify a particular Opera Cake by address. Default is 0', metavar='', default=0)
@@ -37,7 +38,7 @@ def main():
     pyhackrf_operacake_parser.add_argument('-g', '--gpio_test', action='store_true', help='test GPIO functionality of an Opera Cake')
 
     pyhackrf_sweep_parser = subparsers.add_parser(
-        'sweep', help='Command-line spectrum analyzer.', usage='python_hackrf sweep [-h] [-d] [-a] [-f] [-p] [-l] [-g] [-w] [-1] [-N] [-B] [-S] [-s] [-b] [-r]'
+        'sweep', help='Command-line spectrum analyzer.', usage='python_hackrf sweep [-h] [-d] [-a] [-f] [-p] [-l] [-g] [-w] [-1] [-N] [-B] [-S] [-s] [-b] [-r]',
     )
     pyhackrf_sweep_parser.add_argument('-d', action='store', help='serial number of desired HackRF', metavar='')
     pyhackrf_sweep_parser.add_argument('-a', action='store_true', help='RX RF amplifier. If specified = Enable')
@@ -55,7 +56,7 @@ def main():
     pyhackrf_sweep_parser.add_argument('-r', action='store', help='<filename> output file', metavar='')
 
     pyhackrf_transfer_parser = subparsers.add_parser(
-        'transfer', help='Send and receive signals using HackRF. Input/output files consist of complex64 quadrature samples.', usage='python_hackrf transfer [-h] [-d] [-r] [-t] [-f] [-i] [-o] [-m] [-a] [-p] [-l] [-g] [-x] [-s] [-N] [-R] -[b] [-H]'
+        'transfer', help='Send and receive signals using HackRF. Input/output files consist of complex64 quadrature samples.', usage='python_hackrf transfer [-h] [-d] [-r] [-t] [-f] [-i] [-o] [-m] [-a] [-p] [-l] [-g] [-x] [-s] [-N] [-R] -[b] [-H]',
     )
     pyhackrf_transfer_parser.add_argument('-d', action='store', help='serial number of desired HackRF', metavar='')
     pyhackrf_transfer_parser.add_argument('-r', action='store', help='<filename> receive data into file (use "-" for stdout)', metavar='')
@@ -79,13 +80,13 @@ def main():
         parser.print_help()
         sys.exit(0)
 
-    args, unparsed_args = parser.parse_known_args()
+    args, _ = parser.parse_known_args()
 
     if args.command == 'info':
         if args.serial_numbers:
             pyhackrf_info.pyhackrf_serial_numbers_list_info()
-        else:
-            pyhackrf_info.pyhackrf_info()
+            return
+        pyhackrf_info.pyhackrf_info()
 
     elif args.command == 'operacake':
         if sum([args.list, args.mode is not None, args.f is not None, args.t is not None, args.gpio_test, (args.a is not None or args.b is not None)]) == 1:
@@ -96,80 +97,63 @@ def main():
                 )
                 return
 
-            elif args.mode in ('manual', 'frequency', 'time'):
-                address = 0
-                if args.address is not None:
-                    try:
-                        address = int(args.address)
-                    except Exception:
-                        pass
+            if args.mode in {'manual', 'frequency', 'time'}:
+                try:
+                    address = int(args.address)
+                except Exception:
+                    address = 0
+
                 pyhackrf_operacake.pyhackrf_set_operacake_mode(
                     address,
                     args.mode,
-                    serial_number=args.d
+                    serial_number=args.d,
                 )
                 return
 
-            elif args.f is not None:
+            if args.f is not None:
                 str_freq_ranges = args.f.split(',')
                 freq_ranges = []
                 for freq_range in str_freq_ranges:
-                    freq_range = freq_range.split(':')
-                    port, freq_min, freq_max = None, None, None
                     try:
-                        port = freq_range[0]
+                        port, freq_min, freq_max = freq_range.split(':')
+                        freq_min, freq_max = int(freq_min), int(freq_max)
+                        if port in pyhackrf.operacake_ports.keys():
+                            freq_ranges.extend([port, freq_min, freq_max])
                     except Exception:
                         pass
-                    try:
-                        freq_min = int(freq_range[1])
-                    except Exception:
-                        pass
-                    try:
-                        freq_max = int(freq_range[2])
-                    except Exception:
-                        pass
-
-                    if freq_min is not None and freq_max is not None and port in ('A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'B3', 'B4'):
-                        freq_ranges.extend([port, freq_min, freq_max])
 
                 pyhackrf_operacake.pyhackrf_set_operacake_freq_ranges(
                     freq_ranges,
-                    serial_number=args.d
+                    serial_number=args.d,
                 )
                 return
 
-            elif args.t is not None:
+            if args.t is not None:
                 str_dwell_times = args.f.split(',')
                 dwell_times = []
                 for dwell_time in str_dwell_times:
-                    dwell_time = dwell_time.split(':')
-                    dwell, port = None
-                    if len(dwell_time) == 2:
-                        try:
-                            port = dwell_time[0]
-                        except Exception:
-                            pass
-                        try:
-                            dwell = int(dwell_time[1])
-                        except Exception:
-                            pass
-                    else:
-                        port = dwell_time[0]
-                        try:
-                            dwell = int(args.w)
-                        except Exception:
-                            pass
+                    try:
+                        dwell_split = dwell_time.split(':')
 
-                    if dwell is not None and port in ('A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'B3', 'B4'):
-                        dwell_times.extend([dwell, port])
+                        if len(dwell_split) == 2:
+                            port, dwell = dwell_split
+                            dwell = int(dwell)
+                        else:
+                            port = dwell_split[0]
+                            dwell = int(args.w)
+
+                        if port in pyhackrf.operacake_ports.keys():
+                            dwell_times.extend([dwell, port])
+                    except Exception:
+                        pass
 
                 pyhackrf_operacake.pyhackrf_set_operacake_dwell_times(
                     dwell_times,
-                    serial_number=args.d
+                    serial_number=args.d,
                 )
                 return
 
-            elif (args.a is not None or args.b is not None):
+            if (args.a is not None or args.b is not None):
                 address, port_a, port_b = 0, 'A1', 'B1'
                 if args.a is not None:
                     port_a = args.a
@@ -193,7 +177,7 @@ def main():
                     else:
                         port_b = 'B1'
 
-                if port_a in ('A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'B3', 'B4') and port_b in ('A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'B3', 'B4'):
+                if port_a in pyhackrf.operacake_ports.keys() and port_b in pyhackrf.operacake_ports.keys():
                     if port_a[0] != port_b[0]:
                         pyhackrf_operacake.pyhackrf_set_operacake_ports(
                             address,
@@ -219,25 +203,15 @@ def main():
                 )
                 return
 
-        print('Argument error')
-        print(pyhackrf_sweep_parser.usage)
-
     elif args.command == 'sweep':
         str_frequencies = args.f.split(',')
         frequencies = []
         for frequency_range in str_frequencies:
-            frequency_range = frequency_range.split(':')
-            freq_min, freq_max = None, None
             try:
-                freq_min = int(frequency_range[0])
-            except Exception:
-                pass
-            try:
-                freq_max = int(frequency_range[1])
-            except Exception:
-                pass
-            if freq_min is not None and freq_max is not None:
+                freq_min, freq_max = map(int, frequency_range.split(':'))
                 frequencies.extend([freq_min, freq_max])
+            except Exception:
+                pass
 
         pyhackrf_sweep.pyhackrf_sweep(
             frequencies=frequencies,
