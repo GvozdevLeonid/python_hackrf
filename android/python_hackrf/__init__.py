@@ -1,16 +1,20 @@
-from pythonforandroid.recipe import CythonRecipe  # type: ignore
-from pythonforandroid.recipe import Recipe  # type: ignore
 import os
+
+from pythonforandroid.archs import Arch
+from pythonforandroid.recipe import (
+    CythonRecipe,
+    Recipe,
+)
 
 
 class PythonHackrfRecipe(CythonRecipe):
     url = 'https://github.com/GvozdevLeonid/python_hackrf/releases/download/v.{version}/python_hackrf-{version}.tar.gz'
-    depends = ['python3', 'setuptools', 'numpy', 'pyjnius', 'libhackrf']
+    depends = ('python3', 'setuptools', 'numpy', 'pyjnius', 'libhackrf')
     site_packages_name = 'python_hackrf'
     name = 'python_hackrf'
-    version = '1.2.1'
+    version = '1.2.2'
 
-    def get_recipe_env(self, arch):
+    def get_recipe_env(self, arch: Arch) -> dict:
         env = super().get_recipe_env(arch)
 
         libhackrf_recipe = Recipe.get_recipe('libhackrf', arch)
