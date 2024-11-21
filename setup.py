@@ -29,12 +29,12 @@ if PLATFORM != 'android':
     cflags = environ.get('CFLAGS', '')
     ldflags = environ.get('LDFLAGS', '')
 
-    if PLATFORM in ('linux', 'darwin'):
+    if PLATFORM in {'linux', 'darwin'}:
         if environ.get('PYTHON_HACKRF_CFLAGS', None) is None:
             try:
                 new_cflags = subprocess.check_output(['pkg-config', '--cflags', 'libhackrf']).decode('utf-8').strip()
             except Exception:
-                new_cflags = ''
+                new_cflags = '-I/opt/homebrew/include/libhackrf -I/opt/local/include/libhackrf -I/usr/include/libhackrf -I/usr/include/libhackrf -I/usr/local/include/libhackrf'
         else:
             new_cflags = environ.get('PYTHON_HACKRF_CFLAGS', '')
 
@@ -42,7 +42,7 @@ if PLATFORM != 'android':
             try:
                 new_ldflags = subprocess.check_output(['pkg-config', '--libs', 'libhackrf']).decode('utf-8').strip()
             except Exception:
-                new_ldflags = ''
+                new_ldflags = '-L/opt/homebrew/lib -L/opt/local/lib -L/usr/lib64 -L/usr/lib -L/usr/local/lib -L/usr/local/lib64'
         else:
             new_ldflags = environ.get('PYTHON_HACKRF_LDFLAGS', '')
 
@@ -87,7 +87,7 @@ setup(
             sources=['python_hackrf/pyhackrf_tools/pyhackrf_transfer.pyx'],
             include_dirs=['python_hackrf/pyhackrf_tools', numpy.get_include()],
             extra_compile_args=['-w'],
-        )
+        ),
     ],
     packages=find_packages(),
     package_dir={'': '.'},
