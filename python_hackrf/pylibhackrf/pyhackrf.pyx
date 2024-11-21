@@ -164,7 +164,6 @@ cdef class PyHackrfDevice:
     cdef public str serialno
 
     def __cinit__(self):
-        self.serialno = self.pyhackrf_serialno_read()
         self.__hackrf_device = NULL
         self.__pyoperacakes = []
 
@@ -187,11 +186,12 @@ cdef class PyHackrfDevice:
     cdef chackrf.hackrf_device** get_hackrf_device_double_ptr(self):
         return &self.__hackrf_device
 
-    # ---- callbacks ---- #
-    cdef _setup_callbacks(self):
+    cdef _setup_device(self):
         global global_callbacks
 
         if self.__hackrf_device is not NULL:
+            self.serialno = self.pyhackrf_serialno_read()
+
             global_callbacks[<size_t> self.__hackrf_device] = {
                 '__rx_callback': None,
                 '__tx_callback': None,
@@ -202,7 +202,7 @@ cdef class PyHackrfDevice:
             }
             return
 
-        raise RuntimeError(f'__setup_callbacks() failed: Device not initialized!')
+        raise RuntimeError(f'_setup_device() failed: Device not initialized!')
 
     # ---- device ---- #
     def pyhackrf_close(self) -> None:
@@ -684,7 +684,7 @@ def pyhackrf_device_list_open(pyhackrf_device_list: PyHackRFDeviceList, index: i
     result = chackrf.hackrf_device_list_open(pyhackrf_device_list.get_hackrf_device_list_ptr(), index, pyhackrf_device.get_hackrf_device_double_ptr())
 
     if result == chackrf.hackrf_error.HACKRF_SUCCESS:
-        pyhackrf_device._setup_callbacks()
+        pyhackrf_device._setup_device()
         return pyhackrf_device
 
     raise RuntimeError(f'pyhackrf_device_list_open() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
@@ -696,7 +696,7 @@ def pyhackrf_open() -> PyHackrfDevice | None:
     result = chackrf.hackrf_open(pyhackrf_device.get_hackrf_device_double_ptr())
 
     if result == chackrf.hackrf_error.HACKRF_SUCCESS:
-        pyhackrf_device._setup_callbacks()
+        pyhackrf_device._setup_device()
         return pyhackrf_device
 
     raise RuntimeError(f'pyhackrf_open() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
@@ -710,7 +710,7 @@ def pyhackrf_open_by_serial(desired_serial_number: str) -> PyHackrfDevice | None
     result = chackrf.hackrf_open_by_serial(desired_serial_number.encode('utf-8'), pyhackrf_device.get_hackrf_device_double_ptr())
 
     if result == chackrf.hackrf_error.HACKRF_SUCCESS:
-        pyhackrf_device._setup_callbacks()
+        pyhackrf_device._setup_device()
         return pyhackrf_device
 
     raise RuntimeError(f'pyhackrf_open_by_serial() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
