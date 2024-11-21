@@ -23,7 +23,7 @@
 # cython: language_level=3str
 from python_hackrf import __version__
 from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t
-from .__android import hackrf_device_list
+from .__android import get_hackrf_device_list
 from . cimport chackrf_android as chackrf
 from libc.stdlib cimport malloc, free
 
@@ -132,7 +132,7 @@ cdef class PyHackRFDeviceList:
     cdef list __hackrf_device_list
 
     def __cinit__(self):
-        self.__hackrf_device_list = hackrf_device_list()
+        self.__hackrf_device_list = get_hackrf_device_list()
 
     property device_count:
         def __get__(self):
@@ -688,12 +688,12 @@ def pyhackrf_device_list_open(pyhackrf_device_list: PyHackRFDeviceList, index: i
 
 
 def pyhackrf_open() -> PyHackrfDevice | None:
-    device_list = hackrf_device_list(1)
+    hackrf_device_list = get_hackrf_device_list(1)
     result = chackrf.hackrf_error.HACKRF_ERROR_NOT_FOUND
 
-    if len(device_list):
+    if len(hackrf_device_list):
         pyhackrf_device = PyHackrfDevice()
-        result = chackrf.hackrf_open_on_android(device_list[0][0], pyhackrf_device.get_hackrf_device_double_ptr())
+        result = chackrf.hackrf_open_on_android(hackrf_device_list[0][0], pyhackrf_device.get_hackrf_device_double_ptr())
         if result == chackrf.hackrf_error.HACKRF_SUCCESS:
             pyhackrf_device._setup_device()
             return pyhackrf_device
@@ -705,11 +705,11 @@ def pyhackrf_open_by_serial(desired_serial_number: str) -> PyHackrfDevice | None
     if desired_serial_number in (None, ''):
         return pyhackrf_open()
 
-    device_list = hackrf_device_list()
+    hackrf_device_list = get_hackrf_device_list()
     result = chackrf.hackrf_error.HACKRF_ERROR_NOT_FOUND
 
-    if len(device_list):
-        for file_descriptor, board_id, serial_number in device_list:
+    if len(hackrf_device_list):
+        for file_descriptor, board_id, serial_number in hackrf_device_list:
             if serial_number == desired_serial_number:
                 pyhackrf_device = PyHackrfDevice()
                 result = chackrf.hackrf_open_on_android(file_descriptor, pyhackrf_device.get_hackrf_device_double_ptr())
