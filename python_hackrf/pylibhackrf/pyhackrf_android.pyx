@@ -158,7 +158,7 @@ cdef class PyHackrfDevice:
 
     cdef chackrf.hackrf_device* __hackrf_device
     cdef list __pyoperacakes
-    cdef public str uuid
+    cdef public str serialno
 
     def __cinit__(self):
         self.__hackrf_device = NULL
