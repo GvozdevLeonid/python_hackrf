@@ -28,7 +28,6 @@ from . cimport chackrf
 
 
 from enum import IntEnum
-cimport numpy as np
 import numpy as np
 
 PY_BYTES_PER_BLOCK = chackrf.BYTES_PER_BLOCK

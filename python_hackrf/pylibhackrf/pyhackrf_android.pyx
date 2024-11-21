@@ -29,9 +29,7 @@ from libc.stdlib cimport malloc, free
 
 
 from enum import IntEnum
-cimport numpy as np
 import numpy as np
-import uuid
 
 PY_BYTES_PER_BLOCK = chackrf.BYTES_PER_BLOCK
 PY_MAX_SWEEP_RANGES = chackrf.MAX_SWEEP_RANGES

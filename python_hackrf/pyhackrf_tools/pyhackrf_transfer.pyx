@@ -66,7 +66,7 @@ def init_signals():
         pass
 
 
-def rx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[:], buffer_length: int, valid_length: int):
+cdef rx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t, 1], buffer_length: int, valid_length: int):
     global run_available, device_data
 
     if not run_available[device.serialno]:
@@ -97,7 +97,7 @@ def rx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[:], buffer_l
     return 0
 
 
-def tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[:], buffer_length: int, valid_length: int):
+cdef tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t, 1], buffer_length: int, valid_length: int):
     global run_available, device_data
 
     current_device_data = device_data[device.serialno]
@@ -205,7 +205,7 @@ def tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[:], buffer_l
         return 0, buffer, valid_length
 
 
-def tx_complete_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[:], buffer_length: int, valid_length: int, success: int):
+cdef tx_complete_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t, 1], buffer_length: int, valid_length: int, success: int):
     global run_available, device_data
 
     if not success:
@@ -218,7 +218,7 @@ def tx_complete_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[:],
     current_device_data['stream_power'] += np.sum(buffer[:valid_length].view(np.int8).astype(np.uint64, copy=False) ** 2)
 
 
-def flush_callback(device: pyhackrf.PyHackrfDevice, success: int):
+cdef flush_callback(device: pyhackrf.PyHackrfDevice, success: int):
     global run_available, device_data
 
     current_device_data = device_data[device.serialno]

@@ -32,7 +32,6 @@ except ImportError:
 
 from libc.stdint cimport uint32_t, uint64_t
 from python_hackrf import pyhackrf
-cimport numpy as np
 import numpy as np
 import datetime
 import signal
@@ -73,7 +72,7 @@ def init_signals():
         pass
 
 
-cdef sweep_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[:], buffer_length: int, valid_length: int):
+cdef sweep_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t, 1], buffer_length: int, valid_length: int):
     global run_available, device_data
 
     timestamp = datetime.datetime.now()
