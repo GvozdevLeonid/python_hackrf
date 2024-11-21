@@ -24,6 +24,7 @@
 
 from python_hackrf import pyhackrf
 import numpy as np
+cimport cython
 import signal
 import time
 import sys
@@ -66,6 +67,8 @@ def init_signals():
         pass
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef rx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t, 1], buffer_length: int, valid_length: int):
     global run_available, device_data
 
@@ -97,6 +100,8 @@ cdef rx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
     return 0
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t, 1], buffer_length: int, valid_length: int):
     global run_available, device_data
 
@@ -205,6 +210,8 @@ cdef tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
         return 0, buffer, valid_length
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef tx_complete_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t, 1], buffer_length: int, valid_length: int, success: int):
     global run_available, device_data
 

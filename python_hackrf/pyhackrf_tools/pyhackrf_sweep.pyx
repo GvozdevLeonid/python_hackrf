@@ -34,6 +34,7 @@ from libc.stdint cimport uint32_t, uint64_t
 from python_hackrf import pyhackrf
 import numpy as np
 import datetime
+cimport cython
 import signal
 import struct
 import time
@@ -72,6 +73,8 @@ def init_signals():
         pass
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef sweep_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t, 1], buffer_length: int, valid_length: int):
     global run_available, device_data
 
@@ -189,13 +192,13 @@ cdef sweep_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8
                 pwr_2 = pwr[pwr_2_start:pwr_2_stop]
                 for i in range(len(pwr_2)):
                     line += f'{pwr_2[i]:.10f}, '
-                line = line[:-2] + '\n'
+                line = line[:len(line) - 2] + '\n'
 
             else:
                 line = f'{time_str}, {frequency}, {frequency + sample_rate}, {sample_rate / fft_size}, {fft_size}, '
                 for i in range(len(pwr)):
                     line += f'{pwr[i]:.2f}, '
-                line = line[:-2] + '\n'
+                line = line[:len(line) - 2] + '\n'
 
             current_device_data['file'].write(line)
 
