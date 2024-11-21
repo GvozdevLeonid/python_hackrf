@@ -23,7 +23,7 @@
 from threading import Event
 
 try:
-    from jnius import (  # type: ignore
+    from jnius import (
         autoclass,
         cast,
     )
@@ -35,7 +35,7 @@ except ImportError:
         raise RuntimeError('cast not available')
 
 try:
-    from android.broadcast import BroadcastReceiver  # type: ignore
+    from android.broadcast import BroadcastReceiver
 except ImportError:
     def BroadcastReceiver(item):
         raise RuntimeError('BroadcastReceiver not available')
@@ -45,18 +45,18 @@ hackrf_usb_pids = (0x604b, 0x6089, 0xcc15)
 
 
 class USBBroadcastReceiver:
-    def __init__(self, events):
+    def __init__(self, events: dict) -> None:
         self.usb_action_permission = 'libusb.android.USB_PERMISSION'
         self.events = events
 
-    def start(self):
+    def start(self) -> None:
         self.br = BroadcastReceiver(self.on_broadcast, actions=[self.usb_action_permission])
         self.br.start()
 
-    def stop(self):
+    def stop(self) -> None:
         self.br.stop()
 
-    def on_broadcast(self, context, intent):
+    def on_broadcast(self, context, intent) -> None:
         action = intent.getAction()
         UsbManager = autoclass('android.hardware.usb.UsbManager')
         if action == self.usb_action_permission:
@@ -72,9 +72,9 @@ class USBBroadcastReceiver:
                     self.events[device_name]['event'].set()
 
 
-def get_usb_devices_info(num_devices: int = None) -> list:
+def get_hackrf_device_list(num_devices: int | None = None) -> list:
     events = {}
-    devices_info = []
+    hackrf_device_list = []
 
     Context = autoclass('android.content.Context')
     PendingIntent = autoclass('android.app.PendingIntent')
@@ -97,7 +97,7 @@ def get_usb_devices_info(num_devices: int = None) -> list:
                 if usb_manager.hasPermission(usb_device):
                     usb_device_connection = usb_manager.openDevice(usb_device)
                     file_descriptor = usb_device_connection.getFileDescriptor()
-                    devices_info.append((file_descriptor, usb_device.getProductId(), usb_device.getSerialNumber()))
+                    hackrf_device_list.append((file_descriptor, usb_device.getProductId(), usb_device.getSerialNumber()))
                 else:
                     permission_intent = PendingIntent.getBroadcast(this.getApplicationContext(), 0, autoclass('android.content.Intent')(usb_action_permission), PendingIntent.FLAG_MUTABLE)
                     events[device_name] = {'event': Event(), 'granted': False, 'device': None}
@@ -108,15 +108,15 @@ def get_usb_devices_info(num_devices: int = None) -> list:
 
         if len(events):
             usb_broadcast_receiver.start()
-            for device_name, info in events.items():
+            for _, info in events.items():
                 info['event'].wait()
             usb_broadcast_receiver.stop()
 
-            for device_name, info in events.items():
+            for _, info in events.items():
                 if info['granted']:
                     usb_device = info['device']
                     usb_device_connection = usb_manager.openDevice(usb_device)
                     file_descriptor = usb_device_connection.getFileDescriptor()
-                    devices_info.append((file_descriptor, usb_device.getProductId(), usb_device.getSerialNumber()))
+                    hackrf_device_list.append((file_descriptor, usb_device.getProductId(), usb_device.getSerialNumber()))
 
-    return devices_info
+    return hackrf_device_list

@@ -23,7 +23,7 @@
 # cython: language_level=3str
 from python_hackrf import __version__
 from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t
-from .__android import get_usb_devices_info
+from .__android import hackrf_device_list
 from . cimport chackrf_android as chackrf
 from libc.stdlib cimport malloc, free
 
@@ -31,7 +31,6 @@ from libc.stdlib cimport malloc, free
 from enum import IntEnum
 cimport numpy as np
 import numpy as np
-import uuid
 
 PY_BYTES_PER_BLOCK = chackrf.BYTES_PER_BLOCK
 PY_MAX_SWEEP_RANGES = chackrf.MAX_SWEEP_RANGES
@@ -132,27 +131,23 @@ cdef class PyHackRFDeviceList:
     cdef list __hackrf_device_list
 
     def __cinit__(self):
-        self.__hackrf_device_list = get_usb_devices_info()
+        self.__hackrf_device_list = hackrf_device_list()
 
     property device_count:
         def __get__(self):
-            if len(self.__hackrf_device_list):
-                return len(self.__hackrf_device_list)
+            return len(self.__hackrf_device_list)
 
     property serial_numbers:
         def __get__(self):
-            if len(self.__hackrf_device_list):
-                return [self.__hackrf_device_list[i][2] for i in range(self.device_count)]
+            return [self.__hackrf_device_list[i][2] for i in range(self.device_count)]
 
     property usb_board_ids:
         def __get__(self):
-            if len(self.__hackrf_device_list):
-                return [self.__hackrf_device_list[i][1] for i in range(self.device_count)]
+            return [self.__hackrf_device_list[i][1] for i in range(self.device_count)]
 
     property file_descriptors:
         def __get__(self):
-            if len(self.__hackrf_device_list):
-                return [self.__hackrf_device_list[i][0] for i in range(self.device_count)]
+            return [self.__hackrf_device_list[i][0] for i in range(self.device_count)]
 
     def pyhackrf_board_id_name(self, index: int) -> str:
         if len(self.__hackrf_device_list):
@@ -162,10 +157,10 @@ cdef class PyHackrfDevice:
 
     cdef chackrf.hackrf_device* __hackrf_device
     cdef list __pyoperacakes
-    cdef public str uuid
+    cdef public str serialno
 
     def __cinit__(self):
-        self.uuid = str(uuid.uuid4())
+        self.serialno = self.pyhackrf_serialno_read()
         self.__hackrf_device = NULL
         self.__pyoperacakes = []
 
@@ -692,12 +687,12 @@ def pyhackrf_device_list_open(pyhackrf_device_list: PyHackRFDeviceList, index: i
 
 
 def pyhackrf_open() -> PyHackrfDevice | None:
-    devices_info = get_usb_devices_info(1)
+    device_list = hackrf_device_list(1)
     result = chackrf.hackrf_error.HACKRF_ERROR_NOT_FOUND
 
-    if len(devices_info):
+    if len(device_list):
         pyhackrf_device = PyHackrfDevice()
-        result = chackrf.hackrf_open_on_android(devices_info[0][0], pyhackrf_device.get_hackrf_device_double_ptr())
+        result = chackrf.hackrf_open_on_android(device_list[0][0], pyhackrf_device.get_hackrf_device_double_ptr())
         if result == chackrf.hackrf_error.HACKRF_SUCCESS:
             pyhackrf_device._setup_callbacks()
             return pyhackrf_device
@@ -709,11 +704,11 @@ def pyhackrf_open_by_serial(desired_serial_number: str) -> PyHackrfDevice | None
     if desired_serial_number in (None, ''):
         return pyhackrf_open()
 
-    devices_info = get_usb_devices_info()
+    device_list = hackrf_device_list()
     result = chackrf.hackrf_error.HACKRF_ERROR_NOT_FOUND
 
-    if len(devices_info):
-        for file_descriptor, board_id, serial_number in devices_info:
+    if len(device_list):
+        for file_descriptor, _, serial_number in device_list:
             if serial_number == desired_serial_number:
                 pyhackrf_device = PyHackrfDevice()
                 result = chackrf.hackrf_open_on_android(file_descriptor, pyhackrf_device.get_hackrf_device_double_ptr())

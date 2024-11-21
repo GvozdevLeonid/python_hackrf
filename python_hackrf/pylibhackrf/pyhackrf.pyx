@@ -30,7 +30,6 @@ from . cimport chackrf
 from enum import IntEnum
 cimport numpy as np
 import numpy as np
-import uuid
 
 PY_BYTES_PER_BLOCK = chackrf.BYTES_PER_BLOCK
 PY_MAX_SWEEP_RANGES = chackrf.MAX_SWEEP_RANGES
@@ -144,16 +143,15 @@ cdef class PyHackRFDeviceList:
         def __get__(self):
             if self.__hackrf_device_list is not NULL:
                 return self.__hackrf_device_list[0].devicecount
+            return 0
 
     property serial_numbers:
         def __get__(self):
-            if self.__hackrf_device_list is not NULL:
-                return [self.__hackrf_device_list[0].serial_numbers[i].decode('utf-8') for i in range(self.__hackrf_device_list[0].devicecount)]
+            return [self.__hackrf_device_list[0].serial_numbers[i].decode('utf-8') for i in range(self.device_count)]
 
     property usb_board_ids:
         def __get__(self):
-            if self.__hackrf_device_list is not NULL:
-                return [self.__hackrf_device_list[0].usb_board_ids[i] for i in range(self.__hackrf_device_list[0].devicecount)]
+            return [self.__hackrf_device_list[0].usb_board_ids[i] for i in range(self.device_count)]
 
     def pyhackrf_board_id_name(self, index: int) -> str:
         if self.__hackrf_device_list is not NULL:
@@ -163,10 +161,10 @@ cdef class PyHackrfDevice:
 
     cdef chackrf.hackrf_device* __hackrf_device
     cdef list __pyoperacakes
-    cdef public str uuid
+    cdef public str serialno
 
     def __cinit__(self):
-        self.uuid = str(uuid.uuid4())
+        self.serialno = self.pyhackrf_serialno_read()
         self.__hackrf_device = NULL
         self.__pyoperacakes = []
 
