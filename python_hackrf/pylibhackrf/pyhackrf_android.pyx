@@ -67,7 +67,7 @@ class py_operacake_switching_mode(IntEnum):
 
 cdef dict global_callbacks = {}
 
-cdef public dict operacake_ports = {
+operacake_ports = {
     'A1': 0,
     'A2': 1,
     'A3': 2,
