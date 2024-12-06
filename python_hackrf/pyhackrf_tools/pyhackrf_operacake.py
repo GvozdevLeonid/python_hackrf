@@ -177,6 +177,7 @@ def pyhackrf_operacake_gpio_test(address: int,
     if test_result == 0xFFFF:
         print('GPIO mode disabled.')
         print('Remove additional add-on boards and retry.')
+
     elif test_result:
         reg, mask = 0x7, 0x7
 

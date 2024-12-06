@@ -165,13 +165,13 @@ def main() -> None:
                     except Exception:
                         pass
 
-                if port_a is None:
+                if args.a is None:
                     if port_b[0] == 'B':
                         port_a = 'A1'
                     else:
                         port_a = 'B1'
 
-                if port_b is None:
+                if args.b is None:
                     if port_a[0] == 'B':
                         port_b = 'A1'
                     else:

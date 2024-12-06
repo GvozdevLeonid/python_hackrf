@@ -24,6 +24,7 @@
 
 from python_hackrf import pyhackrf
 import numpy as np
+cimport numpy as cnp
 cimport cython
 import signal
 import time
@@ -75,18 +76,18 @@ cdef rx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
     if not run_available[device.serialno]:
         return -1
 
-    current_device_data = device_data[device.serialno]
+    cdef dict current_device_data = device_data[device.serialno]
 
     current_device_data['byte_count'] += valid_length
     current_device_data['stream_power'] += np.sum(buffer[:valid_length].view(np.int8).astype(np.uint64, copy=False) ** 2)
 
-    to_read = valid_length
+    cdef int to_read = valid_length
     if current_device_data['num_samples']:
         if (to_read > current_device_data['num_samples'] * 2):
             to_read = current_device_data['num_samples'] * 2
         current_device_data['num_samples'] -= (to_read // 2)
 
-    accepted_data = (buffer[:to_read:2].astype(np.int8, copy=False) / 128 + 1j * buffer[1:to_read:2].astype(np.int8, copy=False) / 128).astype(np.complex64)
+    cdef cnp.ndarray accepted_data = (buffer[:to_read:2].astype(np.int8, copy=False) / 128 + 1j * buffer[1:to_read:2].astype(np.int8, copy=False) / 128).astype(np.complex64)
 
     if current_device_data['rx_queue'] is not None:
         current_device_data['rx_queue'].put_nowait(accepted_data)
@@ -105,13 +106,13 @@ cdef rx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
 cdef tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t, 1], buffer_length: int, valid_length: int):
     global run_available, device_data
 
-    current_device_data = device_data[device.serialno]
+    cdef dict current_device_data = device_data[device.serialno]
 
     if current_device_data['tx_complete'] or not run_available[device.serialno]:
         return -1, buffer, valid_length
 
-    to_write = buffer_length // 2
-    writed = 0
+    cdef int to_write = buffer_length // 2
+    cdef int writed = 0
     if current_device_data['num_samples']:
         if (to_write > current_device_data['num_samples']):
             to_write = current_device_data['num_samples']
@@ -219,7 +220,7 @@ cdef tx_complete_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np
         run_available[device.serialno] = False
         return
 
-    current_device_data = device_data[device.serialno]
+    cdef dict current_device_data = device_data[device.serialno]
 
     current_device_data['byte_count'] += valid_length
     current_device_data['stream_power'] += np.sum(buffer[:valid_length].view(np.int8).astype(np.uint64, copy=False) ** 2)
@@ -228,7 +229,7 @@ cdef tx_complete_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np
 cdef flush_callback(device: pyhackrf.PyHackrfDevice, success: int):
     global run_available, device_data
 
-    current_device_data = device_data[device.serialno]
+    cdef dict current_device_data = device_data[device.serialno]
 
     if success:
         current_device_data['flush_complete'] = True
@@ -259,7 +260,7 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
     if num_samples and num_samples >= SAMPLES_TO_XFER_MAX:
         raise RuntimeError(f'num_samples must be less than {SAMPLES_TO_XFER_MAX}')
 
-    current_device_data = {
+    cdef dict current_device_data = {
         'num_samples': num_samples,
         'flush_complete': False,
         'repeat_tx': repeat_tx,
@@ -378,8 +379,12 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
     if num_samples and print_to_console:
         sys.stderr.write(f'samples_to_xfer {num_samples}/{num_samples / 1e6:.3f} Mio\n')
 
-    time_start = time.time()
-    time_prev = time.time()
+    cdef double time_start = time.time()
+    cdef double time_prev = time.time()
+    cdef double time_difference = 0
+    cdef int byte_count = 0
+    cdef int stream_power = 0
+    cdef double dB_full_scale = 0
     while run_available[device.serialno]:
         time.sleep(0.05)
         time_now = time.time()
