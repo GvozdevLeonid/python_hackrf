@@ -33,6 +33,7 @@ except ImportError:
 from libc.stdint cimport uint32_t, uint64_t
 from python_hackrf import pyhackrf
 import numpy as np
+cimport numpy as cnp
 import datetime
 cimport cython
 import signal
@@ -78,16 +79,16 @@ def init_signals():
 cdef sweep_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t, 1], buffer_length: int, valid_length: int):
     global run_available, device_data
 
-    timestamp = datetime.datetime.now()
-    time_str = timestamp.strftime('%Y-%m-%d, %H:%M:%S.%f')
+    cdef double timestamp = datetime.datetime.now()
+    cdef str time_str = timestamp.strftime('%Y-%m-%d, %H:%M:%S.%f')
 
-    current_device_data = device_data[device.serialno]
-    norm_factor = 1.0 / current_device_data['fft_size']
-    data_length = current_device_data['fft_size'] * 2
-    sweep_style = current_device_data['sweep_style']
-    sample_rate = current_device_data['sample_rate']
-    fft_size = current_device_data['fft_size']
-    window = current_device_data['window']
+    cdef dict current_device_data = device_data[device.serialno]
+    cdef double norm_factor = 1.0 / current_device_data['fft_size']
+    cdef int data_length = current_device_data['fft_size'] * 2
+    cdef object sweep_style = current_device_data['sweep_style']
+    cdef int sample_rate = current_device_data['sample_rate']
+    cdef int fft_size = current_device_data['fft_size']
+    cdef cnp.ndarray window = current_device_data['window']
 
     cdef int pwr_1_start = 1 + (fft_size * 5) // 8
     cdef int pwr_1_stop = 1 + (fft_size * 5) // 8 + fft_size // 4
@@ -229,7 +230,7 @@ def pyhackrf_sweep(frequencies: list = None, sample_rate: int = 20_000_000, base
     sample_rate = int(sample_rate) if int(sample_rate) in AVAILABLE_SAMPLING_RATES else 20_000_000
     baseband_filter_bandwidth = int(baseband_filter_bandwidth) if baseband_filter_bandwidth in AVAILABLE_BASEBAND_FILTER_BANDWIDTHS else pyhackrf.pyhackrf_compute_baseband_filter_bw(int(sample_rate * .75))
 
-    current_device_data = {
+    cdef dict current_device_data = {
         'sweep_style': sweep_style if sweep_style in pyhackrf.py_sweep_style else pyhackrf.py_sweep_style.INTERLEAVED,
         'sample_rate': sample_rate,
 
@@ -325,8 +326,10 @@ def pyhackrf_sweep(frequencies: list = None, sample_rate: int = 20_000_000, base
     device.pyhackrf_init_sweep(frequencies, num_ranges, pyhackrf.PY_BYTES_PER_BLOCK, int(TUNE_STEP * 1e6), OFFSET, current_device_data['sweep_style'])
     device.pyhackrf_start_rx_sweep()
 
-    time_start = time.time()
-    time_prev = time.time()
+    cdef double time_start = time.time()
+    cdef double time_prev = time.time()
+    cdef double time_difference = 0
+    cdef sweep_rate = 0
     while device.pyhackrf_is_streaming() and run_available[device.serialno]:
         time.sleep(0.05)
         time_now = time.time()
