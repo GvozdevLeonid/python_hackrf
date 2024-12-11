@@ -33,6 +33,7 @@ except ImportError:
 from libc.stdint cimport uint32_t, uint64_t
 from python_hackrf import pyhackrf
 import numpy as np
+cimport numpy as cnp
 import datetime
 cimport cython
 import signal
@@ -78,16 +79,19 @@ def init_signals():
 cdef sweep_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t, 1], buffer_length: int, valid_length: int):
     global run_available, device_data
 
-    cdef double timestamp = datetime.datetime.now()
+    timestamp = datetime.datetime.now()
     cdef str time_str = timestamp.strftime('%Y-%m-%d, %H:%M:%S.%f')
 
-    current_device_data = device_data[device.serialno]
-    norm_factor = 1.0 / current_device_data['fft_size']
-    data_length = current_device_data['fft_size'] * 2
-    sweep_style = current_device_data['sweep_style']
-    sample_rate = current_device_data['sample_rate']
-    fft_size = current_device_data['fft_size']
-    window = current_device_data['window']
+    cdef dict current_device_data = device_data[device.serialno]
+    cdef double norm_factor = 1.0 / current_device_data['fft_size']
+    cdef int data_length = current_device_data['fft_size'] * 2
+    cdef object sweep_style = current_device_data['sweep_style']
+    cdef int sample_rate = current_device_data['sample_rate']
+    cdef int fft_size = current_device_data['fft_size']
+    cdef cnp.ndarray window = current_device_data['window']
+
+    cdef cnp.ndarray fftwOut
+    cdef cnp.ndarray pwr
 
     cdef int pwr_1_start = 1 + (fft_size * 5) // 8
     cdef int pwr_1_stop = 1 + (fft_size * 5) // 8 + fft_size // 4
