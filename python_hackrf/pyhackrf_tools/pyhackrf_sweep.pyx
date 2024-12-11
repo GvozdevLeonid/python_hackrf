@@ -89,11 +89,11 @@ cdef sweep_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8
     cdef int fft_size = current_device_data['fft_size']
     window = current_device_data['window']
 
-    cdef int pwr_1_start = 1 + (fft_size * 5) // 8
-    cdef int pwr_1_stop = 1 + (fft_size * 5) // 8 + fft_size // 4
+    pwr_1_start = 1 + (fft_size * 5) // 8
+    pwr_1_stop = 1 + (fft_size * 5) // 8 + fft_size // 4
 
-    cdef int pwr_2_start = 1 + fft_size // 8
-    cdef int pwr_2_stop = 1 + fft_size // 8 + fft_size // 4
+    pwr_2_start = 1 + fft_size // 8
+    pwr_2_stop = 1 + fft_size // 8 + fft_size // 4
 
     cdef uint64_t frequency = 0
     cdef uint32_t index = 0
