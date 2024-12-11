@@ -78,22 +78,22 @@ def init_signals():
 cdef sweep_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t, 1], buffer_length: int, valid_length: int):
     global run_available, device_data
 
-    timestamp = datetime.datetime.now()
-    time_str = timestamp.strftime('%Y-%m-%d, %H:%M:%S.%f')
+    cdef double timestamp = datetime.datetime.now()
+    cdef str time_str = timestamp.strftime('%Y-%m-%d, %H:%M:%S.%f')
 
-    current_device_data = device_data[device.serialno]
-    norm_factor = 1.0 / current_device_data['fft_size']
-    data_length = current_device_data['fft_size'] * 2
+    cdef dict current_device_data = device_data[device.serialno]
+    cdef double norm_factor = 1.0 / current_device_data['fft_size']
+    cdef int data_length = current_device_data['fft_size'] * 2
     sweep_style = current_device_data['sweep_style']
-    sample_rate = current_device_data['sample_rate']
-    fft_size = current_device_data['fft_size']
+    cdef int sample_rate = current_device_data['sample_rate']
+    cdef int fft_size = current_device_data['fft_size']
     window = current_device_data['window']
 
-    pwr_1_start = 1 + (fft_size * 5) // 8
-    pwr_1_stop = 1 + (fft_size * 5) // 8 + fft_size // 4
+    cdef int pwr_1_start = 1 + (fft_size * 5) // 8
+    cdef int pwr_1_stop = 1 + (fft_size * 5) // 8 + fft_size // 4
 
-    pwr_2_start = 1 + fft_size // 8
-    pwr_2_stop = 1 + fft_size // 8 + fft_size // 4
+    cdef int pwr_2_start = 1 + fft_size // 8
+    cdef int pwr_2_stop = 1 + fft_size // 8 + fft_size // 4
 
     cdef uint64_t frequency = 0
     cdef uint32_t index = 0
