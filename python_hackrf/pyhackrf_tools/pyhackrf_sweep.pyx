@@ -33,7 +33,6 @@ except ImportError:
 from libc.stdint cimport uint32_t, uint64_t
 from python_hackrf import pyhackrf
 import numpy as np
-cimport numpy as cnp
 import datetime
 cimport cython
 import signal
@@ -88,7 +87,7 @@ cdef sweep_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8
     cdef object sweep_style = current_device_data['sweep_style']
     cdef int sample_rate = current_device_data['sample_rate']
     cdef int fft_size = current_device_data['fft_size']
-    cdef cnp.ndarray window = current_device_data['window']
+    window = current_device_data['window']
 
     cdef int pwr_1_start = 1 + (fft_size * 5) // 8
     cdef int pwr_1_stop = 1 + (fft_size * 5) // 8 + fft_size // 4

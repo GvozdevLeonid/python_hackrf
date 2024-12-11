@@ -24,7 +24,6 @@
 
 from python_hackrf import pyhackrf
 import numpy as np
-cimport numpy as cnp
 cimport cython
 import signal
 import time
@@ -87,7 +86,7 @@ cdef rx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
             to_read = current_device_data['num_samples'] * 2
         current_device_data['num_samples'] -= (to_read // 2)
 
-    cdef cnp.ndarray accepted_data = (buffer[:to_read:2].astype(np.int8, copy=False) / 128 + 1j * buffer[1:to_read:2].astype(np.int8, copy=False) / 128).astype(np.complex64)
+    accepted_data = (buffer[:to_read:2].astype(np.int8, copy=False) / 128 + 1j * buffer[1:to_read:2].astype(np.int8, copy=False) / 128).astype(np.complex64)
 
     if current_device_data['rx_queue'] is not None:
         current_device_data['rx_queue'].put_nowait(accepted_data)
