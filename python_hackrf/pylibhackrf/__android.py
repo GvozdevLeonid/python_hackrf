@@ -40,14 +40,14 @@ except ImportError:
     def BroadcastReceiver(item):
         raise RuntimeError('BroadcastReceiver not available')
 
-hackrf_usb_vid = 0x1d50
-hackrf_usb_pids = (0x604b, 0x6089, 0xcc15)
-
 
 class USBBroadcastReceiver:
-    def __init__(self, events: dict) -> None:
+    def __init__(self) -> None:
         self.br = BroadcastReceiver(self.on_broadcast, actions=[self.usb_action_permission])
         self.usb_action_permission = 'libusb.android.USB_PERMISSION'
+        self.events = {}
+
+    def set_events(self, events: dict) -> None:
         self.events = events
 
     def start(self) -> None:
@@ -72,6 +72,11 @@ class USBBroadcastReceiver:
                     self.events[device_name]['event'].set()
 
 
+hackrf_usb_vid = 0x1d50
+hackrf_usb_pids = (0x604b, 0x6089, 0xcc15)
+usb_broadcast_receiver = USBBroadcastReceiver()
+
+
 def get_hackrf_device_list(num_devices: int | None = None) -> list:
     events = {}
     hackrf_device_list = []
@@ -84,7 +89,6 @@ def get_hackrf_device_list(num_devices: int | None = None) -> list:
     device_list = usb_manager.getDeviceList()
 
     usb_action_permission = 'libusb.android.USB_PERMISSION'
-    usb_broadcast_receiver = USBBroadcastReceiver(events)
 
     if device_list:
         for idx, usb_device in enumerate(device_list.values()):
@@ -107,6 +111,7 @@ def get_hackrf_device_list(num_devices: int | None = None) -> list:
                     break
 
         if len(events):
+            usb_broadcast_receiver.set_events(events)
             usb_broadcast_receiver.start()
             for _, info in events.items():
                 info['event'].wait()
