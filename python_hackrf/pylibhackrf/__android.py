@@ -46,11 +46,11 @@ hackrf_usb_pids = (0x604b, 0x6089, 0xcc15)
 
 class USBBroadcastReceiver:
     def __init__(self, events: dict) -> None:
+        self.br = BroadcastReceiver(self.on_broadcast, actions=[self.usb_action_permission])
         self.usb_action_permission = 'libusb.android.USB_PERMISSION'
         self.events = events
 
     def start(self) -> None:
-        self.br = BroadcastReceiver(self.on_broadcast, actions=[self.usb_action_permission])
         self.br.start()
 
     def stop(self) -> None:
