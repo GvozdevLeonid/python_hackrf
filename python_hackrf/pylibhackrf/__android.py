@@ -43,8 +43,7 @@ except ImportError:
 
 class USBBroadcastReceiver:
     def __init__(self) -> None:
-        self.br = BroadcastReceiver(self.on_broadcast, actions=[self.usb_action_permission])
-        self.usb_action_permission = 'libusb.android.USB_PERMISSION'
+        self.br = BroadcastReceiver(self.on_broadcast, actions=['libusb.android.USB_PERMISSION'])
         self.events = {}
 
     def set_events(self, events: dict) -> None:
@@ -59,7 +58,7 @@ class USBBroadcastReceiver:
     def on_broadcast(self, context, intent) -> None:
         action = intent.getAction()
         UsbManager = autoclass('android.hardware.usb.UsbManager')
-        if action == self.usb_action_permission:
+        if action == 'libusb.android.USB_PERMISSION':
             usb_device = cast('android.hardware.usb.UsbDevice', intent.getParcelableExtra(UsbManager.EXTRA_DEVICE))
 
             if usb_device is not None:
