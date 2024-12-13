@@ -36,13 +36,11 @@ except ImportError:
 
 try:
     from android.broadcast import BroadcastReceiver
+    from android.runnable import run_on_ui_thread
 except ImportError:
     def BroadcastReceiver(item):
         raise RuntimeError('BroadcastReceiver not available')
 
-try:
-    from android.runnable import run_on_ui_thread
-except ImportError:
     def run_on_ui_thread(f):
         raise RuntimeError('run_on_ui_thread not available')
 
