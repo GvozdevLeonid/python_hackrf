@@ -49,10 +49,11 @@ except ImportError:
 
 class USBBroadcastReceiver:
     def __init__(self, events: dict) -> None:
-        self.br = BroadcastReceiver(self.on_broadcast, actions=['libusb.android.USB_PERMISSION'])
         self.events = events
 
+    @run_on_ui_thread
     def start(self) -> None:
+        self.br = BroadcastReceiver(self.on_broadcast, actions=['libusb.android.USB_PERMISSION'])
         self.br.start()
 
     def stop(self) -> None:
@@ -78,7 +79,6 @@ hackrf_usb_vid = 0x1d50
 hackrf_usb_pids = (0x604b, 0x6089, 0xcc15)
 
 
-@run_on_ui_thread
 def get_hackrf_device_list(num_devices: int | None = None) -> list:
     events = {}
     hackrf_device_list = []
