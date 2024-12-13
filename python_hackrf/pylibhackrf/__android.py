@@ -20,14 +20,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from threading import Event, current_thread, main_thread
+from threading import Event
 
 try:
     from jnius import (
-        JavaClass,
         autoclass,
         cast,
-        java_method,
     )
 except ImportError:
     def autoclass(item):
@@ -42,41 +40,11 @@ except ImportError:
     def BroadcastReceiver(item):
         raise RuntimeError('BroadcastReceiver not available')
 
-
-class MainThreadExecutor:
-    def __init__(self) -> None:
-        Handler = autoclass('android.os.Handler')
-        Looper = autoclass('android.os.Looper')
-        self.handler = Handler(Looper.getMainLooper())
-
-    def run_on_main_thread(self, func, *args, **kwargs):
-        if current_thread() == main_thread():
-            return func(*args, **kwargs)
-
-        event = Event()
-        result = None
-
-        class PythonRunnable(JavaClass):
-            __javainterfaces__ = ('java/lang/Runnable', )
-
-            def __init__(self) -> None:
-                super().__init__()
-                self.func = func
-                self.args = args
-                self.kwargs = kwargs
-
-            @java_method('()V')
-            def run(self) -> None:
-                try:
-                    nonlocal result
-                    result = self.func(*self.args, **self.kwargs)
-                finally:
-                    event.set()
-
-        self.handler.post(PythonRunnable())
-        event.wait()
-
-        return result
+try:
+    from android.runnable import run_on_ui_thread
+except ImportError:
+    def run_on_ui_thread(f):
+        raise RuntimeError('run_on_ui_thread not available')
 
 
 class USBBroadcastReceiver:
@@ -108,16 +76,9 @@ class USBBroadcastReceiver:
 
 hackrf_usb_vid = 0x1d50
 hackrf_usb_pids = (0x604b, 0x6089, 0xcc15)
-main_thread_executor = MainThreadExecutor()
 
 
-def run_in_main_thread(func):
-    def wrapper(*args, **kwargs):
-        return main_thread_executor.run_on_main_thread(func, *args, **kwargs)
-    return wrapper
-
-
-@run_in_main_thread
+@run_on_ui_thread
 def get_hackrf_device_list(num_devices: int | None = None) -> list:
     events = {}
     hackrf_device_list = []
