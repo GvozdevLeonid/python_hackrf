@@ -41,6 +41,28 @@ except ImportError:
         raise RuntimeError('BroadcastReceiver not available')
 
 
+class MainThreadExecutor:
+    def __init__(self) -> None:
+        Handler = autoclass('android.os.Handler')
+        Looper = autoclass('android.os.Looper')
+        self.handler = Handler(Looper.getMainLooper())
+
+    def run_on_main_thread(self, func, *args, **kwargs):
+        if current_thread() == main_thread():
+            return func(*args, **kwargs)
+
+        # Иначе, перенаправляем выполнение в главный поток
+        event = Event()
+
+        def runnable():
+            func(*args, **kwargs)
+            event.set()
+
+        Runnable = autoclass('java.lang.Runnable')
+        self.handler.post(Runnable(runnable))
+        event.wait()
+
+
 class USBBroadcastReceiver:
     def __init__(self, events: dict) -> None:
         self.br = BroadcastReceiver(self.on_broadcast, actions=['libusb.android.USB_PERMISSION'])
@@ -70,28 +92,12 @@ class USBBroadcastReceiver:
 
 hackrf_usb_vid = 0x1d50
 hackrf_usb_pids = (0x604b, 0x6089, 0xcc15)
+main_thread_executor = MainThreadExecutor()
 
 
 def run_in_main_thread(func):
-
     def wrapper(*args, **kwargs):
-        Handler = autoclass('android.os.Handler')
-        Looper = autoclass('android.os.Looper')
-        handler = Handler(Looper.getMainLooper())
-
-        if current_thread() == main_thread():
-            return func(*args, **kwargs)
-
-        event = Event()
-
-        def runnable():
-            func(*args, **kwargs)
-            event.set()
-
-        Runnable = autoclass('java.lang.Runnable')
-        handler.post(Runnable(runnable))
-        event.wait()
-
+        return main_thread_executor.run_on_main_thread(func, *args, **kwargs)
     return wrapper
 
 
