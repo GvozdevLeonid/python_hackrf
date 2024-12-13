@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from threading import Event
+from threading import Event, current_thread, main_thread
 
 try:
     from jnius import (
@@ -42,11 +42,8 @@ except ImportError:
 
 
 class USBBroadcastReceiver:
-    def __init__(self) -> None:
+    def __init__(self, events: dict) -> None:
         self.br = BroadcastReceiver(self.on_broadcast, actions=['libusb.android.USB_PERMISSION'])
-        self.events = {}
-
-    def set_events(self, events: dict) -> None:
         self.events = events
 
     def start(self) -> None:
@@ -76,6 +73,30 @@ hackrf_usb_pids = (0x604b, 0x6089, 0xcc15)
 usb_broadcast_receiver = USBBroadcastReceiver()
 
 
+def run_in_main_thread(func):
+
+    def wrapper(*args, **kwargs):
+        Handler = autoclass('android.os.Handler')
+        Looper = autoclass('android.os.Looper')
+        handler = Handler(Looper.getMainLooper())
+
+        if current_thread() == main_thread():
+            return func(*args, **kwargs)
+
+        event = Event()
+
+        def runnable():
+            func(*args, **kwargs)
+            event.set()
+
+        Runnable = autoclass('java.lang.Runnable')
+        handler.post(Runnable(runnable))
+        event.wait()
+
+    return wrapper
+
+
+@run_in_main_thread
 def get_hackrf_device_list(num_devices: int | None = None) -> list:
     events = {}
     hackrf_device_list = []
@@ -88,6 +109,7 @@ def get_hackrf_device_list(num_devices: int | None = None) -> list:
     device_list = usb_manager.getDeviceList()
 
     usb_action_permission = 'libusb.android.USB_PERMISSION'
+    usb_broadcast_receiver = USBBroadcastReceiver(events)
 
     if device_list:
         for idx, usb_device in enumerate(device_list.values()):
@@ -110,7 +132,6 @@ def get_hackrf_device_list(num_devices: int | None = None) -> list:
                     break
 
         if len(events):
-            usb_broadcast_receiver.set_events(events)
             usb_broadcast_receiver.start()
             for _, info in events.items():
                 info['event'].wait()
