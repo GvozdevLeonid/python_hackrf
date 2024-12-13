@@ -70,7 +70,6 @@ class USBBroadcastReceiver:
 
 hackrf_usb_vid = 0x1d50
 hackrf_usb_pids = (0x604b, 0x6089, 0xcc15)
-usb_broadcast_receiver = USBBroadcastReceiver()
 
 
 def run_in_main_thread(func):
