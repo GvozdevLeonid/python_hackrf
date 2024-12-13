@@ -24,8 +24,10 @@ from threading import Event, current_thread, main_thread
 
 try:
     from jnius import (
+        JavaClass,
         autoclass,
         cast,
+        java_method,
     )
 except ImportError:
     def autoclass(item):
@@ -51,16 +53,30 @@ class MainThreadExecutor:
         if current_thread() == main_thread():
             return func(*args, **kwargs)
 
-        # Иначе, перенаправляем выполнение в главный поток
         event = Event()
+        result = None
 
-        def runnable():
-            func(*args, **kwargs)
-            event.set()
+        class PythonRunnable(JavaClass):
+            __javainterfaces__ = ('java/lang/Runnable', )
 
-        Runnable = autoclass('java.lang.Runnable')
-        self.handler.post(Runnable(runnable))
+            def __init__(self) -> None:
+                super().__init__()
+                self.func = func
+                self.args = args
+                self.kwargs = kwargs
+
+            @java_method('()V')
+            def run(self) -> None:
+                try:
+                    nonlocal result
+                    result = self.func(*self.args, **self.kwargs)
+                finally:
+                    event.set()
+
+        self.handler.post(PythonRunnable())
         event.wait()
+
+        return result
 
 
 class USBBroadcastReceiver:
