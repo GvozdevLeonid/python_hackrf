@@ -20,8 +20,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Self, Callable
 from enum import IntEnum
+from typing import Callable, Self
+
 import numpy as np
 
 PY_BYTES_PER_BLOCK: int
@@ -42,7 +43,6 @@ PY_HACKRF_OPERACAKE_MAX_DWELL_TIMES: int
 PY_HACKRF_OPERACAKE_MAX_FREQ_RANGES: int
 '''Maximum number of specifiable frequency ranges for Opera Cake add-on boards'''
 
-
 class py_rf_path_filter(IntEnum):
     '''
     RF filter path setting enum
@@ -62,7 +62,6 @@ class py_rf_path_filter(IntEnum):
     def __str__(self) -> str:
         ...
 
-
 class py_sweep_style(IntEnum):
     '''
     Sweep mode enum
@@ -79,7 +78,6 @@ class py_sweep_style(IntEnum):
     def __str__(self) -> str:
         ...
 
-
 class py_operacake_switching_mode(IntEnum):
     '''Opera Cake port switching mode. Set via `pyhackrf_set_operacake_mode` and quaried via `pyhackrf_get_operacake_mode`'''
 
@@ -95,7 +93,6 @@ class py_operacake_switching_mode(IntEnum):
     def __str__(self) -> str:
         ...
 
-
 operacake_ports = {
     'A1': ...,
     'A2': ...,
@@ -107,7 +104,6 @@ operacake_ports = {
     'B4': ...,
 }
 '''Opera Cake secondary ports (A1-A4, B1-B4)'''
-
 
 class PyHackRFDeviceList:
     '''
@@ -143,7 +139,6 @@ class PyHackRFDeviceList:
     def pyhackrf_board_id_name(self, index: int) -> str:
         '''Human readable name of the board'''
         ...
-
 
 class PyHackrfDevice:
     '''
@@ -339,7 +334,7 @@ class PyHackrfDevice:
                             num_bytes: int,
                             step_width: int,
                             offset: int,
-                            style: py_sweep_style
+                            style: py_sweep_style,
                             ) -> None:
         '''
         Initialize sweep mode
@@ -469,7 +464,7 @@ class PyHackrfDevice:
         '''
         ...
 
-    def pyhackrf_rffc5071_read(self, register_number) -> int:
+    def pyhackrf_rffc5071_read(self, register_number: int) -> int:
         '''
         Directly read the registers of the RFFC5071/5072 mixer-synthesizer IC
 
@@ -487,7 +482,6 @@ class PyHackrfDevice:
 
     # ---- python callbacks setters ---- #
     def set_rx_callback(self, rx_callback_function: Callable[[Self, np.ndarray, int, int], int]) -> None:
-        global global_callbacks
         '''
         Accept a 4 args that contains the device, buffer, the maximum length and the length of the buffer data.
         device: PyHackrfDevice, buffer: numpy.array(dtype=numpy.uint8), buffer_length: int, valid_length: int
@@ -499,7 +493,6 @@ class PyHackrfDevice:
         ...
 
     def set_tx_callback(self, tx_callback_function: Callable[[Self, np.ndarray, int, int], tuple[int, np.ndarray, int]]) -> None:
-        global global_callbacks
         '''
         Accept a 4 args that contains the device, buffer, the maximum length and the length of the buffer data.
         device: PyHackrfDevice, buffer: numpy.array(dtype=numpy.uint8), buffer_length: int, valid_length: int
@@ -510,7 +503,6 @@ class PyHackrfDevice:
         ...
 
     def set_sweep_callback(self, sweep_callback_function: Callable[[Self, np.ndarray, int, int], int]) -> None:
-        global global_callbacks
         '''
         Accept a 4 args that contains the device, buffer, the maximum length and the length of the buffer data.
         device: PyHackrfDevice, buffer: numpy.array(dtype=numpy.uint8), buffer_length: int, valid_length: int
@@ -523,7 +515,6 @@ class PyHackrfDevice:
         ...
 
     def set_tx_complete_callback(self, tx_complete_callback_function: Callable[[Self, np.ndarray, int, int, bool], None]) -> None:
-        global global_callbacks
         '''
         Accept a 5 args that contains the device, buffer, the maximum length and the length of the buffer data.
         device: PyHackrfDevice, buffer: numpy.array(dtype=numpy.uint8), buffer_length: int, valid_length: int
@@ -533,7 +524,6 @@ class PyHackrfDevice:
         ...
 
     def set_tx_flush_callback(self, tx_flush_callback_function: Callable[[Self, int], None]) -> None:
-        global global_callbacks
         '''
         Accept 2 args that contains device and success flag
         device: PyHackrfDevice, success: int
@@ -605,7 +595,6 @@ class PyHackrfDevice:
         '''
         ...
 
-
 # ---- initialization and exit ---- #
 def pyhackrf_init() -> None:
     '''
@@ -616,7 +605,6 @@ def pyhackrf_init() -> None:
     '''
     ...
 
-
 def pyhackrf_exit() -> None:
     '''
     Exit pylibhackrf
@@ -626,43 +614,35 @@ def pyhackrf_exit() -> None:
     '''
     ...
 
-
 # ---- version ---- #
 def python_hackrf_library_version() -> str:
     '''Get python_hackrf library version'''
     ...
 
-
 def pyhackrf_library_version() -> str:
     '''Get libhackrf library version'''
     ...
 
-
 def pyhackrf_library_release() -> str:
     '''Get libhackrf library version'''
     ...
-
 
 # ---- device ---- #
 def pyhackrf_device_list() -> PyHackRFDeviceList:
     '''Return list of connected HackRF devices'''
     ...
 
-
 def pyhackrf_device_list_open(pyhackrf_device_list: PyHackRFDeviceList, index: int) -> PyHackrfDevice | None:
     '''Open a HackRF device from a device list'''
     ...
-
 
 def pyhackrf_open() -> PyHackrfDevice | None:
     '''Open first available HackRF device'''
     ...
 
-
 def pyhackrf_open_by_serial(desired_serial_number: str) -> PyHackrfDevice | None:
     '''Open HackRF device by serial number'''
     ...
-
 
 # ---- baseband filter bandwidth ---- #
 def pyhackrf_compute_baseband_filter_bw_round_down_lt(bandwidth_hz: int) -> int:
@@ -672,7 +652,6 @@ def pyhackrf_compute_baseband_filter_bw_round_down_lt(bandwidth_hz: int) -> int:
     The result can be used via `pyhackrf_set_baseband_filter_bandwidth`
     '''
     ...
-
 
 def pyhackrf_compute_baseband_filter_bw(bandwidth_hz: int) -> int:
     '''
