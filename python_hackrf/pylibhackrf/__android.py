@@ -80,16 +80,19 @@ hackrf_usb_pids = (0x604b, 0x6089, 0xcc15)
 def get_hackrf_device_list(num_devices: int | None = None) -> list:
     events = {}
     hackrf_device_list = []
+    usb_broadcast_receiver = USBBroadcastReceiver(events)
 
-    Context = autoclass('android.content.Context')
-    PendingIntent = autoclass('android.app.PendingIntent')
     this = autoclass('org.kivy.android.PythonActivity').mActivity
 
-    usb_manager = this.getSystemService(Context.USB_SERVICE)
+    usb_manager = this.getSystemService(autoclass('android.content.Context').USB_SERVICE)
     device_list = usb_manager.getDeviceList()
 
-    usb_action_permission = 'libusb.android.USB_PERMISSION'
-    usb_broadcast_receiver = USBBroadcastReceiver(events)
+    permission_intent = autoclass('android.app.PendingIntent').getBroadcast(
+        this.getApplicationContext(),
+        0,
+        autoclass('android.content.Intent')('libusb.android.USB_PERMISSION'),
+        autoclass('android.app.PendingIntent').FLAG_MUTABLE,
+    )
 
     if device_list:
         for idx, usb_device in enumerate(device_list.values()):
@@ -104,7 +107,6 @@ def get_hackrf_device_list(num_devices: int | None = None) -> list:
                     file_descriptor = usb_device_connection.getFileDescriptor()
                     hackrf_device_list.append((file_descriptor, usb_device.getProductId(), usb_device.getSerialNumber()))
                 else:
-                    permission_intent = PendingIntent.getBroadcast(this.getApplicationContext(), 0, autoclass('android.content.Intent')(usb_action_permission), PendingIntent.FLAG_MUTABLE)
                     events[device_name] = {'event': Event(), 'granted': False, 'device': None}
                     usb_manager.requestPermission(usb_device, permission_intent)
 
