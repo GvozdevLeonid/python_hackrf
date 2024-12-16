@@ -24,6 +24,7 @@
 
 from python_hackrf import pyhackrf
 import numpy as np
+cimport numpy as cnp
 cimport cython
 import signal
 import time
@@ -86,7 +87,7 @@ cdef rx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
             to_read = current_device_data['num_samples'] * 2
         current_device_data['num_samples'] -= (to_read // 2)
 
-    accepted_data = (buffer[:to_read:2].astype(np.int8, copy=False) / 128 + 1j * buffer[1:to_read:2].astype(np.int8, copy=False) / 128).astype(np.complex64)
+    cdef cnp.ndarray accepted_data = (buffer[:to_read:2].astype(np.int8, copy=False) / 128 + 1j * buffer[1:to_read:2].astype(np.int8, copy=False) / 128).astype(np.complex64)
 
     if current_device_data['rx_queue'] is not None:
         current_device_data['rx_queue'].put_nowait(accepted_data)
@@ -111,6 +112,7 @@ cdef tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
         return -1, buffer, valid_length
 
     cdef int to_write = buffer_length // 2
+    cdef int rewrited = 0
     cdef int writed = 0
     if current_device_data['num_samples']:
         if (to_write > current_device_data['num_samples']):
@@ -157,7 +159,7 @@ cdef tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
         return 0, buffer, valid_length
 
     else:
-        raw_data = current_device_data['tx_file'].read(to_write * 8)
+        cdef bytes raw_data = current_device_data['tx_file'].read(to_write * 8)
         if len(raw_data):
             writed = len(raw_data) // 8
         elif current_device_data['tx_file'].tell() < 1:
@@ -168,7 +170,7 @@ cdef tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
         else:
             writed = 0
 
-        sent_data = np.frombuffer(raw_data, dtype=np.complex64)
+        cdef cnp.ndarray sent_data = np.frombuffer(raw_data, dtype=np.complex64)
         buffer[0:writed * 2:2], buffer[1:writed * 2:2] = (sent_data.real * 128).astype(np.int8).view(np.uint8), (sent_data.imag * 128).astype(np.int8).view(np.uint8)
 
         # limit samples
@@ -255,7 +257,7 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
     run_available[device.serialno] = True
 
     sample_rate = int(sample_rate) if int(sample_rate) in AVAILABLE_SAMPLING_RATES else 10_000_000
-    baseband_filter_bandwidth = int(baseband_filter_bandwidth) if baseband_filter_bandwidth in AVAILABLE_BASEBAND_FILTER_BANDWIDTHS else pyhackrf.pyhackrf_compute_baseband_filter_bw(int(sample_rate * .75))
+    baseband_filter_bandwidth = int(baseband_filter_bandwidth) if int(baseband_filter_bandwidth) in AVAILABLE_BASEBAND_FILTER_BANDWIDTHS else pyhackrf.pyhackrf_compute_baseband_filter_bw(int(sample_rate * .75))
     if num_samples and num_samples >= SAMPLES_TO_XFER_MAX:
         raise RuntimeError(f'num_samples must be less than {SAMPLES_TO_XFER_MAX}')
 
