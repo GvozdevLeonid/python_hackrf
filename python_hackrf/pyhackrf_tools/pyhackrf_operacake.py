@@ -26,7 +26,7 @@ from python_hackrf import pyhackrf
 def pyhackrf_operacake_info(device: pyhackrf.PyHackrfDevice = None,
                             serial_number: str | None = None,
                             print_to_console: bool = True,
-                            ) -> None | str:
+                            ) -> str | None:
 
     initialize = True if device is None else False
 
