@@ -394,7 +394,7 @@ cdef class PyHackrfDevice:
                             num_bytes: int,
                             step_width: int,
                             offset: int,
-                            style: py_sweep_style
+                            style: py_sweep_style,
                             ) -> None:
 
         cdef uint16_t* frequencies
@@ -410,7 +410,7 @@ cdef class PyHackrfDevice:
             <uint32_t> num_bytes,
             <uint32_t> step_width,
             <uint32_t> offset,
-            style
+            style,
         )
 
         free(frequencies)
