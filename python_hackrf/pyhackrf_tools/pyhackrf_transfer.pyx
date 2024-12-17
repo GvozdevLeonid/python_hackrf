@@ -258,8 +258,8 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
 
     run_available[device.serialno] = True
 
-    sample_rate = int(sample_rate) if int(sample_rate) in AVAILABLE_SAMPLING_RATES else 10_000_000
-    baseband_filter_bandwidth = int(baseband_filter_bandwidth) if int(baseband_filter_bandwidth) in AVAILABLE_BASEBAND_FILTER_BANDWIDTHS else pyhackrf.pyhackrf_compute_baseband_filter_bw(int(sample_rate * .75))
+    sample_rate = int(sample_rate) if sample_rate and int(sample_rate) in AVAILABLE_SAMPLING_RATES else 10_000_000
+    baseband_filter_bandwidth = int(baseband_filter_bandwidth) if baseband_filter_bandwidth and int(baseband_filter_bandwidth) in AVAILABLE_BASEBAND_FILTER_BANDWIDTHS else pyhackrf.pyhackrf_compute_baseband_filter_bw(int(sample_rate * .75))
     if num_samples and num_samples >= SAMPLES_TO_XFER_MAX:
         raise RuntimeError(f'num_samples must be less than {SAMPLES_TO_XFER_MAX}')
 
