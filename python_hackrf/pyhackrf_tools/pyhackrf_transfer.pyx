@@ -114,6 +114,8 @@ cdef tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
     cdef int to_write = buffer_length // 2
     cdef int rewrited = 0
     cdef int writed = 0
+    cdef bytes raw_data
+    cdef cnp.ndarray sent_data
     if current_device_data['num_samples']:
         if (to_write > current_device_data['num_samples']):
             to_write = current_device_data['num_samples']
@@ -159,7 +161,7 @@ cdef tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
         return 0, buffer, valid_length
 
     else:
-        cdef bytes raw_data = current_device_data['tx_file'].read(to_write * 8)
+        raw_data = current_device_data['tx_file'].read(to_write * 8)
         if len(raw_data):
             writed = len(raw_data) // 8
         elif current_device_data['tx_file'].tell() < 1:
@@ -170,7 +172,7 @@ cdef tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
         else:
             writed = 0
 
-        cdef cnp.ndarray sent_data = np.frombuffer(raw_data, dtype=np.complex64)
+        sent_data = np.frombuffer(raw_data, dtype=np.complex64)
         buffer[0:writed * 2:2], buffer[1:writed * 2:2] = (sent_data.real * 128).astype(np.int8).view(np.uint8), (sent_data.imag * 128).astype(np.int8).view(np.uint8)
 
         # limit samples
