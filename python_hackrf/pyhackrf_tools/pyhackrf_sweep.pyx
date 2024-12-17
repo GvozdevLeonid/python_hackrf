@@ -332,7 +332,7 @@ def pyhackrf_sweep(frequencies: list = None, sample_rate: int = 20_000_000, base
     cdef double time_start = time.time()
     cdef double time_prev = time.time()
     cdef double time_difference = 0
-    cdef sweep_rate = 0
+    cdef double sweep_rate = 0
     while device.pyhackrf_is_streaming() and run_available[device.serialno]:
         time.sleep(0.05)
         time_now = time.time()

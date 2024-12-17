@@ -23,6 +23,7 @@
 # cython: language_level=3str
 
 from python_hackrf import pyhackrf
+from libc.stdint cimport uint64_t
 import numpy as np
 cimport numpy as cnp
 cimport cython
@@ -385,8 +386,8 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
     cdef double time_start = time.time()
     cdef double time_prev = time.time()
     cdef double time_difference = 0
-    cdef int byte_count = 0
-    cdef int stream_power = 0
+    cdef uint64_t byte_count = 0
+    cdef uint64_t stream_power = 0
     cdef double dB_full_scale = 0
     while run_available[device.serialno]:
         time.sleep(0.05)
