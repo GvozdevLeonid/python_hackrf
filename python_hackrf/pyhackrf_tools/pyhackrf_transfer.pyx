@@ -123,20 +123,20 @@ cdef tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
         current_device_data['num_samples'] -= to_write
 
     if current_device_data['tx_queue'] is not None:
-        if current_device_data['excess_data'] is not None:
-            if len(current_device_data['excess_data']) < to_write:
-                writed = len(current_device_data['excess_data'])
-            else:
-                writed = to_write
-
-            buffer[0:writed * 2:2], buffer[1:writed * 2:2] = (current_device_data['excess_data'][:writed].real * 128).astype(np.int8).view(np.uint8), (current_device_data['excess_data'][:writed].imag * 128).astype(np.int8).view(np.uint8)
-
-            if writed == len(current_device_data['excess_data']):
-                current_device_data['excess_data'] = None
-            else:
-                current_device_data['excess_data'] = current_device_data['excess_data'][to_write:]
-
         while writed < to_write:
+            if current_device_data['excess_data'] is not None:
+                if len(current_device_data['excess_data']) < to_write:
+                    writed = len(current_device_data['excess_data'])
+                else:
+                    writed = to_write
+
+                buffer[0:writed * 2:2], buffer[1:writed * 2:2] = (current_device_data['excess_data'][:writed].real * 128).astype(np.int8).view(np.uint8), (current_device_data['excess_data'][:writed].imag * 128).astype(np.int8).view(np.uint8)
+
+                if writed == len(current_device_data['excess_data']):
+                    current_device_data['excess_data'] = None
+                else:
+                    current_device_data['excess_data'] = current_device_data['excess_data'][to_write:]
+
             if current_device_data['tx_queue'].empty():
                 if writed:
                     current_device_data['tx_complete'] = True
@@ -155,7 +155,7 @@ cdef tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
             else:
                 rewrited = len(sent_data)
 
-            buffer[writed * 2:(writed + rewrited) * 2:2], buffer[writed * 2 + 1:(writed + rewrited) * 2:2] = (current_device_data['excess_data'][:rewrited].real * 128).astype(np.int8).view(np.uint8), (current_device_data['excess_data'][:rewrited].imag * 128).astype(np.int8).view(np.uint8)
+            buffer[writed * 2:(writed + rewrited) * 2:2], buffer[writed * 2 + 1:(writed + rewrited) * 2:2] = (sent_data[:rewrited].real * 128).astype(np.int8).view(np.uint8), (sent_data[:rewrited].imag * 128).astype(np.int8).view(np.uint8)
             writed += rewrited
 
         valid_length = writed * 2
