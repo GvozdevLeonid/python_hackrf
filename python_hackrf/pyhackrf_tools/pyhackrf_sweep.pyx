@@ -135,7 +135,7 @@ cdef sweep_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8
         index += (pyhackrf.PY_BYTES_PER_BLOCK - data_length)
 
         fftwOut = fft((buffer[index:index + data_length:2].astype(np.int8, copy=False) / 128 + 1j * buffer[index + 1:index + data_length:2].astype(np.int8, copy=False) / 128) * window)
-        pwr = np.log10(np.abs(fftwOut * norm_factor) ** 2) * 10.0
+        pwr = np.log10(np.abs(fftwOut) ** 2 * norm_factor) * 10.0
 
         if sweep_style == pyhackrf.py_sweep_style.LINEAR:
             pwr = fftshift(pwr)
