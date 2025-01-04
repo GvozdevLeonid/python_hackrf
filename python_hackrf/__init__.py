@@ -6,4 +6,5 @@ from python_hackrf.pyhackrf_tools import (  # noqa F401
     pyhackrf_transfer,
     pyhackrf_sweep,
     pyhackrf_info,
+    utils,
 )
