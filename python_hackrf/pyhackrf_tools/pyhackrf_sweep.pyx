@@ -67,7 +67,6 @@ def init_signals():
     try:
         signal.signal(signal.SIGINT, sigint_callback_handler)
         signal.signal(signal.SIGILL, sigint_callback_handler)
-        signal.signal(signal.SIGFPE, sigint_callback_handler)
         signal.signal(signal.SIGTERM, sigint_callback_handler)
         signal.signal(signal.SIGABRT, sigint_callback_handler)
     except Exception:
@@ -165,13 +164,13 @@ cdef sweep_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8
 
         elif current_device_data['queue'] is not None:
             if sweep_style == pyhackrf.py_sweep_style.INTERLEAVED:
-                current_device_data['queue'].put_nowait({
+                current_device_data['queue'].put({
                     'timestamp': time_str,
                     'start_frequency': frequency,
                     'stop_frequency': frequency + sample_rate // 4,
                     'array': pwr[pwr_1_start:pwr_1_stop]
                 })
-                current_device_data['queue'].put_nowait({
+                current_device_data['queue'].put({
                     'timestamp': time_str,
                     'start_frequency': frequency + sample_rate // 2,
                     'stop_frequency': frequency + (sample_rate * 3) // 4,
@@ -179,7 +178,7 @@ cdef sweep_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8
                 })
 
             else:
-                current_device_data['queue'].put_nowait({
+                current_device_data['queue'].put({
                     'timestamp': time_str,
                     'start_frequency': frequency,
                     'stop_frequency': frequency + sample_rate,
