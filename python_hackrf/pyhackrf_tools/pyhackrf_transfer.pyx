@@ -62,7 +62,6 @@ def init_signals():
     try:
         signal.signal(signal.SIGINT, sigint_callback_handler)
         signal.signal(signal.SIGILL, sigint_callback_handler)
-        signal.signal(signal.SIGFPE, sigint_callback_handler)
         signal.signal(signal.SIGTERM, sigint_callback_handler)
         signal.signal(signal.SIGABRT, sigint_callback_handler)
     except Exception:
@@ -90,8 +89,8 @@ cdef rx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
 
     cdef cnp.ndarray accepted_data = (buffer[:to_read:2].astype(np.int8, copy=False) / 128 + 1j * buffer[1:to_read:2].astype(np.int8, copy=False) / 128).astype(np.complex64)
 
-    if current_device_data['rx_queue'] is not None:
-        current_device_data['rx_queue'].put_nowait(accepted_data)
+    if current_device_data['rx_buffer'] is not None:
+        current_device_data['rx_buffer'].append(accepted_data)
     else:
         current_device_data['rx_file'].write(accepted_data.tobytes())
 
@@ -122,41 +121,24 @@ cdef tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
             to_write = current_device_data['num_samples']
         current_device_data['num_samples'] -= to_write
 
-    if current_device_data['tx_queue'] is not None:
-        while writed < to_write:
-            if current_device_data['excess_data'] is not None:
-                if len(current_device_data['excess_data']) < to_write:
-                    writed = len(current_device_data['excess_data'])
-                else:
-                    writed = to_write
+    if current_device_data['tx_buffer'] is not None:
 
-                buffer[0:writed * 2:2], buffer[1:writed * 2:2] = (current_device_data['excess_data'][:writed].real * 128).astype(np.int8).view(np.uint8), (current_device_data['excess_data'][:writed].imag * 128).astype(np.int8).view(np.uint8)
+        sent_data = current_device_data['tx_buffer'].get_chunk(to_write // 8, ring=current_device_data['repeat_tx'])
 
-                if writed == len(current_device_data['excess_data']):
-                    current_device_data['excess_data'] = None
-                else:
-                    current_device_data['excess_data'] = current_device_data['excess_data'][to_write:]
+        if len(sent_data):
+            writed = len(sent_data) * 8
+        else:
+            # buffer is empty or finished
+            current_device_data['tx_complete'] = True
+            run_available[device.serialno] = False
+            return -1, buffer, valid_length
+        
+        buffer[0:writed * 2:2], buffer[1:writed * 2:2] = (sent_data.real * 128).astype(np.int8).view(np.uint8), (sent_data.imag * 128).astype(np.int8).view(np.uint8)
 
-            if current_device_data['tx_queue'].empty():
-                if writed:
-                    current_device_data['tx_complete'] = True
-                    run_available[device.serialno] = False
-                    valid_length = writed * 2
-                    return 0, buffer, valid_length
-                else:
-                    current_device_data['tx_complete'] = True
-                    run_available[device.serialno] = False
-                    return -1, buffer, valid_length
-
-            sent_data = current_device_data['tx_queue'].get_nowait()
-            if to_write - writed < len(sent_data):
-                current_device_data['excess_data'] = sent_data[to_write - writed:]
-                rewrited = to_write - writed
-            else:
-                rewrited = len(sent_data)
-
-            buffer[writed * 2:(writed + rewrited) * 2:2], buffer[writed * 2 + 1:(writed + rewrited) * 2:2] = (sent_data[:rewrited].real * 128).astype(np.int8).view(np.uint8), (sent_data[:rewrited].imag * 128).astype(np.int8).view(np.uint8)
-            writed += rewrited
+        # limit samples
+        if current_device_data['num_samples'] == 0:
+            current_device_data['tx_complete'] = True
+            run_available[device.serialno] = False
 
         valid_length = writed * 2
         return 0, buffer, valid_length
@@ -244,7 +226,7 @@ cdef flush_callback(device: pyhackrf.PyHackrfDevice, success: int):
 def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, baseband_filter_bandwidth: int = None, i_frequency: int = None, lo_frequency: int = None, image_reject: pyhackrf.py_rf_path_filter = pyhackrf.py_rf_path_filter.RF_PATH_FILTER_BYPASS,
                       rx_lna_gain: int = 16, rx_vga_gain: int = 20, tx_vga_gain: int = 0, amp_enable: bool = False, antenna_enable: bool = False,
                       repeat_tx: bool = False, synchronize: bool = False, num_samples: int = None, serial_number: str = None,
-                      rx_filename: str = None, tx_filename: str = None, rx_queue: object = None, tx_queue: object = None,
+                      rx_filename: str = None, tx_filename: str = None, rx_buffer: object = None, tx_buffer: object = None,
                       print_to_console: bool = True):
 
     global run_available, device_data
@@ -271,16 +253,15 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
         'tx_complete': False,
         'stream_power': 0,
         'byte_count': 0,
-        'excess_data': None,
 
         'rx_file': open(rx_filename, 'wb') if rx_filename not in ('-', None) else (sys.stdout.buffer if rx_filename == '-' else None),
         'tx_file': open(tx_filename, 'rb') if tx_filename not in ('-', None) else (sys.stdin.buffer if tx_filename == '-' else None),
-        'rx_queue': rx_queue,
-        'tx_queue': tx_queue
+        'rx_buffer': rx_buffer,
+        'tx_buffer': tx_buffer
     }
     device_data[device.serialno] = current_device_data
 
-    if (rx_queue is not None or rx_filename is not None) and (tx_queue is not None or tx_filename is not None):
+    if (rx_buffer is not None or rx_filename is not None) and (tx_buffer is not None or tx_filename is not None):
         raise RuntimeError('HackRF cannot receive and send IQ samples at the same time.')
 
     if i_frequency is not None or lo_frequency is not None:
@@ -357,7 +338,7 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
             sys.stderr.write('call pyhackrf_set_antenna_enable(True)\n')
         device.pyhackrf_set_antenna_enable(True)
 
-    if rx_queue is not None or rx_filename is not None:
+    if rx_buffer is not None or rx_filename is not None:
         if rx_lna_gain % 8 and print_to_console:
             sys.stderr.write('Warning: lna_gain must be a multiple of 8\n')
 
@@ -370,7 +351,7 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
         device.set_rx_callback(rx_callback)
         device.pyhackrf_start_rx()
 
-    elif tx_queue is not None or tx_filename is not None:
+    elif tx_buffer is not None or tx_filename is not None:
         device.pyhackrf_set_txvga_gain(tx_vga_gain)
         device.pyhackrf_enable_tx_block_complete_callback()
         device.pyhackrf_enable_tx_flush()
@@ -427,7 +408,7 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
     if tx_filename not in ('-', None):
         current_device_data['tx_file'].close()
 
-    if rx_queue is not None or rx_filename is not None:
+    if rx_buffer is not None or rx_filename is not None:
         try:
             device.pyhackrf_stop_rx()
             if print_to_console:
@@ -435,7 +416,7 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
         except RuntimeError as e:
             sys.stderr.write(f'{e}\n')
 
-    elif tx_queue is not None or tx_filename is not None:
+    elif tx_buffer is not None or tx_filename is not None:
         try:
             device.pyhackrf_stop_tx()
             if print_to_console:
