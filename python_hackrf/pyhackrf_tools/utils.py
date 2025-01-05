@@ -140,21 +140,21 @@ class FileBuffer:
     def size(self) -> int:
         return self._write_ptr // self._dtype_size
 
-    def reset_read_ptr(self) -> None:
+    def rewind(self) -> None:
         with self._lock:
             self._read_ptr = 0
 
     def clear(self) -> None:
         with self._lock:
-            self._read_ptr = 0
-            self._read_ptr = 0
             os.truncate(self._temp_file.fileno(), 0)
+            self._write_ptr = 0
+            self._read_ptr = 0
 
 
 class MmapQueue:
     '''
-    A memory-mapped queue for handling serialized Python objects, optimized for large-scale data storage and retrieval. 
-    Utilizes file-based storage to minimize RAM usage and dynamically resizes with efficient memory management via an interval tree. 
+    A memory-mapped queue for handling serialized Python objects, optimized for large-scale data storage and retrieval.
+    Utilizes file-based storage to minimize RAM usage and dynamically resizes with efficient memory management via an interval tree.
     Suitable  in resource-constrained environments.
     '''
 
@@ -476,7 +476,7 @@ class MmapQueue:
     def size(self) -> int:
         with self._lock:
             return self._queue.qsize()
-    
+
     def clear(self) -> None:
         with self._lock:
             self._queue.queue.clear()
