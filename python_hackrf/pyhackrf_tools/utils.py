@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 import mmap
+import os
 import pickle
 import sys
 from queue import Queue
@@ -31,43 +32,22 @@ from typing import Any, Self
 import numpy as np
 
 
-class MmapBuffer:
+class FileBuffer:
     '''
-    A file-based buffer designed for efficient data transmission and reception, minimizing RAM usage. 
-    Provides methods for appending data, retrieving new data, accessing the entire buffer, and processing data in chunks. 
+    A file-based buffer designed for efficient data transmission and reception, minimizing RAM usage.
+    Provides methods for appending data, retrieving new data, accessing the entire buffer, and processing data in chunks.
     Supports ring-buffer behavior.
     '''
-    def __init__(self, initial_size: int = int(20e6 * 10), dtype: type = np.complex64, resize_buffer_ratio: float = .1) -> None:
+    def __init__(self, dtype: type = np.complex64) -> None:
         self._dtype = dtype
-
-        if initial_size <= 0:
-            raise ValueError('initial_size must be greater than 0')
-        if resize_buffer_ratio < 0:
-            raise ValueError('resize_buffer_ratio must be greater than or equal to 0')
-
-        self.resize_buffer_ratio = resize_buffer_ratio
 
         self._read_ptr = 0
         self._write_ptr = 0
 
         self._dtype_size = np.dtype(dtype).itemsize
-        self._file_size = initial_size * self._dtype_size
 
-        self._temp_file = NamedTemporaryFile(mode='r+b')
-        self._temp_file.write(b'\x00' * self._file_size)
-        self._temp_file.flush()
-
-        self._mmap = mmap.mmap(self._temp_file.fileno(), 0)
-
+        self._temp_file = NamedTemporaryFile(mode='r+b', delete=True)
         self._lock = Lock()
-
-    def __del__(self) -> None:
-        try:
-            with self._lock:
-                self._mmap.close()
-                self._temp_file.close()
-        except Exception as er:
-            print(f'Exception during cleanup: {er}', file=sys.stderr)
 
     def __getitem__(self, index: int | slice) -> Any:
         with self._lock:
@@ -77,56 +57,45 @@ class MmapBuffer:
                 if index < 0 or index >= size:
                     raise IndexError('index out of range')
                 byte_start = index * self._dtype_size
-                return np.frombuffer(self._mmap[byte_start: byte_start + self._dtype_size], dtype=self._dtype, count=1)[0]
+                self._temp_file.seek(byte_start)
+                return np.frombuffer(self._temp_file.read(self._dtype_size), dtype=self._dtype, count=1)[0]
 
             if isinstance(index, slice):
                 start, stop, step = index.indices(size)
                 byte_start, byte_stop = start * self._dtype_size, stop * self._dtype_size
-
-                return np.frombuffer(self._mmap[byte_start:byte_stop], dtype=self._dtype)[::step]
+                self._temp_file.seek(byte_start)
+                return np.frombuffer(self._temp_file.read(byte_stop - byte_start), dtype=self._dtype)[::step]
 
         raise TypeError("index must be int or slice")
-
-    def _resize(self, additional_size: int) -> None:
-        new_size = self._file_size + additional_size + int(self.resize_buffer_ratio * self._file_size)
-
-        self._temp_file.seek(self._file_size)
-        self._temp_file.write(b'\x00' * (additional_size + int(self.resize_buffer_ratio * self._file_size)))
-        self._temp_file.flush()
-
-        self._mmap.close()
-        self._mmap = mmap.mmap(self._temp_file.fileno(), new_size)
-        self._file_size = new_size
 
     def append(self, data: np.ndarray) -> None:
         with self._lock:
             data = data.astype(self._dtype, copy=False)
             data_bytes = data.tobytes()
-            data_len_bytes = len(data_bytes)
 
-            if self._write_ptr + data_len_bytes > self._file_size:
-                self._resize(data_len_bytes)
-
-            self._mmap[self._write_ptr:self._write_ptr + data_len_bytes] = data_bytes
-            self._write_ptr += data_len_bytes
+            self._temp_file.seek(self._write_ptr)
+            self._temp_file.write(data_bytes)
+            self._write_ptr += len(data_bytes)
 
     def get_all(self) -> np.ndarray:
         with self._lock:
             if self._write_ptr == 0:
                 return np.array([], dtype=self._dtype)
-            return np.frombuffer(self._mmap[:self._write_ptr], dtype=self._dtype)
+            self._temp_file.seek(0)
+            return np.frombuffer(self._temp_file.read(), dtype=self._dtype)
 
     def get_new(self) -> np.ndarray:
         with self._lock:
             if self._read_ptr == self._write_ptr:
                 return np.array([], dtype=self._dtype)
-
-            result = np.frombuffer(self._mmap[self._read_ptr:self._write_ptr], dtype=self._dtype)
+            self._temp_file.seek(self._read_ptr)
+            result = np.frombuffer(self._temp_file.read(), dtype=self._dtype)
             self._read_ptr = self._write_ptr
             return result
 
     def get_chunk(self, num_elements: int, ring: bool = True) -> np.ndarray:
         with self._lock:
+
             if num_elements <= 0 or self._write_ptr == 0:
                 return np.array([], dtype=self._dtype)
 
@@ -134,12 +103,14 @@ class MmapBuffer:
             available_bytes = self._write_ptr - self._read_ptr
 
             if available_bytes >= total_bytes:
-                result = np.frombuffer(self._mmap[self._read_ptr:self._read_ptr + total_bytes], dtype=self._dtype)
+                self._temp_file.seek(self._read_ptr)
+                result = np.frombuffer(self._temp_file.read(total_bytes), dtype=self._dtype)
                 self._read_ptr += total_bytes
                 return result
 
             if not ring:
-                result = np.frombuffer(self._mmap[self._read_ptr:self._write_ptr], dtype=self._dtype)
+                self._temp_file.seek(self._read_ptr)
+                result = np.frombuffer(self._temp_file.read(), dtype=self._dtype)
                 self._read_ptr = self._write_ptr
                 return result
 
@@ -153,7 +124,8 @@ class MmapBuffer:
 
                 to_read = min((num_elements - filled_elements) * self._dtype_size, available_bytes)
                 new_elements = to_read // self._dtype_size
-                result[filled_elements: filled_elements + new_elements] = np.frombuffer(self._mmap[self._read_ptr:self._read_ptr + to_read], dtype=self._dtype)
+                self._temp_file.seek(self._read_ptr)
+                result[filled_elements: filled_elements + new_elements] = np.frombuffer(self._temp_file.read(to_read), dtype=self._dtype)
                 filled_elements += new_elements
                 self._read_ptr += to_read
 
@@ -171,6 +143,12 @@ class MmapBuffer:
     def reset_read_ptr(self) -> None:
         with self._lock:
             self._read_ptr = 0
+
+    def clear(self) -> None:
+        with self._lock:
+            self._read_ptr = 0
+            self._read_ptr = 0
+            os.truncate(self._temp_file.fileno(), 0)
 
 
 class MmapQueue:
@@ -463,7 +441,7 @@ class MmapQueue:
 
         self._file_size = initial_size
 
-        self._temp_file = NamedTemporaryFile(mode='r+b')
+        self._temp_file = NamedTemporaryFile(mode='r+b', delete=True)
         self._temp_file.write(b'\x00' * self._file_size)
         self._temp_file.flush()
 
@@ -479,7 +457,6 @@ class MmapQueue:
         try:
             with self._lock:
                 self._mmap.close()
-                self._temp_file.close()
         except Exception as er:
             print(f'Exception during cleanup: {er}', file=sys.stderr)
 
@@ -499,6 +476,12 @@ class MmapQueue:
     def size(self) -> int:
         with self._lock:
             return self._queue.qsize()
+    
+    def clear(self) -> None:
+        with self._lock:
+            self._queue.queue.clear()
+            self._tree = MmapQueue.IntervalTree()
+            self._tree.insert(0, self._file_size)
 
     def empty(self) -> bool:
         with self._lock:
