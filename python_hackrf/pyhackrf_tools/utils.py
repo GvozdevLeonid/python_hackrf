@@ -66,7 +66,7 @@ class FileBuffer:
                 self._temp_file.seek(byte_start)
                 return np.frombuffer(self._temp_file.read(byte_stop - byte_start), dtype=self._dtype)[::step]
 
-        raise TypeError("index must be int or slice")
+        raise TypeError('index must be int or slice')
 
     def append(self, data: np.ndarray) -> None:
         with self._lock:
@@ -229,16 +229,6 @@ class MmapQueue:
     class IntervalTree:
         def __init__(self) -> None:
             self.root: MmapQueue.IntervalTreeNode = None
-
-        def __str__(self) -> str:
-            def recurse(node: 'MmapQueue.IntervalTreeNode', depth: int = 0) -> str:
-                if not node:
-                    return ""
-                left = recurse(node.left_node, depth + 1)
-                right = recurse(node.right_node, depth + 1)
-                return f"{'  ' * depth}[{node.start}, {node.end}] (H={node.height})\n{left}{right}"
-
-            return recurse(self.root)
 
         def _insert_node(self, parent_node: 'MmapQueue.IntervalTreeNode', child_node: 'MmapQueue.IntervalTreeNode') -> None:
             if parent_node is None:
