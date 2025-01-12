@@ -88,6 +88,12 @@ setup(
             include_dirs=['python_hackrf/pyhackrf_tools', numpy.get_include()],
             extra_compile_args=['-w'],
         ),
+        Extension(
+            name='python_hackrf.pyhackrf_tools.utils',
+            sources=['python_hackrf/pyhackrf_tools/utils.pyx'],
+            include_dirs=['python_hackrf/pyhackrf_tools', numpy.get_include()],
+            extra_compile_args=['-w'],
+        ),
     ],
     packages=find_packages(),
     package_dir={'': '.'},
