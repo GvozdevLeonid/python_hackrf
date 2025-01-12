@@ -116,6 +116,7 @@ cdef tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
     cdef int writed = 0
     cdef bytes raw_data
     cdef cnp.ndarray sent_data
+    cdef cnp.ndarray scaled_data
     if current_device_data['num_samples']:
         if (to_write > current_device_data['num_samples']):
             to_write = current_device_data['num_samples']
@@ -133,7 +134,9 @@ cdef tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
             run_available[device.serialno] = False
             return -1, buffer, valid_length
 
-        buffer[0:writed * 2:2], buffer[1:writed * 2:2] = (sent_data.real * 128).astype(np.int8).view(np.uint8), (sent_data.imag * 128).astype(np.int8).view(np.uint8)
+        scaled_data = (sent_data.view(np.float32) * 128).astype(np.int8).view(np.uint8)
+        buffer[0:writed * 2:2] = scaled_data[0::2]
+        buffer[1:writed * 2:2] = scaled_data[1::2]
 
         # limit samples
         if current_device_data['num_samples'] == 0:
@@ -156,7 +159,9 @@ cdef tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
             writed = 0
 
         sent_data = np.frombuffer(raw_data, dtype=np.complex64)
-        buffer[0:writed * 2:2], buffer[1:writed * 2:2] = (sent_data.real * 128).astype(np.int8).view(np.uint8), (sent_data.imag * 128).astype(np.int8).view(np.uint8)
+        scaled_data = (sent_data.view(np.float32) * 128).astype(np.int8).view(np.uint8)
+        buffer[0:writed * 2:2] = scaled_data[0::2]
+        buffer[1:writed * 2:2] = scaled_data[1::2]
 
         # limit samples
         if current_device_data['num_samples'] == 0:
@@ -190,7 +195,10 @@ cdef tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
                 return 0, buffer, valid_length
 
             sent_data = np.frombuffer(raw_data, dtype=np.complex64)
-            buffer[writed * 2:(writed + rewrited) * 2:2], buffer[writed * 2 + 1:(writed + rewrited) * 2:2] = (sent_data.real * 128).astype(np.int8).view(np.uint8), (sent_data.imag * 128).astype(np.int8).view(np.uint8)
+            scaled_data = (sent_data.view(np.float32) * 128).astype(np.int8).view(np.uint8)
+            buffer[writed * 2:(writed + rewrited) * 2:2] = scaled_data[0::2]
+            buffer[writed * 2 + 1:(writed + rewrited) * 2:2] = scaled_data[1::2]
+
             writed += rewrited
 
         valid_length = writed * 2
