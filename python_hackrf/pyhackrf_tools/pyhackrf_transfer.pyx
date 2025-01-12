@@ -123,16 +123,16 @@ cdef tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
 
     if current_device_data['tx_buffer'] is not None:
 
-        sent_data = current_device_data['tx_buffer'].get_chunk(to_write // 8, ring=current_device_data['repeat_tx'])
+        sent_data = current_device_data['tx_buffer'].get_chunk(to_write, ring=current_device_data['repeat_tx'])
 
         if len(sent_data):
-            writed = len(sent_data) * 8
+            writed = len(sent_data)
         else:
             # buffer is empty or finished
             current_device_data['tx_complete'] = True
             run_available[device.serialno] = False
             return -1, buffer, valid_length
-        
+
         buffer[0:writed * 2:2], buffer[1:writed * 2:2] = (sent_data.real * 128).astype(np.int8).view(np.uint8), (sent_data.imag * 128).astype(np.int8).view(np.uint8)
 
         # limit samples
