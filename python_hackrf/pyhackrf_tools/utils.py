@@ -71,11 +71,10 @@ class FileBuffer:
     def append(self, data: np.ndarray) -> None:
         with self._lock:
             data = data.astype(self._dtype, copy=False)
-            data_bytes = data.tobytes()
 
             self._temp_file.seek(self._write_ptr)
-            self._temp_file.write(data_bytes)
-            self._write_ptr += len(data_bytes)
+            data.tofile(self._temp_file)
+            self._write_ptr = self._temp_file.tell()
 
     def get_all(self) -> np.ndarray:
         with self._lock:
