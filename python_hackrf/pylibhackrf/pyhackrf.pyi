@@ -498,7 +498,8 @@ class PyHackrfDevice:
         device: PyHackrfDevice, buffer: numpy.array(dtype=numpy.uint8), buffer_length: int, valid_length: int
 
 
-        The callback should return 0 if it wants to be called again, and any other value otherwise, numpy array(buffer) and new valid_length
+        The callback should return 0 if it should be called again, and any other value otherwise.
+        You should change the value of the valid_length variable to the number of modified elements in the buffer.
         '''
         ...
 

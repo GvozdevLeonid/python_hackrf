@@ -41,6 +41,7 @@ import struct
 import time
 import sys
 
+cnp.import_array()
 
 PY_FREQ_MIN_MHZ = 0  # 0 MHz
 PY_FREQ_MAX_MHZ = 7_250  # 7250 MHz
@@ -75,7 +76,7 @@ def init_signals():
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef sweep_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t, 1], buffer_length: int, valid_length: int):
+def sweep_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffer_length, int valid_length):
     global run_available, device_data
 
     timestamp = datetime.datetime.now()
@@ -83,24 +84,26 @@ cdef sweep_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8
 
     cdef dict current_device_data = device_data[device.serialno]
     cdef double norm_factor = 1.0 / current_device_data['fft_size']
-    cdef int data_length = current_device_data['fft_size'] * 2
+    cdef uint32_t data_length = current_device_data['fft_size'] * 2
     cdef object sweep_style = current_device_data['sweep_style']
-    cdef int sample_rate = current_device_data['sample_rate']
-    cdef int fft_size = current_device_data['fft_size']
+    cdef uint32_t sample_rate = current_device_data['sample_rate']
+    cdef uint32_t fft_size = current_device_data['fft_size']
     cdef cnp.ndarray window = current_device_data['window']
+
+    cdef uint64_t start_frequency = current_device_data['start_frequency']
 
     cdef cnp.ndarray fftwOut
     cdef cnp.ndarray pwr
 
-    cdef int pwr_1_start = 1 + (fft_size * 5) // 8
-    cdef int pwr_1_stop = 1 + (fft_size * 5) // 8 + fft_size // 4
+    cdef uint32_t pwr_1_start = 1 + (fft_size * 5) // 8
+    cdef uint32_t pwr_1_stop = 1 + (fft_size * 5) // 8 + fft_size // 4
 
-    cdef int pwr_2_start = 1 + fft_size // 8
-    cdef int pwr_2_stop = 1 + fft_size // 8 + fft_size // 4
+    cdef uint32_t pwr_2_start = 1 + fft_size // 8
+    cdef uint32_t pwr_2_stop = 1 + fft_size // 8 + fft_size // 4
 
     cdef uint64_t frequency = 0
     cdef uint32_t index = 0
-    cdef int i, j
+    cdef uint32_t i, j
 
     for j in range(PY_BLOCKS_PER_TRANSFER):
         if buffer[index] == 127 and buffer[index + 1] == 127:
@@ -109,7 +112,7 @@ cdef sweep_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8
             index += pyhackrf.PY_BYTES_PER_BLOCK
             continue
 
-        if frequency == current_device_data['start_frequency']:
+        if frequency == start_frequency:
             if current_device_data['sweep_started']:
                 current_device_data['sweep_count'] += 1
                 if (
@@ -133,7 +136,7 @@ cdef sweep_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8
 
         index += (pyhackrf.PY_BYTES_PER_BLOCK - data_length)
 
-        fftwOut = fft((buffer[index:index + data_length:2].astype(np.int8, copy=False) / 128 + 1j * buffer[index + 1:index + data_length:2].astype(np.int8, copy=False) / 128) * window)
+        fftwOut = fft((buffer[index:index + data_length:2] / 128 + 1j * buffer[index + 1:index + data_length:2] / 128) * window)
         pwr = np.log10(np.abs(fftwOut) ** 2 * norm_factor) * 10.0
 
         if sweep_style == pyhackrf.py_sweep_style.LINEAR:

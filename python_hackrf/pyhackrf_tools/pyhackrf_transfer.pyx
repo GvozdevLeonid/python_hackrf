@@ -31,6 +31,7 @@ import signal
 import time
 import sys
 
+cnp.import_array()
 
 AVAILABLE_SAMPLING_RATES = (2_000_000, 4_000_000, 6_000_000, 8_000_000, 10_000_000, 12_000_000, 14_000_000, 16_000_000, 18_000_000, 20_000_000)
 AVAILABLE_BASEBAND_FILTER_BANDWIDTHS = (1_750_000, 2_500_000, 3_500_000, 5_000_000, 5_500_000, 6_000_000, 7_000_000, 8_000_000, 9_000_000, 10_000_000, 12_000_000, 14_000_000, 15_000_000, 20_000_000, 24_000_000, 28_000_000)
@@ -70,7 +71,7 @@ def init_signals():
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef rx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t, 1], buffer_length: int, valid_length: int):
+def rx_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffer_length, int valid_length):
     global run_available, device_data
 
     if not run_available[device.serialno]:
@@ -79,7 +80,7 @@ cdef rx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
     cdef dict current_device_data = device_data[device.serialno]
 
     current_device_data['byte_count'] += valid_length
-    current_device_data['stream_power'] += np.sum(buffer[:valid_length].view(np.int8).astype(np.uint64, copy=False) ** 2)
+    current_device_data['stream_power'] += np.sum(buffer[:valid_length].astype(np.int16) ** 2)
 
     cdef int to_read = valid_length
     if current_device_data['num_samples']:
@@ -87,12 +88,12 @@ cdef rx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
             to_read = current_device_data['num_samples'] * 2
         current_device_data['num_samples'] -= (to_read // 2)
 
-    cdef cnp.ndarray accepted_data = (buffer[:to_read:2].astype(np.int8, copy=False) / 128 + 1j * buffer[1:to_read:2].astype(np.int8, copy=False) / 128).astype(np.complex64)
+    cdef cnp.ndarray accepted_data = (buffer[:to_read:2] / 128 + 1j * buffer[1:to_read:2] / 128).astype(np.complex64)
 
     if current_device_data['rx_buffer'] is not None:
         current_device_data['rx_buffer'].append(accepted_data)
     else:
-        current_device_data['rx_file'].write(accepted_data.tobytes())
+        accepted_data.tofile(current_device_data['rx_file'])
 
     if current_device_data['num_samples'] == 0:
         run_available[device.serialno] = False
@@ -103,13 +104,13 @@ cdef rx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t, 1], buffer_length: int, valid_length: int):
+def tx_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffer_length, int valid_length):
     global run_available, device_data
 
     cdef dict current_device_data = device_data[device.serialno]
 
     if current_device_data['tx_complete'] or not run_available[device.serialno]:
-        return -1, buffer, valid_length
+        return (-1, 0)
 
     cdef int to_write = buffer_length // 2
     cdef int rewrited = 0
@@ -132,9 +133,10 @@ cdef tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
             # buffer is empty or finished
             current_device_data['tx_complete'] = True
             run_available[device.serialno] = False
-            return -1, buffer, valid_length
+            valid_length = 0
+            return -1
 
-        scaled_data = (sent_data.view(np.float32) * 128).astype(np.int8).view(np.uint8)
+        scaled_data = (sent_data.view(np.float32) * 128).astype(np.int8)
         buffer[0:writed * 2:2] = scaled_data[0::2]
         buffer[1:writed * 2:2] = scaled_data[1::2]
 
@@ -144,7 +146,7 @@ cdef tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
             run_available[device.serialno] = False
 
         valid_length = writed * 2
-        return 0, buffer, valid_length
+        return 0
 
     else:
         raw_data = current_device_data['tx_file'].read(to_write * 8)
@@ -154,12 +156,12 @@ cdef tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
             # file is empty
             run_available[device.serialno] = False
             valid_length = 0
-            return -1, buffer, valid_length
+            return -1
         else:
             writed = 0
 
         sent_data = np.frombuffer(raw_data, dtype=np.complex64)
-        scaled_data = (sent_data.view(np.float32) * 128).astype(np.int8).view(np.uint8)
+        scaled_data = (sent_data.view(np.float32) * 128).astype(np.int8)
         buffer[0:writed * 2:2] = scaled_data[0::2]
         buffer[1:writed * 2:2] = scaled_data[1::2]
 
@@ -168,19 +170,19 @@ cdef tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
             current_device_data['tx_complete'] = True
             run_available[device.serialno] = False
             valid_length = writed * 2
-            return 0, buffer, valid_length
+            return 0
 
         # buffer is full
         if to_write == writed:
             valid_length = writed * 2
-            return 0, buffer, valid_length
+            return 0
 
         # file is finished
         if not current_device_data['repeat_tx']:
             current_device_data['tx_complete'] = True
             run_available[device.serialno] = False
             valid_length = writed * 2
-            return 0, buffer, valid_length
+            return 0
 
         # repeat file
         while writed < to_write:
@@ -192,22 +194,22 @@ cdef tx_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t,
                 current_device_data['tx_complete'] = True
                 run_available[device.serialno] = False
                 valid_length = writed * 2
-                return 0, buffer, valid_length
+                return (0, valid_length)
 
             sent_data = np.frombuffer(raw_data, dtype=np.complex64)
-            scaled_data = (sent_data.view(np.float32) * 128).astype(np.int8).view(np.uint8)
+            scaled_data = (sent_data.view(np.float32) * 128).astype(np.int8)
             buffer[writed * 2:(writed + rewrited) * 2:2] = scaled_data[0::2]
             buffer[writed * 2 + 1:(writed + rewrited) * 2:2] = scaled_data[1::2]
 
             writed += rewrited
 
         valid_length = writed * 2
-        return 0, buffer, valid_length
+        return 0
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef tx_complete_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np.uint8_t, 1], buffer_length: int, valid_length: int, success: int):
+def tx_complete_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffer_length, int valid_length, int success):
     global run_available, device_data
 
     if not success:
@@ -217,10 +219,10 @@ cdef tx_complete_callback(device: pyhackrf.PyHackrfDevice, buffer: np.ndarray[np
     cdef dict current_device_data = device_data[device.serialno]
 
     current_device_data['byte_count'] += valid_length
-    current_device_data['stream_power'] += np.sum(buffer[:valid_length].view(np.int8).astype(np.uint64, copy=False) ** 2)
+    current_device_data['stream_power'] += np.sum(buffer[:valid_length].astype(np.int16) ** 2)
 
 
-cdef flush_callback(device: pyhackrf.PyHackrfDevice, success: int):
+def flush_callback(object device, int success):
     global run_available, device_data
 
     cdef dict current_device_data = device_data[device.serialno]

@@ -24,18 +24,23 @@
 from python_hackrf import __version__
 from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t
 from libc.stdlib cimport malloc, free
+from ctypes import c_int
 from . cimport chackrf
+cimport cython
 
 
 from enum import IntEnum
 import numpy as np
 
-PY_BYTES_PER_BLOCK = chackrf.BYTES_PER_BLOCK
-PY_MAX_SWEEP_RANGES = chackrf.MAX_SWEEP_RANGES
-PY_HACKRF_OPERACAKE_ADDRESS_INVALID = chackrf.HACKRF_OPERACAKE_ADDRESS_INVALID
-PY_HACKRF_OPERACAKE_MAX_BOARDS = chackrf.HACKRF_OPERACAKE_MAX_BOARDS
-PY_HACKRF_OPERACAKE_MAX_DWELL_TIMES = chackrf.HACKRF_OPERACAKE_MAX_DWELL_TIMES
-PY_HACKRF_OPERACAKE_MAX_FREQ_RANGES = chackrf.HACKRF_OPERACAKE_MAX_FREQ_RANGES
+
+cdef dict global_callbacks = {}
+
+cdef public int PY_BYTES_PER_BLOCK = chackrf.BYTES_PER_BLOCK
+cdef public int PY_MAX_SWEEP_RANGES = chackrf.MAX_SWEEP_RANGES
+cdef public int PY_HACKRF_OPERACAKE_ADDRESS_INVALID = chackrf.HACKRF_OPERACAKE_ADDRESS_INVALID
+cdef public int PY_HACKRF_OPERACAKE_MAX_BOARDS = chackrf.HACKRF_OPERACAKE_MAX_BOARDS
+cdef public int PY_HACKRF_OPERACAKE_MAX_DWELL_TIMES = chackrf.HACKRF_OPERACAKE_MAX_DWELL_TIMES
+cdef public int PY_HACKRF_OPERACAKE_MAX_FREQ_RANGES = chackrf.HACKRF_OPERACAKE_MAX_FREQ_RANGES
 
 
 class py_rf_path_filter(IntEnum):
@@ -64,9 +69,7 @@ class py_operacake_switching_mode(IntEnum):
         return self.name
 
 
-cdef dict global_callbacks = {}
-
-operacake_ports = {
+cdef public dict operacake_ports = {
     'A1': 0,
     'A2': 1,
     'A3': 2,
@@ -77,47 +80,54 @@ operacake_ports = {
     'B4': 7,
 }
 
-
-cdef int __rx_callback(chackrf.hackrf_transfer* transfer) nogil:
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef int __rx_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
     global global_callbacks
     with gil:
-        np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer)  # type: ignore
+        np_buffer = np.frombuffer(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
         if global_callbacks[<size_t> transfer.device]['__rx_callback'] is not None:
             result = global_callbacks[<size_t> transfer.device]['__rx_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length)
             return result
     return -1
 
-cdef int __tx_callback(chackrf.hackrf_transfer* transfer) nogil:
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef int __tx_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
     global global_callbacks
     with gil:
-        np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer)  # type: ignore
+        valid_length = c_int(transfer.valid_length)
+        np_buffer = np.frombuffer(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
         if global_callbacks[<size_t> transfer.device]['__tx_callback'] is not None:
-            result, buffer, valid_length = global_callbacks[<size_t> transfer.device]['__tx_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length)
-
-            for i in range(valid_length):
-                transfer.buffer[i] = buffer[i]
+            result = global_callbacks[<size_t> transfer.device]['__tx_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, valid_length)
             transfer.valid_length = valid_length
 
             return result
     return -1
 
-cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) nogil:
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
     global global_callbacks
     with gil:
-        np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer)  # type: ignore
+        np_buffer = np.frombuffer(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
         if global_callbacks[<size_t> transfer.device]['__sweep_callback'] is not None:
             result = global_callbacks[<size_t> transfer.device]['__sweep_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length)
             return result
     return -1
 
-cdef void __tx_complete_callback(chackrf.hackrf_transfer* transfer, int success) nogil:
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void __tx_complete_callback(chackrf.hackrf_transfer* transfer, int success) noexcept nogil:
     global global_callbacks
     with gil:
-        np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer)  # type: ignore
+        np_buffer = np.frombuffer(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
         if global_callbacks[<size_t> transfer.device]['__tx_complete_callback'] is not None:
             global_callbacks[<size_t> transfer.device]['__tx_complete_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length, success)
 
-cdef void __tx_flush_callback(void* flush_ctx, int success) nogil:
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void __tx_flush_callback(void* flush_ctx, int success) noexcept nogil:
     global global_callbacks
     cdef size_t device_ptr = <size_t> flush_ctx
     with gil:
@@ -276,7 +286,6 @@ cdef class PyHackrfDevice:
 
     def pyhackrf_serialno_read(self) -> str:
         cdef chackrf.read_partid_serialno_t read_partid_serialno
-        cdef int result
         result = chackrf.hackrf_board_partid_serialno_read(self.__hackrf_device, &read_partid_serialno)
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_serialno_read() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')

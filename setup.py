@@ -1,10 +1,10 @@
-from os import getenv, environ
 import subprocess
 import sys
+from os import environ, getenv
 
-from setuptools import setup, Extension, find_packages
-from setuptools.command.build_ext import build_ext
 import numpy
+from setuptools import Extension, find_packages, setup
+from setuptools.command.build_ext import build_ext
 
 libraries = ['hackrf']
 
@@ -20,11 +20,11 @@ if getenv('LIBLINK'):
 
 
 if PLATFORM != 'android':
-    SETUP_REQUIRES.append('cython==0.29.36')
-    INSTALL_REQUIRES.append('cython==0.29.36')
+    SETUP_REQUIRES.append('cython==0.29.37')
+    INSTALL_REQUIRES.append('cython==0.29.37')
 
-    SETUP_REQUIRES.append('numpy>=1.26')
-    INSTALL_REQUIRES.append('numpy>=1.26')
+    SETUP_REQUIRES.append('numpy==2.2')
+    INSTALL_REQUIRES.append('numpy==2.2')
 
     cflags = environ.get('CFLAGS', '')
     ldflags = environ.get('LDFLAGS', '')
@@ -85,12 +85,6 @@ setup(
         Extension(
             name='python_hackrf.pyhackrf_tools.pyhackrf_transfer',
             sources=['python_hackrf/pyhackrf_tools/pyhackrf_transfer.pyx'],
-            include_dirs=['python_hackrf/pyhackrf_tools', numpy.get_include()],
-            extra_compile_args=['-w'],
-        ),
-        Extension(
-            name='python_hackrf.pyhackrf_tools.utils',
-            sources=['python_hackrf/pyhackrf_tools/utils.pyx'],
             include_dirs=['python_hackrf/pyhackrf_tools', numpy.get_include()],
             extra_compile_args=['-w'],
         ),
