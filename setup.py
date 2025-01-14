@@ -23,8 +23,8 @@ if PLATFORM != 'android':
     SETUP_REQUIRES.append('cython==0.29.37')
     INSTALL_REQUIRES.append('cython==0.29.37')
 
-    SETUP_REQUIRES.append('numpy==2.2')
-    INSTALL_REQUIRES.append('numpy==2.2')
+    SETUP_REQUIRES.append('numpy')
+    INSTALL_REQUIRES.append('numpy')
 
     cflags = environ.get('CFLAGS', '')
     ldflags = environ.get('LDFLAGS', '')
