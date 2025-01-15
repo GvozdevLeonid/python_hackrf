@@ -80,9 +80,9 @@ def rx_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffe
     cdef dict current_device_data = device_data[device.serialno]
 
     current_device_data['byte_count'] += valid_length
-    current_device_data['stream_power'] += np.sum(buffer[:valid_length].astype(np.uint32) ** 2)
+    current_device_data['stream_power'] += np.sum(buffer[:valid_length].astype(np.int16) ** 2)
 
-    cdef int to_read = valid_length
+    cdef uint64_t to_read = valid_length
     if current_device_data['num_samples']:
         if (to_read > current_device_data['num_samples'] * 2):
             to_read = current_device_data['num_samples'] * 2
@@ -112,9 +112,9 @@ def tx_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffe
     if current_device_data['tx_complete'] or not run_available[device.serialno]:
         return (-1, 0)
 
-    cdef int to_write = buffer_length // 2
-    cdef int rewrited = 0
-    cdef int writed = 0
+    cdef uint64_t to_write = buffer_length // 2
+    cdef uint64_t rewrited = 0
+    cdef uint64_t writed = 0
     cdef bytes raw_data
     cdef cnp.ndarray sent_data
     cdef cnp.ndarray scaled_data
@@ -219,7 +219,7 @@ def tx_complete_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, 
     cdef dict current_device_data = device_data[device.serialno]
 
     current_device_data['byte_count'] += valid_length
-    current_device_data['stream_power'] += np.sum(buffer[:valid_length].astype(np.uint32) ** 2)
+    current_device_data['stream_power'] += np.sum(buffer[:valid_length].astype(np.int16) ** 2)
 
 
 def flush_callback(object device, int success):
