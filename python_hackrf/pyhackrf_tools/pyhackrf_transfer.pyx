@@ -127,7 +127,7 @@ def tx_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffe
     if current_device_data['tx_buffer'] is not None:
 
         sent_data = current_device_data['tx_buffer'].get_chunk(to_write, ring=current_device_data['repeat_tx'])
-        sys.stderr(f'requested {to_write} got {len(sent_data)}\n')
+        sys.stderr.write(f'requested {to_write} got {len(sent_data)}\n')
 
         if len(sent_data):
             writed = len(sent_data)
