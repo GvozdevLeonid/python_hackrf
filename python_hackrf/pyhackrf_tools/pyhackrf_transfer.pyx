@@ -110,7 +110,8 @@ def tx_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffe
     cdef dict current_device_data = device_data[device.serialno]
 
     if current_device_data['tx_complete'] or not run_available[device.serialno]:
-        return (-1, 0)
+        valid_length = 0
+        return -1
 
     cdef uint64_t to_write = buffer_length // 2
     cdef uint64_t rewrited = 0
