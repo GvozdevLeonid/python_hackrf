@@ -104,7 +104,7 @@ def rx_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffe
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def tx_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffer_length, int valid_length):
+def tx_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffer_length, object valid_length):
     global run_available, device_data
 
     cdef dict current_device_data = device_data[device.serialno]
