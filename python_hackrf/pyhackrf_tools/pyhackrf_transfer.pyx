@@ -394,7 +394,7 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
                     sys.stderr.write('Waiting for trigger...\n')
                 elif byte_count != 0 and not current_device_data['flush_complete']:
                     dB_full_scale = 10 * np.log10(stream_power / (byte_count * 127 * 127)) + 3
-                    sys.stderr.write(f'{(byte_count / time_difference) / 1e6:.1f} MiB/second, average power {dB_full_scale:.1f} dBfs\n')
+                    sys.stderr.write(f'{(byte_count / time_difference) / 1_048_576:.1f} MiB/second, average power {dB_full_scale:.1f} dBfs\n')
                 elif byte_count == 0 and not synchronize and not current_device_data['flush_complete']:
                     if print_to_console:
                         sys.stderr.write('Couldn\'t transfer any data for one second.\n')

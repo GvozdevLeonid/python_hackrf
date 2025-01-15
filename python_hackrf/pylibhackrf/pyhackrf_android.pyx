@@ -94,58 +94,73 @@ class py_operacake_ports(IntEnum):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int __rx_callback(chackrf.hackrf_transfer* transfer) noexcept:
+cdef int __rx_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
     global global_callbacks
+    cdef int result = -1
+    
+    with gil:
+        np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
+        if global_callbacks[<size_t> transfer.device]['__rx_callback'] is not None:
+            result = global_callbacks[<size_t> transfer.device]['__rx_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length)
 
-    np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
-    if global_callbacks[<size_t> transfer.device]['__rx_callback'] is not None:
-        result = global_callbacks[<size_t> transfer.device]['__rx_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length)
-        return result
-    return -1
+    return result
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int __tx_callback(chackrf.hackrf_transfer* transfer) noexcept:
+cdef int __tx_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
     global global_callbacks
+    cdef int8_t[:] cython_view
+    cdef int result = -1
+    cdef int i
 
-    valid_length = c_int(transfer.valid_length)
-    np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
-    if global_callbacks[<size_t> transfer.device]['__tx_callback'] is not None:
-        result = global_callbacks[<size_t> transfer.device]['__tx_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, valid_length)
-        transfer.valid_length = valid_length.value
-        for i in range(valid_length.value):
-            transfer.buffer[i] = np_buffer[i]
-        return result
-    return -1
+    with gil:
+        valid_length = c_int(transfer.valid_length)
+        np_buffer = np.empty(transfer.buffer_length, dtype=np.int8)
+        cython_view = np_buffer
+
+        if global_callbacks[<size_t> transfer.device]['__tx_callback'] is not None:
+            result = global_callbacks[<size_t> transfer.device]['__tx_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, valid_length)
+            transfer.valid_length = valid_length.value
+
+    for i in range(transfer.valid_length):
+        transfer.buffer[i] = <uint8_t> cython_view[i]
+
+    return result
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) noexcept:
+cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
     global global_callbacks
+    cdef int result = -1
 
-    np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
-    if global_callbacks[<size_t> transfer.device]['__sweep_callback'] is not None:
-        result = global_callbacks[<size_t> transfer.device]['__sweep_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length)
-        return result
-    return -1
+    with gil:
+        np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
+        if global_callbacks[<size_t> transfer.device]['__sweep_callback'] is not None:
+            result = global_callbacks[<size_t> transfer.device]['__sweep_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length)
+
+    return result
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void __tx_complete_callback(chackrf.hackrf_transfer* transfer, int success) noexcept:
+cdef void __tx_complete_callback(chackrf.hackrf_transfer* transfer, int success) noexcept nogil:
     global global_callbacks
 
-    np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
-    if global_callbacks[<size_t> transfer.device]['__tx_complete_callback'] is not None:
-        global_callbacks[<size_t> transfer.device]['__tx_complete_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length, success)
+    with gil:
+        np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
+        if global_callbacks[<size_t> transfer.device]['__tx_complete_callback'] is not None:
+            global_callbacks[<size_t> transfer.device]['__tx_complete_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length, success)
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef void __tx_flush_callback(void* flush_ctx, int success) noexcept:
+
+cdef void __tx_flush_callback(void* flush_ctx, int success) noexcept nogil:
     global global_callbacks
-
     cdef size_t device_ptr = <size_t> flush_ctx
-    if global_callbacks[device_ptr]['__tx_flush_callback'] is not None:
-        global_callbacks[device_ptr]['__tx_flush_callback'](global_callbacks[device_ptr]['device'], success)
+
+    with gil:
+        if global_callbacks[device_ptr]['__tx_flush_callback'] is not None:
+            global_callbacks[device_ptr]['__tx_flush_callback'](global_callbacks[device_ptr]['device'], success)
 
 
 cdef class PyHackRFDeviceList:

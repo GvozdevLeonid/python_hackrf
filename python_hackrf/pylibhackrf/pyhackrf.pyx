@@ -123,11 +123,14 @@ cdef int __tx_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
         if global_callbacks[<size_t> transfer.device]['__tx_callback'] is not None:
             result = global_callbacks[<size_t> transfer.device]['__tx_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, valid_length)
             transfer.valid_length = valid_length.value
+        else:
+            transfer.valid_length = 0
 
     for i in range(transfer.valid_length):
         transfer.buffer[i] = <uint8_t> cython_view[i]
 
     return result
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -142,6 +145,7 @@ cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
 
     return result
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef void __tx_complete_callback(chackrf.hackrf_transfer* transfer, int success) noexcept nogil:
@@ -152,8 +156,7 @@ cdef void __tx_complete_callback(chackrf.hackrf_transfer* transfer, int success)
         if global_callbacks[<size_t> transfer.device]['__tx_complete_callback'] is not None:
             global_callbacks[<size_t> transfer.device]['__tx_complete_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length, success)
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+
 cdef void __tx_flush_callback(void* flush_ctx, int success) noexcept nogil:
     global global_callbacks
     cdef size_t device_ptr = <size_t> flush_ctx
