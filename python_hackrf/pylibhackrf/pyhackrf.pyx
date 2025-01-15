@@ -22,7 +22,7 @@
 
 # cython: language_level=3str
 from python_hackrf import __version__
-from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t
+from libc.stdint cimport int8_t, uint8_t, uint16_t, uint32_t, uint64_t
 from libc.stdlib cimport malloc, free
 from ctypes import c_int
 from . cimport chackrf
@@ -111,7 +111,7 @@ cdef int __rx_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
 @cython.wraparound(False)
 cdef int __tx_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
     global global_callbacks
-    cdef uint8_t[:] cython_view
+    cdef int8_t[:] cython_view
     cdef int result = -1
     cdef int i
 
@@ -125,7 +125,7 @@ cdef int __tx_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
             transfer.valid_length = valid_length.value
 
     for i in range(transfer.valid_length):
-        transfer.buffer[i] = cython_view[i]
+        transfer.buffer[i] = <uint8_t> cython_view[i]
 
     return result
 
