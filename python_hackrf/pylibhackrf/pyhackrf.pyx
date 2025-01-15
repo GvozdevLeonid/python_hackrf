@@ -93,7 +93,7 @@ class py_operacake_ports(IntEnum):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int __rx_callback(chackrf.hackrf_transfer* transfer) noexcept:
+cdef int __rx_callback(chackrf.hackrf_transfer* transfer) noexcept with gil:
     global global_callbacks
 
     np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
@@ -104,22 +104,23 @@ cdef int __rx_callback(chackrf.hackrf_transfer* transfer) noexcept:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int __tx_callback(chackrf.hackrf_transfer* transfer) noexcept:
+cdef int __tx_callback(chackrf.hackrf_transfer* transfer) noexcept with gil:
     global global_callbacks
 
     valid_length = c_int(transfer.valid_length)
     np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
     if global_callbacks[<size_t> transfer.device]['__tx_callback'] is not None:
         result = global_callbacks[<size_t> transfer.device]['__tx_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, valid_length)
-        transfer.valid_length = valid_length.value
+        transfer.valid_length = valid_length
+        np_buffer = np_buffer.view(np.uint8)
         for i in range(valid_length.value):
-            transfer.buffer[i] = np_buffer[i].view(np.uint8)
+            transfer.buffer[i] = np_buffer[i]
         return result
     return -1
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) noexcept:
+cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) noexcept with gil:
     global global_callbacks
 
     np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
@@ -139,7 +140,7 @@ cdef void __tx_complete_callback(chackrf.hackrf_transfer* transfer, int success)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void __tx_flush_callback(void* flush_ctx, int success) noexcept:
+cdef void __tx_flush_callback(void* flush_ctx, int success) noexcept with gil:
     global global_callbacks
 
     cdef size_t device_ptr = <size_t> flush_ctx
