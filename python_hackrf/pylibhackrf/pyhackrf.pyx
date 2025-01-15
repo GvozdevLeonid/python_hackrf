@@ -108,7 +108,7 @@ cdef int __tx_callback(chackrf.hackrf_transfer* transfer) noexcept with gil:
     global global_callbacks
 
     valid_length = c_int(transfer.valid_length)
-    np_buffer = np.frombuffer(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
+    np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
     if global_callbacks[<size_t> transfer.device]['__tx_callback'] is not None:
         result = global_callbacks[<size_t> transfer.device]['__tx_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, valid_length)
         transfer.valid_length = valid_length.value
