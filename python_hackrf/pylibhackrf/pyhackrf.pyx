@@ -110,7 +110,7 @@ cdef int __rx_callback(chackrf.hackrf_transfer* transfer) noexcept:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int __tx_callback(chackrf.hackrf_transfer* transfer) noexcept:
+cdef int __tx_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
     global global_callbacks
     cdef uint8_t[:] cython_view
     cdef cnp.ndarray np_buffer
@@ -133,7 +133,7 @@ cdef int __tx_callback(chackrf.hackrf_transfer* transfer) noexcept:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) noexcept:
+cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
     global global_callbacks
     cdef cnp.ndarray np_buffer
     cdef int result = -1
@@ -147,7 +147,7 @@ cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) noexcept:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void __tx_complete_callback(chackrf.hackrf_transfer* transfer, int success) noexcept:
+cdef void __tx_complete_callback(chackrf.hackrf_transfer* transfer, int success) noexcept nogil:
     global global_callbacks
     cdef cnp.ndarray np_buffer
 
@@ -158,7 +158,7 @@ cdef void __tx_complete_callback(chackrf.hackrf_transfer* transfer, int success)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void __tx_flush_callback(void* flush_ctx, int success) noexcept:
+cdef void __tx_flush_callback(void* flush_ctx, int success) noexcept nogil:
     global global_callbacks
     cdef size_t device_ptr = <size_t> flush_ctx
 
