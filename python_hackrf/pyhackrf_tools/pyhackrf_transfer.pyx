@@ -127,7 +127,6 @@ def tx_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffe
     if current_device_data['tx_buffer'] is not None:
 
         sent_data = current_device_data['tx_buffer'].get_chunk(to_write, ring=current_device_data['repeat_tx'])
-        sys.stderr.write(f'requested {to_write} got {len(sent_data)}\n')
 
         if len(sent_data):
             writed = len(sent_data)
@@ -219,7 +218,6 @@ def tx_complete_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, 
         return
 
     cdef dict current_device_data = device_data[device.serialno]
-    sys.stderr.write(f'sended {valid_length}\n')
 
     current_device_data['byte_count'] += valid_length
     current_device_data['stream_power'] += np.sum(buffer[:valid_length].astype(np.int32) ** 2)

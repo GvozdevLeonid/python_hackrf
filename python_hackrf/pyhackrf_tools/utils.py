@@ -48,7 +48,6 @@ class FileBuffer:
         self._temp_file = NamedTemporaryFile(mode='r+b', delete=True)
         self._lock = Lock()
 
-
     def __getitem__(self, index: int | slice) -> Any:
         with self._lock:
 
@@ -101,7 +100,6 @@ class FileBuffer:
             return np.frombuffer(self._temp_file.read(), dtype=self._dtype)
 
     def get_chunk(self, num_elements: int, ring: bool = True) -> np.ndarray:
-        sys.stderr.write('22')
         with self._lock:
 
             if num_elements <= 0 or self._write_ptr == 0:
@@ -111,7 +109,6 @@ class FileBuffer:
             available_bytes = self._write_ptr - self._read_ptr
 
             if available_bytes >= total_bytes:
-                sys.stderr.write(f'{available_bytes}')
                 self._temp_file.seek(self._read_ptr)
                 result = np.frombuffer(self._temp_file.read(total_bytes), dtype=self._dtype)
                 self._read_ptr += total_bytes
