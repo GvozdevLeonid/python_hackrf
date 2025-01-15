@@ -133,7 +133,7 @@ cdef int __tx_callback(chackrf.hackrf_transfer* transfer) noexcept:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) noexcept with gil:
+cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) noexcept:
     global global_callbacks
     cdef cnp.ndarray np_buffer
     cdef int result = -1
@@ -147,7 +147,7 @@ cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) noexcept with gil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void __tx_complete_callback(chackrf.hackrf_transfer* transfer, int success) noexcept with gil:
+cdef void __tx_complete_callback(chackrf.hackrf_transfer* transfer, int success) noexcept:
     global global_callbacks
     cdef cnp.ndarray np_buffer
 
