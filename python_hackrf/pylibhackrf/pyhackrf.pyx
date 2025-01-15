@@ -95,9 +95,8 @@ class py_operacake_ports(IntEnum):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int __rx_callback(chackrf.hackrf_transfer* transfer) noexcept:
+cdef int __rx_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
     global global_callbacks
-    cdef cnp.ndarray np_buffer
     cdef int result = -1
     
     with gil:
@@ -113,7 +112,6 @@ cdef int __rx_callback(chackrf.hackrf_transfer* transfer) noexcept:
 cdef int __tx_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
     global global_callbacks
     cdef uint8_t[:] cython_view
-    cdef cnp.ndarray np_buffer
     cdef int result = -1
     cdef int i
 
@@ -135,7 +133,6 @@ cdef int __tx_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
 @cython.wraparound(False)
 cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
     global global_callbacks
-    cdef cnp.ndarray np_buffer
     cdef int result = -1
 
     with gil:
@@ -149,7 +146,6 @@ cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
 @cython.wraparound(False)
 cdef void __tx_complete_callback(chackrf.hackrf_transfer* transfer, int success) noexcept nogil:
     global global_callbacks
-    cdef cnp.ndarray np_buffer
 
     with gil:
         np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
