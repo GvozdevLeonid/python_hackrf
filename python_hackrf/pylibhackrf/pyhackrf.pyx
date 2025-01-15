@@ -82,10 +82,10 @@ cdef public dict operacake_ports = {
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int __rx_callback(chackrf.hackrf_transfer* transfer) except -2:
+cdef int __rx_callback(chackrf.hackrf_transfer* transfer) noexcept:
     global global_callbacks
 
-    np_buffer = np.frombuffer(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
+    np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
     if global_callbacks[<size_t> transfer.device]['__rx_callback'] is not None:
         result = global_callbacks[<size_t> transfer.device]['__rx_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length)
         return result
@@ -93,24 +93,26 @@ cdef int __rx_callback(chackrf.hackrf_transfer* transfer) except -2:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int __tx_callback(chackrf.hackrf_transfer* transfer) except -2:
+cdef int __tx_callback(chackrf.hackrf_transfer* transfer) noexcept:
     global global_callbacks
 
     valid_length = c_int(transfer.valid_length)
-    np_buffer = np.frombuffer(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
+    np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
     if global_callbacks[<size_t> transfer.device]['__tx_callback'] is not None:
         result = global_callbacks[<size_t> transfer.device]['__tx_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, valid_length)
         transfer.valid_length = valid_length
+        for i in range(valid_length):
+            transfer.buffer[i] = np_buffer[i]
 
         return result
     return -1
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) except -2:
+cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) noexcept:
     global global_callbacks
 
-    np_buffer = np.frombuffer(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
+    np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
     if global_callbacks[<size_t> transfer.device]['__sweep_callback'] is not None:
         result = global_callbacks[<size_t> transfer.device]['__sweep_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length)
         return result
@@ -121,7 +123,7 @@ cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) except -2:
 cdef void __tx_complete_callback(chackrf.hackrf_transfer* transfer, int success) noexcept:
     global global_callbacks
 
-    np_buffer = np.frombuffer(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
+    np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
     if global_callbacks[<size_t> transfer.device]['__tx_complete_callback'] is not None:
         global_callbacks[<size_t> transfer.device]['__tx_complete_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length, success)
 

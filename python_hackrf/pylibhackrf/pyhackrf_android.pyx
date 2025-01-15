@@ -83,7 +83,7 @@ cdef public dict operacake_ports = {
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int __rx_callback(chackrf.hackrf_transfer* transfer) except -2:
+cdef int __rx_callback(chackrf.hackrf_transfer* transfer) noexcept:
     global global_callbacks
 
     np_buffer = np.frombuffer(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
@@ -94,7 +94,7 @@ cdef int __rx_callback(chackrf.hackrf_transfer* transfer) except -2:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int __tx_callback(chackrf.hackrf_transfer* transfer) except -2:
+cdef int __tx_callback(chackrf.hackrf_transfer* transfer) noexcept:
     global global_callbacks
 
     valid_length = c_int(transfer.valid_length)
@@ -108,7 +108,7 @@ cdef int __tx_callback(chackrf.hackrf_transfer* transfer) except -2:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) except -2:
+cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) noexcept:
     global global_callbacks
 
     np_buffer = np.frombuffer(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
