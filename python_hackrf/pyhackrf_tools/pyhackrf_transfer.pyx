@@ -80,7 +80,7 @@ def rx_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffe
     cdef dict current_device_data = device_data[device.serialno]
 
     current_device_data['byte_count'] += valid_length
-    current_device_data['stream_power'] += np.sum(buffer[:valid_length].astype(np.int16) ** 2)
+    current_device_data['stream_power'] += np.sum(buffer[:valid_length].astype(np.uint32) ** 2)
 
     cdef int to_read = valid_length
     if current_device_data['num_samples']:
@@ -219,7 +219,7 @@ def tx_complete_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, 
     cdef dict current_device_data = device_data[device.serialno]
 
     current_device_data['byte_count'] += valid_length
-    current_device_data['stream_power'] += np.sum(buffer[:valid_length].astype(np.int16) ** 2)
+    current_device_data['stream_power'] += np.sum(buffer[:valid_length].astype(np.uint32) ** 2)
 
 
 def flush_callback(object device, int success):
