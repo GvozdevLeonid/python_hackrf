@@ -117,7 +117,7 @@ def main() -> None:
                     try:
                         port, freq_min, freq_max = freq_range.split(':')
                         freq_min, freq_max = int(freq_min), int(freq_max)
-                        if port in pyhackrf.operacake_ports.keys():
+                        if port in pyhackrf.py_operacake_ports:
                             freq_ranges.extend([port, freq_min, freq_max])
                     except Exception:
                         pass
@@ -142,7 +142,7 @@ def main() -> None:
                             port = dwell_split[0]
                             dwell = int(args.w)
 
-                        if port in pyhackrf.operacake_ports.keys():
+                        if port in pyhackrf.py_operacake_ports:
                             dwell_times.extend([dwell, port])
                     except Exception:
                         pass
@@ -177,7 +177,7 @@ def main() -> None:
                     else:
                         port_b = 'B1'
 
-                if port_a in pyhackrf.operacake_ports.keys() and port_b in pyhackrf.operacake_ports.keys():
+                if port_a in pyhackrf.py_operacake_ports and port_b in pyhackrf.py_operacake_ports:
                     if port_a[0] != port_b[0]:
                         pyhackrf_operacake.pyhackrf_set_operacake_ports(
                             address,

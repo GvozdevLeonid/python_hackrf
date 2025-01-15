@@ -36,12 +36,12 @@ import numpy as np
 
 cdef dict global_callbacks = {}
 
-cdef public int PY_BYTES_PER_BLOCK = chackrf.BYTES_PER_BLOCK
-cdef public int PY_MAX_SWEEP_RANGES = chackrf.MAX_SWEEP_RANGES
-cdef public int PY_HACKRF_OPERACAKE_ADDRESS_INVALID = chackrf.HACKRF_OPERACAKE_ADDRESS_INVALID
-cdef public int PY_HACKRF_OPERACAKE_MAX_BOARDS = chackrf.HACKRF_OPERACAKE_MAX_BOARDS
-cdef public int PY_HACKRF_OPERACAKE_MAX_DWELL_TIMES = chackrf.HACKRF_OPERACAKE_MAX_DWELL_TIMES
-cdef public int PY_HACKRF_OPERACAKE_MAX_FREQ_RANGES = chackrf.HACKRF_OPERACAKE_MAX_FREQ_RANGES
+PY_BYTES_PER_BLOCK = chackrf.BYTES_PER_BLOCK
+PY_MAX_SWEEP_RANGES = chackrf.MAX_SWEEP_RANGES
+PY_HACKRF_OPERACAKE_ADDRESS_INVALID = chackrf.HACKRF_OPERACAKE_ADDRESS_INVALID
+PY_HACKRF_OPERACAKE_MAX_BOARDS = chackrf.HACKRF_OPERACAKE_MAX_BOARDS
+PY_HACKRF_OPERACAKE_MAX_DWELL_TIMES = chackrf.HACKRF_OPERACAKE_MAX_DWELL_TIMES
+PY_HACKRF_OPERACAKE_MAX_FREQ_RANGES = chackrf.HACKRF_OPERACAKE_MAX_FREQ_RANGES
 
 
 class py_rf_path_filter(IntEnum):
@@ -70,23 +70,34 @@ class py_operacake_switching_mode(IntEnum):
         return self.name
 
 
-cdef public dict operacake_ports = {
-    'A1': 0,
-    'A2': 1,
-    'A3': 2,
-    'A4': 3,
-    'B1': 4,
-    'B2': 5,
-    'B3': 6,
-    'B4': 7,
-}
+class py_operacake_ports(IntEnum):
+    A1: 0
+    A2: 1
+    A3: 2
+    A4: 3
+    B1: 4
+    B2: 5
+    B3: 6
+    B4: 7
+
+    def __str__(self) -> str:
+        return self.name
+
+    @classmethod
+    def __contains__(cls, item):
+        if isinstance(item, str):
+            return item in cls.__members__
+        elif isinstance(item, cls):
+            return item in cls
+        return False
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef int __rx_callback(chackrf.hackrf_transfer* transfer) noexcept:
     global global_callbacks
 
-    np_buffer = np.frombuffer(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
+    np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
     if global_callbacks[<size_t> transfer.device]['__rx_callback'] is not None:
         result = global_callbacks[<size_t> transfer.device]['__rx_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length)
         return result
@@ -98,11 +109,12 @@ cdef int __tx_callback(chackrf.hackrf_transfer* transfer) noexcept:
     global global_callbacks
 
     valid_length = c_int(transfer.valid_length)
-    np_buffer = np.frombuffer(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
+    np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
     if global_callbacks[<size_t> transfer.device]['__tx_callback'] is not None:
         result = global_callbacks[<size_t> transfer.device]['__tx_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, valid_length)
-        transfer.valid_length = valid_length
-
+        transfer.valid_length = valid_length.value
+        for i in range(valid_length.value):
+            transfer.buffer[i] = np_buffer[i]
         return result
     return -1
 
@@ -111,7 +123,7 @@ cdef int __tx_callback(chackrf.hackrf_transfer* transfer) noexcept:
 cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) noexcept:
     global global_callbacks
 
-    np_buffer = np.frombuffer(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
+    np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
     if global_callbacks[<size_t> transfer.device]['__sweep_callback'] is not None:
         result = global_callbacks[<size_t> transfer.device]['__sweep_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length)
         return result
@@ -122,7 +134,7 @@ cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) noexcept:
 cdef void __tx_complete_callback(chackrf.hackrf_transfer* transfer, int success) noexcept:
     global global_callbacks
 
-    np_buffer = np.frombuffer(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
+    np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
     if global_callbacks[<size_t> transfer.device]['__tx_complete_callback'] is not None:
         global_callbacks[<size_t> transfer.device]['__tx_complete_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length, success)
 
@@ -615,7 +627,7 @@ cdef class PyHackrfDevice:
         return py_operacake_switching_mode(mode)
 
     def pyhackrf_set_operacake_ports(self, address: int, port_a: str, port_b: str) -> None:
-        result = chackrf.hackrf_set_operacake_ports(self.__hackrf_device, <uint8_t> address, <uint8_t> operacake_ports[port_a], <uint8_t> operacake_ports[port_b])
+        result = chackrf.hackrf_set_operacake_ports(self.__hackrf_device, <uint8_t> address, <uint8_t> py_operacake_ports[port_a], <uint8_t> py_operacake_ports[port_b])
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
             raise RuntimeError(f'pyhackrf_set_operacake_ports() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
@@ -623,7 +635,7 @@ cdef class PyHackrfDevice:
         cdef chackrf.hackrf_operacake_dwell_time* _dwell_times = <chackrf.hackrf_operacake_dwell_time*> malloc(PY_HACKRF_OPERACAKE_MAX_DWELL_TIMES * sizeof(chackrf.hackrf_operacake_dwell_time))
         for index, (dwell, port) in enumerate(dwell_times):
             _dwell_times[index].dwell = dwell
-            _dwell_times[index].port = <uint8_t> operacake_ports[port]
+            _dwell_times[index].port = <uint8_t> py_operacake_ports[port]
 
         result = chackrf.hackrf_set_operacake_dwell_times(self.__hackrf_device, _dwell_times, <uint8_t> len(dwell_times))
 
@@ -636,7 +648,7 @@ cdef class PyHackrfDevice:
         for index, (port, freq_min, freq_max) in enumerate(freq_ranges):
             _freq_ranges[index].freq_min = freq_min
             _freq_ranges[index].freq_max = freq_max
-            _freq_ranges[index].port = <uint8_t> operacake_ports[port]
+            _freq_ranges[index].port = <uint8_t> py_operacake_ports[port]
 
         result = chackrf.hackrf_set_operacake_freq_ranges(self.__hackrf_device, _freq_ranges, <uint8_t> len(freq_ranges))
 
