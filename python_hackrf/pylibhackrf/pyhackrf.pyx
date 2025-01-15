@@ -100,7 +100,7 @@ cdef int __rx_callback(chackrf.hackrf_transfer* transfer) noexcept:
     cdef cnp.ndarray np_buffer
     cdef int result = -1
     
-    with gil
+    with gil:
         np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
         if global_callbacks[<size_t> transfer.device]['__rx_callback'] is not None:
             result = global_callbacks[<size_t> transfer.device]['__rx_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length)
