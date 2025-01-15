@@ -158,7 +158,7 @@ cdef void __tx_complete_callback(chackrf.hackrf_transfer* transfer, int success)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void __tx_flush_callback(void* flush_ctx, int success) noexcept with gil:
+cdef void __tx_flush_callback(void* flush_ctx, int success) noexcept:
     global global_callbacks
     cdef size_t device_ptr = <size_t> flush_ctx
 
