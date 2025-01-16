@@ -20,11 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import atexit
 import io
 import mmap
 import os
 import pickle
-import signal
 import sys
 from queue import Queue
 from tempfile import NamedTemporaryFile
@@ -56,10 +56,7 @@ class FileBuffer:
         self._rlock = RLock()
         self._wlock = RLock()
 
-        self._register_signal_handlers()
-
-    def __del__(self) -> None:
-        self._cleanup()
+        self._register_cleanup()
 
     def __getitem__(self, index: int | slice) -> Any:
         with self._rlock:
@@ -105,15 +102,8 @@ class FileBuffer:
         except Exception as er:
             print(f'Exception during cleanup: {er}', file=sys.stderr)
 
-    def _register_signal_handlers(self) -> None:
-        signal.signal(signal.SIGINT, self._handle_signal)
-        signal.signal(signal.SIGILL, self._handle_signal)
-        signal.signal(signal.SIGTERM, self._handle_signal)
-        signal.signal(signal.SIGHUP, self._handle_signal)
-        signal.signal(signal.SIGABRT, self._handle_signal)
-
-    def _handle_signal(self, _: Any, __: Any) -> None:
-        self._cleanup()
+    def _register_cleanup(self) -> None:
+        atexit.register(self._cleanup)
 
     def append(self, data: np.ndarray, chunk_size: int = 131072) -> None:
         if len(data) == 0:
@@ -520,7 +510,7 @@ class MmapQueue:
         self._tree.insert(0, self._file_size)
         self._queue = Queue()
 
-        self._register_signal_handlers()
+        self._register_cleanup()
 
     def __del__(self) -> None:
         self._cleanup()
@@ -538,15 +528,8 @@ class MmapQueue:
         except Exception as er:
             print(f'Exception during cleanup: {er}', file=sys.stderr)
 
-    def _register_signal_handlers(self) -> None:
-        signal.signal(signal.SIGINT, self._handle_signal)
-        signal.signal(signal.SIGILL, self._handle_signal)
-        signal.signal(signal.SIGTERM, self._handle_signal)
-        signal.signal(signal.SIGHUP, self._handle_signal)
-        signal.signal(signal.SIGABRT, self._handle_signal)
-
-    def _handle_signal(self, _: Any, __: Any) -> None:
-        self._cleanup()
+    def _register_cleanup(self) -> None:
+        atexit.register(self._cleanup)
 
     def _resize(self, additional_size: int) -> None:
         new_size = self._file_size + additional_size
