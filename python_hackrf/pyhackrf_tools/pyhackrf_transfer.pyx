@@ -64,6 +64,7 @@ def init_signals():
         signal.signal(signal.SIGINT, sigint_callback_handler)
         signal.signal(signal.SIGILL, sigint_callback_handler)
         signal.signal(signal.SIGTERM, sigint_callback_handler)
+        signal.signal(signal.SIGHUP, sigint_callback_handler)
         signal.signal(signal.SIGABRT, sigint_callback_handler)
     except Exception:
         pass
