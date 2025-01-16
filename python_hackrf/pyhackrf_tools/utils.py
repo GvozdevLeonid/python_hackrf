@@ -114,7 +114,6 @@ class FileBuffer:
 
     def _handle_signal(self, _: Any, __: Any) -> None:
         self._cleanup()
-        sys.exit(1)
 
     def append(self, data: np.ndarray, chunk_size: int = 131072) -> None:
         if len(data) == 0:
@@ -548,7 +547,6 @@ class MmapQueue:
 
     def _handle_signal(self, _: Any, __: Any) -> None:
         self._cleanup()
-        sys.exit(1)
 
     def _resize(self, additional_size: int) -> None:
         new_size = self._file_size + additional_size
