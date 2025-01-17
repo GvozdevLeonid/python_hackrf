@@ -23,6 +23,7 @@ classifiers = [
 
 [build-system]
 requires = [
+    "cython==0.29.37",
     "setuptools",
     "wheel",
     "numpy",

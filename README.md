@@ -16,8 +16,8 @@ export PYTHON_HACKRF_LDFLAGS=path_to_hackrf.(so, dylib, dll)
 ```
 
 ## Requirements:
-* Cython==0.29.36
-* Numpy>=1.26
+* Cython==0.29.37
+* Numpy>=2.2.1
 * Scipy (optional, for faster work)
 * pyFFTW (optional, for faster work)
 * pyjnius and android (only for android)
