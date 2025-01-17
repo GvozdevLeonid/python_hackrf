@@ -31,9 +31,6 @@ cimport cython
 
 from enum import IntEnum
 import numpy as np
-cimport numpy as cnp
-
-cnp.import_array()
 
 cdef dict global_callbacks = {}
 

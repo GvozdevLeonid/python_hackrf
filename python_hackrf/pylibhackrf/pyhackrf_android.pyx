@@ -33,7 +33,6 @@ cimport cython
 from enum import IntEnum
 import numpy as np
 
-
 cdef dict global_callbacks = {}
 
 PY_BYTES_PER_BLOCK = chackrf.BYTES_PER_BLOCK
