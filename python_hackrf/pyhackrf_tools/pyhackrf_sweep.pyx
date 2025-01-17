@@ -84,7 +84,7 @@ def sweep_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int bu
     cdef str time_str = timestamp.strftime('%Y-%m-%d, %H:%M:%S.%f')
 
     cdef dict current_device_data = device_data[device.serialno]
-    cdef double norm_factor = 1 / (current_device_data['sample_rate'] * current_device_data['fft_size'])
+    cdef double norm_factor = 1 / current_device_data['fft_size']
     cdef uint32_t data_length = current_device_data['fft_size'] * 2
     cdef object sweep_style = current_device_data['sweep_style']
     cdef uint32_t sample_rate = current_device_data['sample_rate']
