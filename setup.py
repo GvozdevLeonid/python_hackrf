@@ -20,8 +20,8 @@ if getenv('LIBLINK'):
 
 
 if PLATFORM != 'android':
-    SETUP_REQUIRES.append('cython==0.29.37')
-    INSTALL_REQUIRES.append('cython==0.29.37')
+    SETUP_REQUIRES.append('Cython==0.29.37')
+    INSTALL_REQUIRES.append('Cython==0.29.37')
 
     SETUP_REQUIRES.append('numpy')
     INSTALL_REQUIRES.append('numpy')

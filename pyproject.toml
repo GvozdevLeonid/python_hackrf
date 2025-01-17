@@ -16,6 +16,9 @@ classifiers = [
     "Operating System :: MacOS :: MacOS X",
     "Operating System :: Microsoft :: Windows",
 ]
+dependencies = [
+    "numpy",
+]
 
 [project.urls]
 "Homepage" = "https://github.com/GvozdevLeonid/python_hackrf"
@@ -23,7 +26,7 @@ classifiers = [
 
 [build-system]
 requires = [
-    "cython==0.29.37",
+    "Cython==0.29.37",
     "setuptools",
     "wheel",
     "numpy",
