@@ -22,7 +22,7 @@
 
 # cython: language_level=3str
 from python_hackrf import __version__
-from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t
+from libc.stdint cimport int8_t, uint8_t, uint16_t, uint32_t, uint64_t
 from .__android import get_hackrf_device_list
 from . cimport chackrf_android as chackrf
 from libc.stdlib cimport malloc, free
