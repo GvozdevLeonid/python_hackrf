@@ -113,12 +113,12 @@ cdef extern from 'hackrf.h':
         pass
 
     ctypedef struct hackrf_transfer:
-        hackrf_device* device
-        uint8_t* buffer
+        hackrf_device *device
+        uint8_t *buffer
         int buffer_length
         int valid_length
-        void* rx_ctx
-        void* tx_ctx
+        void *rx_ctx
+        void *tx_ctx
 
     ctypedef struct read_partid_serialno_t:
         uint32_t part_id[2]
@@ -157,18 +157,18 @@ cdef extern from 'hackrf.h':
         uint32_t error
 
     ctypedef struct hackrf_device_list_t:
-        char** serial_numbers
-        hackrf_usb_board_id* usb_board_ids
-        int* usb_device_index
+        char **serial_numbers
+        hackrf_usb_board_id *usb_board_ids
+        int *usb_device_index
         int devicecount
-        void** usb_devices
+        void **usb_devices
         int usb_devicecount
 
-    ctypedef int(*hackrf_sample_block_cb_fn)(hackrf_transfer* transfer)
+    ctypedef int(*hackrf_sample_block_cb_fn)(hackrf_transfer *transfer)
 
-    ctypedef void(*hackrf_tx_block_complete_cb_fn)(hackrf_transfer* transfer, int)
+    ctypedef void(*hackrf_tx_block_complete_cb_fn)(hackrf_transfer *transfer, int)
 
-    ctypedef void(*hackrf_flush_cb_fn)(void* flush_ctx, int)
+    ctypedef void(*hackrf_flush_cb_fn)(void *flush_ctx, int)
 
     int hackrf_init()
 
@@ -176,148 +176,148 @@ cdef extern from 'hackrf.h':
 
     int hackrf_exit()
 
-    const char* hackrf_library_version()
+    const char *hackrf_library_version()
 
-    const char* hackrf_library_release()
+    const char *hackrf_library_release()
 
-    hackrf_device_list_t* hackrf_device_list()
+    hackrf_device_list_t *hackrf_device_list()
 
-    void hackrf_device_list_free(hackrf_device_list_t* list)
+    void hackrf_device_list_free(hackrf_device_list_t *list)
 
-    int hackrf_device_list_open(hackrf_device_list_t* list, int idx, hackrf_device** device)
+    int hackrf_device_list_open(hackrf_device_list_t *list, int idx, hackrf_device **device)
 
-    int hackrf_open_on_android(int fileDescriptor, hackrf_device** device)
+    int hackrf_open_on_android(int fileDescriptor, hackrf_device **device)
 
-    int hackrf_open(hackrf_device** device)
+    int hackrf_open(hackrf_device **device)
 
-    int hackrf_open_by_serial(char* desired_serial_number, hackrf_device** device)
+    int hackrf_open_by_serial(char *desired_serial_number, hackrf_device **device)
 
-    int hackrf_close(hackrf_device* device)
+    int hackrf_close(hackrf_device *device)
 
-    int hackrf_start_rx(hackrf_device* device, hackrf_sample_block_cb_fn callback, void* rx_ctx)
+    int hackrf_start_rx(hackrf_device *device, hackrf_sample_block_cb_fn callback, void *rx_ctx)
 
-    int hackrf_stop_rx(hackrf_device* device)
+    int hackrf_stop_rx(hackrf_device *device)
 
-    int hackrf_start_tx(hackrf_device* device, hackrf_sample_block_cb_fn callback, void* tx_ctx)
+    int hackrf_start_tx(hackrf_device *device, hackrf_sample_block_cb_fn callback, void *tx_ctx)
 
-    int hackrf_set_tx_block_complete_callback(hackrf_device* device, hackrf_tx_block_complete_cb_fn callback)
+    int hackrf_set_tx_block_complete_callback(hackrf_device *device, hackrf_tx_block_complete_cb_fn callback)
 
-    int hackrf_enable_tx_flush(hackrf_device* device, hackrf_flush_cb_fn callback, void* flush_ctx)
+    int hackrf_enable_tx_flush(hackrf_device *device, hackrf_flush_cb_fn callback, void *flush_ctx)
 
-    int hackrf_stop_tx(hackrf_device* device)
+    int hackrf_stop_tx(hackrf_device *device)
 
-    int hackrf_get_m0_state(hackrf_device* device, hackrf_m0_state* value)
+    int hackrf_get_m0_state(hackrf_device *device, hackrf_m0_state *value)
 
-    int hackrf_set_tx_underrun_limit(hackrf_device* device, uint32_t value)
+    int hackrf_set_tx_underrun_limit(hackrf_device *device, uint32_t value)
 
-    int hackrf_set_rx_overrun_limit(hackrf_device* device, uint32_t value)
+    int hackrf_set_rx_overrun_limit(hackrf_device *device, uint32_t value)
 
-    int hackrf_is_streaming(hackrf_device* device)
+    int hackrf_is_streaming(hackrf_device *device)
 
-    int hackrf_max2837_read(hackrf_device* device, uint8_t register_number, uint16_t* value)
+    int hackrf_max2837_read(hackrf_device *device, uint8_t register_number, uint16_t *value)
 
-    int hackrf_max2837_write(hackrf_device* device, uint8_t register_number, uint16_t value)
+    int hackrf_max2837_write(hackrf_device *device, uint8_t register_number, uint16_t value)
 
-    int hackrf_si5351c_read(hackrf_device* device, uint16_t register_number, uint16_t* value)
+    int hackrf_si5351c_read(hackrf_device *device, uint16_t register_number, uint16_t *value)
 
-    int hackrf_si5351c_write(hackrf_device* device, uint16_t register_number, uint16_t value)
+    int hackrf_si5351c_write(hackrf_device *device, uint16_t register_number, uint16_t value)
 
-    int hackrf_set_baseband_filter_bandwidth(hackrf_device* device, const uint32_t bandwidth_hz)
+    int hackrf_set_baseband_filter_bandwidth(hackrf_device *device, const uint32_t bandwidth_hz)
 
-    int hackrf_rffc5071_read(hackrf_device* device, uint8_t register_number, uint16_t* value)
+    int hackrf_rffc5071_read(hackrf_device *device, uint8_t register_number, uint16_t *value)
 
-    int hackrf_rffc5071_write(hackrf_device* device, uint8_t register_number, uint16_t value)
+    int hackrf_rffc5071_write(hackrf_device *device, uint8_t register_number, uint16_t value)
 
-    int hackrf_spiflash_erase(hackrf_device* device)
+    int hackrf_spiflash_erase(hackrf_device *device)
 
-    int hackrf_spiflash_write(hackrf_device* device, const uint32_t address, const uint16_t length, unsigned char* data)
+    int hackrf_spiflash_write(hackrf_device *device, const uint32_t address, const uint16_t length, unsigned char *data)
 
-    int hackrf_spiflash_read(hackrf_device* device, const uint32_t address, const uint16_t length, unsigned char* data)
+    int hackrf_spiflash_read(hackrf_device *device, const uint32_t address, const uint16_t length, unsigned char *data)
 
-    int hackrf_spiflash_status(hackrf_device* device, uint8_t* data)
+    int hackrf_spiflash_status(hackrf_device *device, uint8_t *data)
 
-    int hackrf_spiflash_clear_status(hackrf_device* device)
+    int hackrf_spiflash_clear_status(hackrf_device *device)
 
-    int hackrf_cpld_write(hackrf_device* device, unsigned char* data, const unsigned int total_length)
+    int hackrf_cpld_write(hackrf_device *device, unsigned char *data, const unsigned int total_length)
 
-    int hackrf_board_id_read(hackrf_device* device, uint8_t* value)
+    int hackrf_board_id_read(hackrf_device *device, uint8_t *value)
 
-    int hackrf_version_string_read(hackrf_device* device, char* version, uint8_t length)
+    int hackrf_version_string_read(hackrf_device *device, char *version, uint8_t length)
 
-    int hackrf_usb_api_version_read(hackrf_device* device, uint16_t* version)
+    int hackrf_usb_api_version_read(hackrf_device *device, uint16_t *version)
 
-    int hackrf_set_freq(hackrf_device* device, const uint64_t freq_hz)
+    int hackrf_set_freq(hackrf_device *device, const uint64_t freq_hz)
 
-    int hackrf_set_freq_explicit(hackrf_device* device, const uint64_t if_freq_hz, const uint64_t lo_freq_hz, const rf_path_filter path)
+    int hackrf_set_freq_explicit(hackrf_device *device, const uint64_t if_freq_hz, const uint64_t lo_freq_hz, const rf_path_filter path)
 
-    int hackrf_set_sample_rate_manual(hackrf_device* device, const uint32_t freq_hz, const uint32_t divider)
+    int hackrf_set_sample_rate_manual(hackrf_device *device, const uint32_t freq_hz, const uint32_t divider)
 
-    int hackrf_set_sample_rate(hackrf_device* device, const double freq_hz)
+    int hackrf_set_sample_rate(hackrf_device *device, const double freq_hz)
 
-    int hackrf_set_amp_enable(hackrf_device* device, const uint8_t value)
+    int hackrf_set_amp_enable(hackrf_device *device, const uint8_t value)
 
-    int hackrf_board_partid_serialno_read(hackrf_device* device, read_partid_serialno_t* read_partid_serialno)
+    int hackrf_board_partid_serialno_read(hackrf_device *device, read_partid_serialno_t *read_partid_serialno)
 
-    int hackrf_set_lna_gain(hackrf_device* device, uint32_t value)
+    int hackrf_set_lna_gain(hackrf_device *device, uint32_t value)
 
-    int hackrf_set_vga_gain(hackrf_device* device, uint32_t value)
+    int hackrf_set_vga_gain(hackrf_device *device, uint32_t value)
 
-    int hackrf_set_txvga_gain(hackrf_device* device, uint32_t value)
+    int hackrf_set_txvga_gain(hackrf_device *device, uint32_t value)
 
-    int hackrf_set_antenna_enable(hackrf_device* device, const uint8_t value)
+    int hackrf_set_antenna_enable(hackrf_device *device, const uint8_t value)
 
-    const char* hackrf_error_name(int errcode)
+    const char *hackrf_error_name(int errcode)
 
-    const char* hackrf_board_id_name(int board_id)
+    const char *hackrf_board_id_name(int board_id)
 
     uint32_t hackrf_board_id_platform(hackrf_board_id board_id)
 
-    const char* hackrf_usb_board_id_name(hackrf_usb_board_id usb_board_id)
+    const char *hackrf_usb_board_id_name(hackrf_usb_board_id usb_board_id)
 
-    const char* hackrf_filter_path_name(const rf_path_filter path)
+    const char *hackrf_filter_path_name(const rf_path_filter path)
 
     uint32_t hackrf_compute_baseband_filter_bw_round_down_lt(const uint32_t bandwidth_hz)
 
     uint32_t hackrf_compute_baseband_filter_bw(const uint32_t bandwidth_hz)
 
-    int hackrf_set_hw_sync_mode(hackrf_device* device, const uint8_t value)
+    int hackrf_set_hw_sync_mode(hackrf_device *device, const uint8_t value)
 
-    int hackrf_init_sweep(hackrf_device* device, const uint16_t* frequency_list, const int num_ranges, const uint32_t num_bytes, const uint32_t step_width, const uint32_t offset, const sweep_style style)
+    int hackrf_init_sweep(hackrf_device *device, const uint16_t *frequency_list, const int num_ranges, const uint32_t num_bytes, const uint32_t step_width, const uint32_t offset, const sweep_style style)
 
-    int hackrf_get_operacake_boards(hackrf_device* device, uint8_t* boards)
+    int hackrf_get_operacake_boards(hackrf_device *device, uint8_t *boards)
 
-    int hackrf_set_operacake_mode(hackrf_device* device, uint8_t address, operacake_switching_mode mode)
+    int hackrf_set_operacake_mode(hackrf_device *device, uint8_t address, operacake_switching_mode mode)
 
-    int hackrf_get_operacake_mode(hackrf_device* device, uint8_t address, operacake_switching_mode* mode)
+    int hackrf_get_operacake_mode(hackrf_device *device, uint8_t address, operacake_switching_mode *mode)
 
-    int hackrf_set_operacake_ports(hackrf_device* device, uint8_t address, uint8_t port_a, uint8_t port_b)
+    int hackrf_set_operacake_ports(hackrf_device *device, uint8_t address, uint8_t port_a, uint8_t port_b)
 
-    int hackrf_set_operacake_dwell_times(hackrf_device* device, hackrf_operacake_dwell_time* dwell_times, uint8_t count)
+    int hackrf_set_operacake_dwell_times(hackrf_device *device, hackrf_operacake_dwell_time *dwell_times, uint8_t count)
 
-    int hackrf_set_operacake_freq_ranges(hackrf_device* device, hackrf_operacake_freq_range* freq_ranges, uint8_t count)
+    int hackrf_set_operacake_freq_ranges(hackrf_device *device, hackrf_operacake_freq_range *freq_ranges, uint8_t count)
 
-    int hackrf_reset(hackrf_device* device)
+    int hackrf_reset(hackrf_device *device)
 
-    int hackrf_set_clkout_enable(hackrf_device* device, const uint8_t value)
+    int hackrf_set_clkout_enable(hackrf_device *device, const uint8_t value)
 
-    int hackrf_get_clkin_status(hackrf_device* device, uint8_t* status)
+    int hackrf_get_clkin_status(hackrf_device *device, uint8_t *status)
 
-    int hackrf_operacake_gpio_test(hackrf_device* device, uint8_t address, uint16_t* test_result)
+    int hackrf_operacake_gpio_test(hackrf_device *device, uint8_t address, uint16_t *test_result)
 
-    int hackrf_cpld_checksum(hackrf_device* device, uint32_t* crc)
+    int hackrf_cpld_checksum(hackrf_device *device, uint32_t *crc)
 
-    int hackrf_set_ui_enable(hackrf_device* device, const uint8_t value)
+    int hackrf_set_ui_enable(hackrf_device *device, const uint8_t value)
 
-    int hackrf_start_rx_sweep(hackrf_device* device, hackrf_sample_block_cb_fn callback, void* rx_ctx)
+    int hackrf_start_rx_sweep(hackrf_device *device, hackrf_sample_block_cb_fn callback, void *rx_ctx)
 
-    size_t hackrf_get_transfer_buffer_size(hackrf_device* device)
+    size_t hackrf_get_transfer_buffer_size(hackrf_device *device)
 
-    uint32_t hackrf_get_transfer_queue_depth(hackrf_device* device)
+    uint32_t hackrf_get_transfer_queue_depth(hackrf_device *device)
 
-    int hackrf_board_rev_read(hackrf_device* device, uint8_t* value)
+    int hackrf_board_rev_read(hackrf_device *device, uint8_t *value)
 
-    const char* hackrf_board_rev_name(uint8_t board_rev)
+    const char *hackrf_board_rev_name(uint8_t board_rev)
 
-    int hackrf_set_leds(hackrf_device* device, const uint8_t state)
+    int hackrf_set_leds(hackrf_device *device, const uint8_t state)
 
-    int hackrf_set_user_bias_t_opts(hackrf_device* device, hackrf_bias_t_user_settting_req* req)
+    int hackrf_set_user_bias_t_opts(hackrf_device *device, hackrf_bias_t_user_settting_req *req)

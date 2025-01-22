@@ -26,12 +26,11 @@ from libc.stdint cimport int8_t, uint8_t, uint16_t, uint32_t, uint64_t
 from .__android import get_hackrf_device_list
 from . cimport chackrf_android as chackrf
 from libc.stdlib cimport malloc, free
+from enum import IntEnum
 from ctypes import c_int
+import numpy as np
 cimport cython
 
-
-from enum import IntEnum
-import numpy as np
 
 cdef dict global_callbacks = {}
 
@@ -93,10 +92,10 @@ class py_operacake_ports(IntEnum):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int __rx_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
+cdef int __rx_callback(chackrf.hackrf_transfer *transfer) noexcept nogil:
     global global_callbacks
     cdef int result = -1
-    
+
     with gil:
         np_buffer = np.asarray(<uint8_t[:transfer.buffer_length]> transfer.buffer, dtype=np.int8)  # type: ignore
         if global_callbacks[<size_t> transfer.device]['__rx_callback'] is not None:
@@ -107,7 +106,7 @@ cdef int __rx_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int __tx_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
+cdef int __tx_callback(chackrf.hackrf_transfer *transfer) noexcept nogil:
     global global_callbacks
     cdef int8_t[:] cython_view
     cdef int result = -1
@@ -130,7 +129,7 @@ cdef int __tx_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
+cdef int __sweep_callback(chackrf.hackrf_transfer *transfer) noexcept nogil:
     global global_callbacks
     cdef int result = -1
 
@@ -144,7 +143,7 @@ cdef int __sweep_callback(chackrf.hackrf_transfer* transfer) noexcept nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void __tx_complete_callback(chackrf.hackrf_transfer* transfer, int success) noexcept nogil:
+cdef void __tx_complete_callback(chackrf.hackrf_transfer *transfer, int success) noexcept nogil:
     global global_callbacks
 
     with gil:
@@ -153,7 +152,7 @@ cdef void __tx_complete_callback(chackrf.hackrf_transfer* transfer, int success)
             global_callbacks[<size_t> transfer.device]['__tx_complete_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length, success)
 
 
-cdef void __tx_flush_callback(void* flush_ctx, int success) noexcept nogil:
+cdef void __tx_flush_callback(void *flush_ctx, int success) noexcept nogil:
     global global_callbacks
     cdef size_t device_ptr = <size_t> flush_ctx
 
@@ -190,7 +189,7 @@ cdef class PyHackRFDeviceList:
 
 cdef class PyHackrfDevice:
 
-    cdef chackrf.hackrf_device* __hackrf_device
+    cdef chackrf.hackrf_device *__hackrf_device
     cdef list __pyoperacakes
     cdef public str serialno
 
@@ -211,10 +210,10 @@ cdef class PyHackrfDevice:
                 raise RuntimeError(f'__dealloc__ failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
     # ---- inner functions ---- #
-    cdef chackrf.hackrf_device* get_hackrf_device_ptr(self):
+    cdef chackrf.hackrf_device *get_hackrf_device_ptr(self):
         return self.__hackrf_device
 
-    cdef chackrf.hackrf_device** get_hackrf_device_double_ptr(self):
+    cdef chackrf.hackrf_device **get_hackrf_device_double_ptr(self):
         return &self.__hackrf_device
 
     cdef _setup_device(self):
@@ -432,8 +431,7 @@ cdef class PyHackrfDevice:
                             style: py_sweep_style,
                             ) -> None:
 
-        cdef uint16_t* frequencies
-        frequencies = <uint16_t*> malloc(chackrf.MAX_SWEEP_RANGES * 2 * sizeof(uint16_t))
+        cdef uint16_t *frequencies = <uint16_t*> malloc(chackrf.MAX_SWEEP_RANGES * 2 * sizeof(uint16_t))
 
         for index, frequency in enumerate(frequency_list):
             frequencies[index] = frequency
@@ -615,7 +613,7 @@ cdef class PyHackrfDevice:
     # ---- operacake ---- #
     def pyhackrf_get_operacake_boards(self) -> list:
         self.__pyoperacakes.clear()
-        cdef uint8_t* operacakes = <uint8_t*> malloc(PY_HACKRF_OPERACAKE_MAX_BOARDS * sizeof(uint8_t))
+        cdef uint8_t *operacakes = <uint8_t*> malloc(PY_HACKRF_OPERACAKE_MAX_BOARDS * sizeof(uint8_t))
         result = chackrf.hackrf_get_operacake_boards(self.__hackrf_device, &operacakes[0])
 
         if result != chackrf.hackrf_error.HACKRF_SUCCESS:
@@ -646,7 +644,7 @@ cdef class PyHackrfDevice:
             raise RuntimeError(f'pyhackrf_set_operacake_ports() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
     def pyhackrf_set_operacake_dwell_times(self, dwell_times: list) -> None:
-        cdef chackrf.hackrf_operacake_dwell_time* _dwell_times = <chackrf.hackrf_operacake_dwell_time*> malloc(PY_HACKRF_OPERACAKE_MAX_DWELL_TIMES * sizeof(chackrf.hackrf_operacake_dwell_time))
+        cdef chackrf.hackrf_operacake_dwell_time *_dwell_times = <chackrf.hackrf_operacake_dwell_time*> malloc(PY_HACKRF_OPERACAKE_MAX_DWELL_TIMES * sizeof(chackrf.hackrf_operacake_dwell_time))
         for index, (dwell, port) in enumerate(dwell_times):
             _dwell_times[index].dwell = dwell
             _dwell_times[index].port = <uint8_t> py_operacake_ports[port]
@@ -658,7 +656,7 @@ cdef class PyHackrfDevice:
             raise RuntimeError(f'pyhackrf_set_operacake_dwell_times() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
     def pyhackrf_set_operacake_freq_ranges(self, freq_ranges: list) -> None:
-        cdef chackrf.hackrf_operacake_freq_range* _freq_ranges = <chackrf.hackrf_operacake_freq_range*> malloc(PY_HACKRF_OPERACAKE_MAX_FREQ_RANGES * sizeof(chackrf.hackrf_operacake_freq_range))
+        cdef chackrf.hackrf_operacake_freq_range *_freq_ranges = <chackrf.hackrf_operacake_freq_range*> malloc(PY_HACKRF_OPERACAKE_MAX_FREQ_RANGES * sizeof(chackrf.hackrf_operacake_freq_range))
         for index, (port, freq_min, freq_max) in enumerate(freq_ranges):
             _freq_ranges[index].freq_min = freq_min
             _freq_ranges[index].freq_max = freq_max

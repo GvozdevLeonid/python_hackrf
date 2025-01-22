@@ -26,4 +26,4 @@ SOFTWARE.
 
 extern int hackrf_init_on_android(void);
 
-extern int hackrf_open_on_android(int fileDescriptor, hackrf_device** device);
+extern int hackrf_open_on_android(int fileDescriptor, hackrf_device **device);

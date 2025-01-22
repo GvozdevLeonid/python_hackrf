@@ -49,13 +49,13 @@ int hackrf_init_on_android(void) {
 
 }
 
-int hackrf_open_on_android(int fileDescriptor, hackrf_device** device) {
+int hackrf_open_on_android(int fileDescriptor, hackrf_device **device) {
 
     int libusb_error;
     if (device == NULL) {
         return HACKRF_ERROR_INVALID_PARAM;
     }
-    libusb_device_handle* usb_device;
+    libusb_device_handle *usb_device;
 
     libusb_error = libusb_wrap_sys_device(g_libusb_context, (intptr_t)fileDescriptor, &usb_device);
     if (libusb_error < 0) {
