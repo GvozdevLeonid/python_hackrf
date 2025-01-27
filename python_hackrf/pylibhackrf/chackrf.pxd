@@ -157,7 +157,7 @@ cdef extern from 'hackrf.h':
         uint32_t error
 
     ctypedef struct hackrf_device_list_t:
-        char *serial_numbers
+        char **serial_numbers
         hackrf_usb_board_id *usb_board_ids
         int *usb_device_index
         int devicecount
