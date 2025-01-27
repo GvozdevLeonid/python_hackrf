@@ -23,7 +23,7 @@
 from python_hackrf import pyhackrf
 
 
-def pyhackrf_info(print_to_console: bool = True, initialize: bool = True) -> None | str:
+def pyhackrf_info(print_to_console: bool = True, initialize: bool = True) -> str | None:
     if initialize:
         pyhackrf.pyhackrf_init()
 
@@ -72,7 +72,7 @@ def pyhackrf_info(print_to_console: bool = True, initialize: bool = True) -> Non
     return print_info
 
 
-def pyhackrf_serial_numbers_list_info(print_to_console: bool = True, initialize: bool = True) -> None | tuple[int, list]:
+def pyhackrf_serial_numbers_list_info(print_to_console: bool = True, initialize: bool = True) -> tuple[int, list] | None:
     if initialize:
         pyhackrf.pyhackrf_init()
 
