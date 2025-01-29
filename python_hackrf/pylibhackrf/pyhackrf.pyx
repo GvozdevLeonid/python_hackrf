@@ -41,7 +41,6 @@ PY_HACKRF_OPERACAKE_MAX_BOARDS = chackrf.HACKRF_OPERACAKE_MAX_BOARDS
 PY_HACKRF_OPERACAKE_MAX_DWELL_TIMES = chackrf.HACKRF_OPERACAKE_MAX_DWELL_TIMES
 PY_HACKRF_OPERACAKE_MAX_FREQ_RANGES = chackrf.HACKRF_OPERACAKE_MAX_FREQ_RANGES
 
-
 class py_rf_path_filter(IntEnum):
     RF_PATH_FILTER_BYPASS = chackrf.rf_path_filter.RF_PATH_FILTER_BYPASS
     RF_PATH_FILTER_LOW_PASS = chackrf.rf_path_filter.RF_PATH_FILTER_LOW_PASS
@@ -50,14 +49,12 @@ class py_rf_path_filter(IntEnum):
     def __str__(self) -> str:
         return self.name
 
-
 class py_sweep_style(IntEnum):
     LINEAR = chackrf.sweep_style.LINEAR
     INTERLEAVED = chackrf.sweep_style.INTERLEAVED
 
     def __str__(self) -> str:
         return self.name
-
 
 class py_operacake_switching_mode(IntEnum):
     OPERACAKE_MODE_MANUAL = chackrf.operacake_switching_mode.OPERACAKE_MODE_MANUAL
@@ -66,7 +63,6 @@ class py_operacake_switching_mode(IntEnum):
 
     def __str__(self) -> str:
         return self.name
-
 
 class py_operacake_ports(IntEnum):
     A1: 0
@@ -88,7 +84,6 @@ class py_operacake_ports(IntEnum):
         elif isinstance(item, cls):
             return item in cls
         return False
-
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -112,7 +107,6 @@ cdef int __rx_callback(chackrf.hackrf_transfer *transfer) nogil:
             result = global_callbacks[<size_t> transfer.device]['__rx_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length)
 
     return result
-
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -141,7 +135,6 @@ cdef int __tx_callback(chackrf.hackrf_transfer *transfer) nogil:
 
     return result
 
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef int __sweep_callback(chackrf.hackrf_transfer *transfer) nogil:
@@ -165,7 +158,6 @@ cdef int __sweep_callback(chackrf.hackrf_transfer *transfer) nogil:
 
     return result
 
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef void __tx_complete_callback(chackrf.hackrf_transfer *transfer, int success) nogil:
@@ -186,7 +178,6 @@ cdef void __tx_complete_callback(chackrf.hackrf_transfer *transfer, int success)
         if global_callbacks[<size_t> transfer.device]['__tx_complete_callback'] is not None:
             global_callbacks[<size_t> transfer.device]['__tx_complete_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length, success)
 
-
 cdef void __tx_flush_callback(void *flush_ctx, int success) noexcept nogil:
     global global_callbacks
     cdef size_t device_ptr = <size_t> flush_ctx
@@ -194,7 +185,6 @@ cdef void __tx_flush_callback(void *flush_ctx, int success) noexcept nogil:
     with gil:
         if global_callbacks[device_ptr]['__tx_flush_callback'] is not None:
             global_callbacks[device_ptr]['__tx_flush_callback'](global_callbacks[device_ptr]['device'], success)
-
 
 cdef class PyHackRFDeviceList:
     cdef chackrf.hackrf_device_list_t *__hackrf_device_list
@@ -226,7 +216,6 @@ cdef class PyHackRFDeviceList:
     def pyhackrf_board_id_name(self, index: int) -> str:
         if self.__hackrf_device_list is not NULL:
             return chackrf.hackrf_board_id_name(self.__hackrf_device_list[0].usb_board_ids[index]).decode('utf-8')
-
 
 cdef class PyHackrfDevice:
 
@@ -716,37 +705,30 @@ cdef class PyHackrfDevice:
             raise RuntimeError(f'pyhackrf_operacake_gpio_test() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
         return test_result
 
-
 # ---- initialization and exit ---- #
 def pyhackrf_init() -> None:
     result = chackrf.hackrf_init()
     if result != chackrf.hackrf_error.HACKRF_SUCCESS:
         raise RuntimeError(f'pyhackrf_init() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-
 def pyhackrf_exit() -> None:
     result = chackrf.hackrf_exit()
     if result != chackrf.hackrf_error.HACKRF_SUCCESS:
         raise RuntimeError(f'pyhackrf_exit() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-
 # ---- version ---- #
 def python_hackrf_library_version() -> str:
     return __version__
 
-
 def pyhackrf_library_version() -> str:
     return chackrf.hackrf_library_version().decode('utf-8')
-
 
 def pyhackrf_library_release() -> str:
     return chackrf.hackrf_library_release().decode('utf-8')
 
-
 # ---- device ---- #
 def pyhackrf_device_list() -> PyHackRFDeviceList:
     return PyHackRFDeviceList()
-
 
 def pyhackrf_device_list_open(pyhackrf_device_list: PyHackRFDeviceList, index: int) -> PyHackrfDevice | None:
     pyhackrf_device = PyHackrfDevice()
@@ -758,7 +740,6 @@ def pyhackrf_device_list_open(pyhackrf_device_list: PyHackRFDeviceList, index: i
 
     raise RuntimeError(f'pyhackrf_device_list_open() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-
 def pyhackrf_open() -> PyHackrfDevice | None:
     pyhackrf_device = PyHackrfDevice()
 
@@ -769,7 +750,6 @@ def pyhackrf_open() -> PyHackrfDevice | None:
         return pyhackrf_device
 
     raise RuntimeError(f'pyhackrf_open() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
-
 
 def pyhackrf_open_by_serial(desired_serial_number: str) -> PyHackrfDevice | None:
     if desired_serial_number in (None, ''):
@@ -784,11 +764,9 @@ def pyhackrf_open_by_serial(desired_serial_number: str) -> PyHackrfDevice | None
 
     raise RuntimeError(f'pyhackrf_open_by_serial() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
-
 # ---- baseband filter bandwidth ---- #
 def pyhackrf_compute_baseband_filter_bw_round_down_lt(bandwidth_hz: int) -> int:
     return chackrf.hackrf_compute_baseband_filter_bw_round_down_lt(<uint32_t> bandwidth_hz)
-
 
 def pyhackrf_compute_baseband_filter_bw(bandwidth_hz: int) -> int:
     return chackrf.hackrf_compute_baseband_filter_bw(<uint32_t> bandwidth_hz)
