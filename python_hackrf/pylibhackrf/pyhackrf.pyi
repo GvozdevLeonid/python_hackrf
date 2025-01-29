@@ -484,7 +484,7 @@ class PyHackrfDevice:
     def set_rx_callback(self, rx_callback_function: Callable[[Self, np.ndarray, int, int], int]) -> None:
         '''
         Accept a 4 args that contains the device, buffer, the maximum length and the length of the buffer data.
-        device: PyHackrfDevice, buffer: numpy.array(dtype=numpy.uint8), buffer_length: int, valid_length: int
+        device: PyHackrfDevice, buffer: numpy.array(dtype=numpy.int8), buffer_length: int, valid_length: int
 
         Should copy/process the contents of the buffer's valid part.
 
@@ -495,7 +495,7 @@ class PyHackrfDevice:
     def set_tx_callback(self, tx_callback_function: Callable[[Self, np.ndarray, int, int], tuple[int, np.ndarray, int]]) -> None:
         '''
         Accept a 4 args that contains the device, buffer, the maximum length and the length of the buffer data.
-        device: PyHackrfDevice, buffer: numpy.array(dtype=numpy.uint8), buffer_length: int, valid_length: int
+        device: PyHackrfDevice, buffer: numpy.array(dtype=numpy.int8), buffer_length: int, valid_length: int
 
 
         The callback should return 0 if it should be called again, and any other value otherwise.
@@ -506,7 +506,7 @@ class PyHackrfDevice:
     def set_sweep_callback(self, sweep_callback_function: Callable[[Self, np.ndarray, int, int], int]) -> None:
         '''
         Accept a 4 args that contains the device, buffer, the maximum length and the length of the buffer data.
-        device: PyHackrfDevice, buffer: numpy.array(dtype=numpy.uint8), buffer_length: int, valid_length: int
+        device: PyHackrfDevice, buffer: numpy.array(dtype=numpy.int8), buffer_length: int, valid_length: int
 
         Should copy/process the contents of the buffer's valid part.
 
@@ -518,7 +518,7 @@ class PyHackrfDevice:
     def set_tx_complete_callback(self, tx_complete_callback_function: Callable[[Self, np.ndarray, int, int, bool], None]) -> None:
         '''
         Accept a 5 args that contains the device, buffer, the maximum length and the length of the buffer data.
-        device: PyHackrfDevice, buffer: numpy.array(dtype=numpy.uint8), buffer_length: int, valid_length: int
+        device: PyHackrfDevice, buffer: numpy.array(dtype=numpy.int8), buffer_length: int, valid_length: int
         and
         success: int # if the transfer was successful or not
         '''
