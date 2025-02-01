@@ -22,7 +22,6 @@
 
 import atexit
 import io
-import mmap
 import os
 import pickle
 import sys
@@ -45,7 +44,6 @@ class FileBuffer:
 
         self._read_ptr = 0
         self._write_ptr = 0
-        self._mmap_size = 0
 
         self._dtype_size = np.dtype(dtype).itemsize
 
@@ -58,6 +56,9 @@ class FileBuffer:
 
         self._register_cleanup()
 
+    def __del__(self) -> None:
+        self._cleanup()
+
     def __getitem__(self, index: int | slice) -> Any:
         with self._rlock:
 
@@ -65,6 +66,7 @@ class FileBuffer:
 
             if write_ptr == 0:
                 self._not_empty.wait()
+                self._not_empty.clear()
                 write_ptr = self._write_ptr
 
             size = write_ptr // self._dtype_size
@@ -88,19 +90,21 @@ class FileBuffer:
             raise TypeError('index must be int or slice')
 
     def _cleanup(self) -> None:
-        try:
-            with self._wlock:
-                with self._rlock:
-                    filepath = self._temp_file.name
-                    self._reader.close()
-                    self._writer.close()
-                    self._temp_file.close()
+        if self._temp_file:
+            filepath = self._temp_file.name
 
-                    if os.path.exists(filepath):
-                        os.remove(filepath)
+            try:
+                with self._wlock:
+                    with self._rlock:
+                        self._reader.close()
+                        self._writer.close()
+                        self._temp_file.close()
 
-        except Exception as er:
-            print(f'Exception during cleanup: {er}', file=sys.stderr)
+            except Exception as er:
+                print(f'Exception during cleanup: {er}', file=sys.stderr)
+
+            if os.path.exists(filepath):
+                os.remove(filepath)
 
     def _register_cleanup(self) -> None:
         atexit.register(self._cleanup)
@@ -112,8 +116,8 @@ class FileBuffer:
         data = data.astype(self._dtype, copy=False)
         chunk_elements = chunk_size // self._dtype_size
 
-        for i in range(0, len(data), chunk_elements):
-            with self._wlock:
+        with self._wlock:
+            for i in range(0, len(data), chunk_elements):
                 data[i:i + chunk_elements].tofile(self._writer)
                 self._write_ptr = self._writer.tell()
                 self._not_empty.set()
@@ -123,6 +127,7 @@ class FileBuffer:
 
             if self._write_ptr == 0:
                 self._not_empty.wait()
+                self._not_empty.clear()
 
             if not use_memmap:
                 self._reader.seek(0)
@@ -139,11 +144,13 @@ class FileBuffer:
 
             if write_ptr == 0:
                 self._not_empty.wait()
+                self._not_empty.clear()
                 write_ptr = self._write_ptr
 
             while self._read_ptr == write_ptr:
                 if wait:
                     self._not_empty.wait()
+                    self._not_empty.clear()
                     write_ptr = self._write_ptr
                 else:
                     return np.array([], dtype=self._dtype)
@@ -162,6 +169,7 @@ class FileBuffer:
 
             if write_ptr == 0:
                 self._not_empty.wait()
+                self._not_empty.clear()
                 write_ptr = self._write_ptr
 
             total_bytes = num_elements * self._dtype_size
@@ -211,15 +219,15 @@ class FileBuffer:
         with self._wlock:
             with self._rlock:
                 os.truncate(self._temp_file.fileno(), 0)
-                self._write_ptr = 0
-                self._read_ptr = 0
                 self._reader.seek(0)
                 self._writer.seek(0)
+                self._write_ptr = 0
+                self._read_ptr = 0
 
 
-class MmapQueue:
+class FileQueue:
     '''
-    A memory-mapped queue for handling serialized Python objects, optimized for large-scale data storage and retrieval.
+    A file based queue for handling serialized Python objects, optimized for large-scale data storage and retrieval.
     Utilizes file-based storage to minimize RAM usage and dynamically resizes with efficient memory management via an interval tree.
     Suitable  in resource-constrained environments.
     '''
@@ -294,9 +302,9 @@ class MmapQueue:
 
     class IntervalTree:
         def __init__(self) -> None:
-            self.root: MmapQueue.IntervalTreeNode = None
+            self.root: FileQueue.IntervalTreeNode = None
 
-        def _insert_node(self, parent_node: 'MmapQueue.IntervalTreeNode', child_node: 'MmapQueue.IntervalTreeNode') -> None:
+        def _insert_node(self, parent_node: 'FileQueue.IntervalTreeNode', child_node: 'FileQueue.IntervalTreeNode') -> None:
             if parent_node is None:
                 self.root = child_node
                 return
@@ -321,7 +329,7 @@ class MmapQueue:
                 else:
                     raise ValueError(f'Unexpected overlap: [{child_node.start}, {child_node.end}) intersects with [{parent_node.start}, {parent_node.end}).')
 
-        def _merge(self, target_node: 'MmapQueue.IntervalTreeNode', source_node: 'MmapQueue.IntervalTreeNode') -> None:
+        def _merge(self, target_node: 'FileQueue.IntervalTreeNode', source_node: 'FileQueue.IntervalTreeNode') -> None:
             target_node.start = min(target_node.start, source_node.start)
             target_node.end = max(target_node.end, source_node.end)
 
@@ -362,7 +370,7 @@ class MmapQueue:
                     else:
                         break
 
-        def _balance(self, node: 'MmapQueue.IntervalTreeNode') -> None:
+        def _balance(self, node: 'FileQueue.IntervalTreeNode') -> None:
             self.root.update_height()
 
             while True:
@@ -381,7 +389,7 @@ class MmapQueue:
                     return
                 node = node.parent_node
 
-        def _rotate_left(self, node: 'MmapQueue.IntervalTreeNode') -> 'MmapQueue.IntervalTreeNode':
+        def _rotate_left(self, node: 'FileQueue.IntervalTreeNode') -> 'FileQueue.IntervalTreeNode':
             if node.right_node is None:
                 return node
 
@@ -401,7 +409,7 @@ class MmapQueue:
 
             return new_root
 
-        def _rotate_right(self, node: 'MmapQueue.IntervalTreeNode') -> 'MmapQueue.IntervalTreeNode':
+        def _rotate_right(self, node: 'FileQueue.IntervalTreeNode') -> 'FileQueue.IntervalTreeNode':
             if node.left_node is None:
                 return node
             new_root = node.left_node
@@ -421,7 +429,7 @@ class MmapQueue:
             return new_root
 
         def insert(self, start: int, end: int) -> None:
-            new_node = MmapQueue.IntervalTreeNode(start, end)
+            new_node = FileQueue.IntervalTreeNode(start, end)
 
             self._insert_node(self.root, new_node)
             if self.root is not None:
@@ -430,7 +438,7 @@ class MmapQueue:
                 self.root.update_min_start()
                 self.root.update_max_end()
 
-        def search(self, length: int) -> 'MmapQueue.IntervalTreeNode | None':
+        def search(self, length: int) -> 'FileQueue.IntervalTreeNode | None':
             if self.root is None or self.root.max_length < length:
                 return None
 
@@ -446,7 +454,7 @@ class MmapQueue:
                 else:
                     return None
 
-        def delete(self, node: 'MmapQueue.IntervalTreeNode') -> None:
+        def delete(self, node: 'FileQueue.IntervalTreeNode') -> None:
 
             if node.parent_node is not None:
                 if node.parent_node.left_node == node:
@@ -476,7 +484,7 @@ class MmapQueue:
                 self.root.update_min_start()
                 self.root.update_max_end()
 
-        def change_node_range(self, node: 'MmapQueue.IntervalTreeNode', new_start: int, new_end: int) -> None:
+        def change_node_range(self, node: 'FileQueue.IntervalTreeNode', new_start: int, new_end: int) -> None:
             if new_start >= node.start:
                 node.start = new_start
             else:
@@ -501,12 +509,13 @@ class MmapQueue:
         self._temp_file.write(b'\x00' * self._file_size)
         self._temp_file.flush()
 
-        self._mmap = mmap.mmap(self._temp_file.fileno(), self._file_size)
+        self._writer = io.FileIO(self._temp_file.name, mode='w')
+        self._reader = io.FileIO(self._temp_file.name, mode='r')
 
-        self._lock = RLock()
         self._not_empty = Event()
+        self._lock = RLock()
 
-        self._tree = MmapQueue.IntervalTree()
+        self._tree = FileQueue.IntervalTree()
         self._tree.insert(0, self._file_size)
         self._queue = Queue()
 
@@ -516,17 +525,20 @@ class MmapQueue:
         self._cleanup()
 
     def _cleanup(self) -> None:
-        try:
-            with self._lock:
-                filepath = self._temp_file.name
-                self._mmap.close()
-                self._temp_file.close()
+        if self._temp_file:
+            filepath = self._temp_file.name
 
-                if os.path.exists(filepath):
-                    os.remove(filepath)
+            try:
+                with self._lock:
+                    self._reader.close()
+                    self._writer.close()
+                    self._temp_file.close()
 
-        except Exception as er:
-            print(f'Exception during cleanup: {er}', file=sys.stderr)
+            except Exception as er:
+                print(f'Exception during cleanup: {er}', file=sys.stderr)
+
+            if os.path.exists(filepath):
+                os.remove(filepath)
 
     def _register_cleanup(self) -> None:
         atexit.register(self._cleanup)
@@ -538,56 +550,61 @@ class MmapQueue:
         self._temp_file.write(b'\x00' * additional_size)
         self._temp_file.flush()
 
-        self._tree.insert(self._file_size, new_size)
-
-        self._mmap.close()
-        self._mmap = mmap.mmap(self._temp_file.fileno(), new_size)
-        self._file_size = new_size
+        with self._lock:
+            self._tree.insert(self._file_size, new_size)
+            self._file_size = new_size
 
     def size(self) -> int:
-        with self._lock:
-            return self._queue.qsize()
+        return self._queue.qsize()
 
     def clear(self) -> None:
         with self._lock:
-            self._queue.queue.clear()
-            self._tree = MmapQueue.IntervalTree()
+            self._tree = FileQueue.IntervalTree()
             self._tree.insert(0, self._file_size)
+            self._queue.queue.clear()
 
     def empty(self) -> bool:
-        with self._lock:
-            return self._queue.empty()
+        return self._queue.empty()
 
     def put(self, data: Any) -> None:
-        with self._lock:
-            data_bytes = pickle.dumps(data)
-            data_len_bytes = len(data_bytes)
+        data_bytes = pickle.dumps(data)
+        data_len_bytes = len(data_bytes)
+        start_ptr = 0
+        end_ptr = 0
 
+        with self._lock:
             chunk_node = self._tree.search(data_len_bytes)
             if chunk_node is None:
                 self._resize(data_len_bytes)
                 chunk_node = self._tree.search(data_len_bytes)
 
+            start_ptr = chunk_node.start
             if chunk_node.length == data_len_bytes:
-                self._mmap[chunk_node.start:chunk_node.end] = data_bytes
-                self._queue.put_nowait((chunk_node.start, chunk_node.end))
+                end_ptr = chunk_node.end
                 self._tree.delete(chunk_node)
             else:
-                self._mmap[chunk_node.start: chunk_node.start + data_len_bytes] = data_bytes
-                self._queue.put_nowait((chunk_node.start, chunk_node.start + data_len_bytes))
+                end_ptr = chunk_node.start + data_len_bytes
                 self._tree.change_node_range(chunk_node, chunk_node.start + data_len_bytes, chunk_node.end)
 
-            self._not_empty.set()
+        self._writer.seek(start_ptr)
+        self._writer.write(data_bytes)
+        self._queue.put_nowait((start_ptr, end_ptr))
+
+        self._not_empty.set()
 
     def get(self, wait: bool = False) -> Any:
-        with self._lock:
-            while self._queue.empty():
-                if wait:
-                    self._not_empty.wait()
-                else:
-                    return None
+        while self._queue.empty():
+            if wait:
+                self._not_empty.wait()
+                self._not_empty.clear()
+            else:
+                return None
 
-            start, end = self._queue.get_nowait()
-            result = pickle.loads(self._mmap[start:end])  # noqa: S301
+        start, end = self._queue.get_nowait()
+        self._reader.seek(start)
+        result = pickle.loads(self._reader.read(end - start))  # noqa: S301
+
+        with self._lock:
             self._tree.insert(start, end)
-            return result
+
+        return result

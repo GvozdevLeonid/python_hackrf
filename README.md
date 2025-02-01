@@ -159,7 +159,7 @@ Please use the original hackrf documentation
 
 
 ## Notes
-You can use MmapQueue to receive data in pyhackrf_sweep. This will reduce the load on RAM and can work even on weak devices.
+You can use FileQueue to receive data in pyhackrf_sweep. This will reduce the load on RAM and can work even on weak devices.
 
 For pyhackrf_transfer, FileBuffer has been implemented, which will allow you to more conveniently receive and send iq data from sdr.
 
