@@ -87,7 +87,7 @@ class py_operacake_ports(IntEnum):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int __rx_callback(chackrf.hackrf_transfer *transfer) nogil:
+cdef int __rx_callback(chackrf.hackrf_transfer *transfer) noexcept nogil:
     global global_callbacks
     cdef uint8_t* buffer_ptr = transfer.buffer
     cdef uint8_t* np_buffer_ptr
@@ -110,7 +110,7 @@ cdef int __rx_callback(chackrf.hackrf_transfer *transfer) nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int __tx_callback(chackrf.hackrf_transfer *transfer) nogil:
+cdef int __tx_callback(chackrf.hackrf_transfer *transfer) noexcept nogil:
     global global_callbacks
     cdef uint8_t* buffer_ptr = transfer.buffer
     cdef uint8_t* np_buffer_ptr
@@ -137,7 +137,7 @@ cdef int __tx_callback(chackrf.hackrf_transfer *transfer) nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int __sweep_callback(chackrf.hackrf_transfer *transfer) nogil:
+cdef int __sweep_callback(chackrf.hackrf_transfer *transfer) noexcept nogil:
     global global_callbacks
     cdef uint8_t* buffer_ptr = transfer.buffer
     cdef uint8_t* np_buffer_ptr
@@ -160,7 +160,7 @@ cdef int __sweep_callback(chackrf.hackrf_transfer *transfer) nogil:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void __tx_complete_callback(chackrf.hackrf_transfer *transfer, int success) nogil:
+cdef void __tx_complete_callback(chackrf.hackrf_transfer *transfer, int success) noexcept nogil:
     global global_callbacks
     cdef uint8_t* buffer_ptr = transfer.buffer
     cdef uint8_t* np_buffer_ptr
@@ -320,7 +320,7 @@ cdef class PyHackrfDevice:
         return (
             (
                 read_partid_serialno.part_id[0],
-                read_partid_serialno.part_id[1]
+                read_partid_serialno.part_id[1],
             ),
             (
                 read_partid_serialno.serial_no[0],
@@ -340,7 +340,7 @@ cdef class PyHackrfDevice:
             read_partid_serialno.serial_no[0],
             read_partid_serialno.serial_no[1],
             read_partid_serialno.serial_no[2],
-            read_partid_serialno.serial_no[3]
+            read_partid_serialno.serial_no[3],
         )
 
     def pyhackrf_set_ui_enable(self, value: bool) -> None:
