@@ -13,7 +13,7 @@ from .pylibhackrf import pyhackrf
 def main() -> None:
     parser = argparse.ArgumentParser(
         description='python_hackrf is a Python wrapper for libhackrf and hackrf-tools.',
-        usage='python_hackrf [-h] {info, sweep, operacake} ...',
+        usage='python_hackrf [-h] {info, sweep, operacake, transfer} ...',
     )
     subparsers = parser.add_subparsers(dest='command', title='Available commands')
     subparsers.required = True
