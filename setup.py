@@ -18,7 +18,6 @@ PLATFORM = sys.platform
 if getenv('LIBLINK'):
     PLATFORM = 'android'
 
-
 if PLATFORM != 'android':
     SETUP_REQUIRES.append('Cython==0.29.37')
     INSTALL_REQUIRES.append('Cython==0.29.37')
