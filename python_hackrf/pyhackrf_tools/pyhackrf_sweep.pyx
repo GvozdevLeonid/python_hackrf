@@ -232,7 +232,10 @@ def pyhackrf_sweep(frequencies: list = None, sample_rate: int = 20_000_000, base
     run_available[device.serialno] = True
 
     sample_rate = int(sample_rate) if int(sample_rate) in AVAILABLE_SAMPLING_RATES else 20_000_000
-    baseband_filter_bandwidth = int(baseband_filter_bandwidth) if baseband_filter_bandwidth in AVAILABLE_BASEBAND_FILTER_BANDWIDTHS else pyhackrf.pyhackrf_compute_baseband_filter_bw(int(sample_rate * .75))
+
+    if baseband_filter_bandwidth is None:
+        baseband_filter_bandwidth = int(sample_rate * .75)
+    baseband_filter_bandwidth = int(baseband_filter_bandwidth) if int(baseband_filter_bandwidth) in AVAILABLE_BASEBAND_FILTER_BANDWIDTHS else pyhackrf.pyhackrf_compute_baseband_filter_bw(int(sample_rate * .75))
 
     cdef dict current_device_data = {
         'sweep_style': sweep_style if sweep_style in pyhackrf.py_sweep_style else pyhackrf.py_sweep_style.INTERLEAVED,
@@ -296,9 +299,9 @@ def pyhackrf_sweep(frequencies: list = None, sample_rate: int = 20_000_000, base
         RuntimeError(f'specify a maximum of {pyhackrf.PY_MAX_SWEEP_RANGES} frequency ranges')
 
     for i in range(num_ranges):
-        frequencies[i] = int(frequencies[i])
+        frequencies[2 * i] = int(frequencies[2 * i] * 1e6)
+        frequencies[2 * i + 1] = int(frequencies[2 * i + 1] * 1e6)
 
-    for i in range(num_ranges):
         if frequencies[2 * i] >= frequencies[2 * i + 1]:
             raise RuntimeError('max frequency must be greater than min frequency.')
 
@@ -334,6 +337,8 @@ def pyhackrf_sweep(frequencies: list = None, sample_rate: int = 20_000_000, base
     cdef double time_prev = time.time()
     cdef double time_difference = 0
     cdef double sweep_rate = 0
+    cdef double time_now = 0
+
     while device.pyhackrf_is_streaming() and run_available[device.serialno]:
         time.sleep(0.05)
         time_now = time.time()
