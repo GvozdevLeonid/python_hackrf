@@ -353,6 +353,7 @@ def pyhackrf_sweep(frequencies: list = None, sample_rate: int = 20_000_000, base
                     sys.stderr.write('Couldn\'t transfer any data for one second.\n')
                 break
 
+            current_device_data['accepted_bytes'] = 0
             time_prev = time_now
 
     if filename is not None:
