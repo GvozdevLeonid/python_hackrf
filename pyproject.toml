@@ -1,6 +1,6 @@
 [project]
 name = "python_hackrf"
-version = "1.2.7"
+version = "1.2.8"
 authors = [
   {name="Leonid Gvozdev", email="leo.gvozdev.dev@gmail.com"},
 ]
