@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 # cython: language_level=3str
-cimport chackrf
+from . cimport chackrf
 
 cdef class PyHackrfDevice:
 
