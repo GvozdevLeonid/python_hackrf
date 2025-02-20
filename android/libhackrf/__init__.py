@@ -10,7 +10,7 @@ from pythonforandroid.util import current_directory
 
 class LibhackrfRecipe(NDKRecipe):
 
-    url = 'https://github.com/greatscottgadgets/hackrf/releases/download/v{version}/hackrf-{version}.tar.xz'
+    url = 'https://github.com/greatscottgadgets/hackrf/archive/refs/tags/v{version}.tar.gz'
     patches = ('hackrf_android.patch', )
     generated_libraries = ('libhackrf.so', )
     site_packages_name = 'libhackrf'

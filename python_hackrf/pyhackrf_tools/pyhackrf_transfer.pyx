@@ -1,6 +1,6 @@
 # MIT License
 
-# Copyright (c) 2023-2024 GvozdevLeonid
+# Copyright (c) 2023-2025 GvozdevLeonid
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,6 @@
 # SOFTWARE.
 
 # cython: language_level=3str
-
 from python_hackrf import pyhackrf
 from libc.stdint cimport uint64_t
 import numpy as np
@@ -38,7 +37,6 @@ AVAILABLE_BASEBAND_FILTER_BANDWIDTHS = (1_750_000, 2_500_000, 3_500_000, 5_000_0
 
 FREQ_MIN_HZ = 0
 FREQ_MAX_HZ = 7_250_000_000
-
 
 SAMPLES_TO_XFER_MAX = 9_223_372_036_854_775_808
 IF_MIN_HZ = 2_000_000_000
@@ -196,7 +194,7 @@ def tx_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffe
                 current_device_data['tx_complete'] = True
                 run_available[device.serialno] = False
                 valid_length = writed * 2
-                return (0, valid_length)
+                return 0
 
             sent_data = np.frombuffer(raw_data, dtype=np.complex64)
             scaled_data = (sent_data.view(np.float32) * 128).astype(np.int8)
@@ -374,7 +372,7 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
         device.pyhackrf_start_tx()
 
     if num_samples and print_to_console:
-        sys.stderr.write(f'samples_to_xfer {num_samples}/{num_samples / 1e6:.3f} Mio\n')
+        sys.stderr.write(f'samples_to_xfer {num_samples}/{num_samples / 5e5:.3f} MB\n')
 
     cdef double time_start = time.time()
     cdef double time_prev = time.time()

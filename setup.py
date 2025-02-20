@@ -80,7 +80,8 @@ setup(
             extra_compile_args=['-w'],
         ),
     ],
+    include_package_data=True,
     packages=find_packages(),
     package_dir={'': '.'},
-    include_package_data=True,
+    zip_safe=False,
 )

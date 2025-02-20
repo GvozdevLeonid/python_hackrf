@@ -1,6 +1,6 @@
 # MIT License
 
-# Copyright (c) 2023-2024 GvozdevLeonid
+# Copyright (c) 2023-2025 GvozdevLeonid
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -85,6 +85,7 @@ class py_operacake_ports(IntEnum):
             return item in cls
         return False
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef int __rx_callback(chackrf.hackrf_transfer *transfer) noexcept nogil:
@@ -107,6 +108,7 @@ cdef int __rx_callback(chackrf.hackrf_transfer *transfer) noexcept nogil:
             result = global_callbacks[<size_t> transfer.device]['__rx_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length)
 
     return result
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -135,6 +137,7 @@ cdef int __tx_callback(chackrf.hackrf_transfer *transfer) noexcept nogil:
 
     return result
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef int __sweep_callback(chackrf.hackrf_transfer *transfer) noexcept nogil:
@@ -158,6 +161,7 @@ cdef int __sweep_callback(chackrf.hackrf_transfer *transfer) noexcept nogil:
 
     return result
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef void __tx_complete_callback(chackrf.hackrf_transfer *transfer, int success) noexcept nogil:
@@ -178,6 +182,7 @@ cdef void __tx_complete_callback(chackrf.hackrf_transfer *transfer, int success)
         if global_callbacks[<size_t> transfer.device]['__tx_complete_callback'] is not None:
             global_callbacks[<size_t> transfer.device]['__tx_complete_callback'](global_callbacks[<size_t> transfer.device]['device'], np_buffer, transfer.buffer_length, transfer.valid_length, success)
 
+
 cdef void __tx_flush_callback(void *flush_ctx, int success) noexcept nogil:
     global global_callbacks
     cdef size_t device_ptr = <size_t> flush_ctx
@@ -185,6 +190,7 @@ cdef void __tx_flush_callback(void *flush_ctx, int success) noexcept nogil:
     with gil:
         if global_callbacks[device_ptr]['__tx_flush_callback'] is not None:
             global_callbacks[device_ptr]['__tx_flush_callback'](global_callbacks[device_ptr]['device'], success)
+
 
 cdef class PyHackRFDeviceList:
     cdef chackrf.hackrf_device_list_t *__hackrf_device_list
@@ -219,10 +225,6 @@ cdef class PyHackRFDeviceList:
 
 cdef class PyHackrfDevice:
 
-    cdef chackrf.hackrf_device *__hackrf_device
-    cdef list __pyoperacakes
-    cdef public str serialno
-
     def __cinit__(self):
         self.__hackrf_device = NULL
         self.__pyoperacakes = []
@@ -246,7 +248,7 @@ cdef class PyHackrfDevice:
     cdef chackrf.hackrf_device **get_hackrf_device_double_ptr(self):
         return &self.__hackrf_device
 
-    cdef _setup_device(self):
+    cdef void _setup_device(self):
         global global_callbacks
 
         if self.__hackrf_device is not NULL:

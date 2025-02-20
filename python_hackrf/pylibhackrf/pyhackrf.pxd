@@ -20,26 +20,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-LOCAL_PATH := $(call my-dir)
-LIBHACKRF_ROOT_REL := ../..
-LIBHACKRF_ROOT_ABS := $(LOCAL_PATH)/../..
+# cython: language_level=3str
+cimport chackrf
 
-# LIBHACKRF
+cdef class PyHackrfDevice:
 
-include $(CLEAR_VARS)
+    cdef chackrf.hackrf_device *__hackrf_device
+    cdef list __pyoperacakes
+    cdef public str serialno
 
-LOCAL_SRC_FILES := $(LIBHACKRF_ROOT_REL)/host/libhackrf/src/hackrf.c
-LOCAL_EXPORT_C_INCLUDES := $(LIBUSB_ROOT_ABS)/host/libhackrf/src
+    cdef chackrf.hackrf_device *get_hackrf_device_ptr(self)
 
-LOCAL_CFLAGS := \
-	-I$(LIBHACKRF_ROOT_ABS)/android/libusb \
-	-DLIBRARY_VERSION=\"$(LIBRARY_VERSION)\" \
-    -DLIBRARY_RELEASE=\"$(LIBRARY_RELEASE)\"
+    cdef chackrf.hackrf_device **get_hackrf_device_double_ptr(self)
 
-LOCAL_LDFLAGS := -pthread
-
-LOCAL_LDLIBS := -L$(LOCAL_PATH) -lusb1.0 -llog
-
-LOCAL_MODULE := libhackrf
-
-include $(BUILD_SHARED_LIBRARY)
+    cdef void _setup_device(self)
