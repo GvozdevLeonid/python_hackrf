@@ -31,6 +31,10 @@ from . cimport chackrf
 import numpy as np
 cimport cython
 
+DEF ANDROID = False
+IF ANDROID:
+    from .__android import get_hackrf_device_list
+
 
 cdef dict global_callbacks = {}
 
@@ -192,36 +196,63 @@ cdef void __tx_flush_callback(void *flush_ctx, int success) noexcept nogil:
             global_callbacks[device_ptr]['__tx_flush_callback'](global_callbacks[device_ptr]['device'], success)
 
 
-cdef class PyHackRFDeviceList:
-    cdef chackrf.hackrf_device_list_t *__hackrf_device_list
+IF ANDROID:
+    cdef class PyHackRFDeviceList:
+        cdef list __hackrf_device_list
 
-    cdef chackrf.hackrf_device_list_t *get_hackrf_device_list_ptr(self):
-        return self.__hackrf_device_list
+        def __cinit__(self):
+            self.__hackrf_device_list = get_hackrf_device_list()
 
-    def __cinit__(self):
-        self.__hackrf_device_list = chackrf.hackrf_device_list()
+        property device_count:
+            def __get__(self):
+                return len(self.__hackrf_device_list)
 
-    def __dealloc__(self):
-        if self.__hackrf_device_list is not NULL:
-            chackrf.hackrf_device_list_free(self.__hackrf_device_list)
+        property serial_numbers:
+            def __get__(self):
+                return [self.__hackrf_device_list[i][2] for i in range(self.device_count)]
 
-    property device_count:
-        def __get__(self):
+        property usb_board_ids:
+            def __get__(self):
+                return [self.__hackrf_device_list[i][1] for i in range(self.device_count)]
+
+        property file_descriptors:
+            def __get__(self):
+                return [self.__hackrf_device_list[i][0] for i in range(self.device_count)]
+
+        def pyhackrf_board_id_name(self, index: int) -> str:
+            if len(self.__hackrf_device_list):
+                return chackrf.hackrf_board_id_name(self.__hackrf_device_list[index][1]).decode('utf-8')
+ELSE:
+    cdef class PyHackRFDeviceList:
+        cdef chackrf.hackrf_device_list_t *__hackrf_device_list
+
+        cdef chackrf.hackrf_device_list_t *get_hackrf_device_list_ptr(self):
+            return self.__hackrf_device_list
+
+        def __cinit__(self):
+            self.__hackrf_device_list = chackrf.hackrf_device_list()
+
+        def __dealloc__(self):
             if self.__hackrf_device_list is not NULL:
-                return self.__hackrf_device_list[0].devicecount
-            return 0
+                chackrf.hackrf_device_list_free(self.__hackrf_device_list)
 
-    property serial_numbers:
-        def __get__(self):
-            return [self.__hackrf_device_list[0].serial_numbers[i].decode('utf-8') for i in range(self.device_count)]
+        property device_count:
+            def __get__(self):
+                if self.__hackrf_device_list is not NULL:
+                    return self.__hackrf_device_list[0].devicecount
+                return 0
 
-    property usb_board_ids:
-        def __get__(self):
-            return [self.__hackrf_device_list[0].usb_board_ids[i] for i in range(self.device_count)]
+        property serial_numbers:
+            def __get__(self):
+                return [self.__hackrf_device_list[0].serial_numbers[i].decode('utf-8') for i in range(self.device_count)]
 
-    def pyhackrf_board_id_name(self, index: int) -> str:
-        if self.__hackrf_device_list is not NULL:
-            return chackrf.hackrf_board_id_name(self.__hackrf_device_list[0].usb_board_ids[index]).decode('utf-8')
+        property usb_board_ids:
+            def __get__(self):
+                return [self.__hackrf_device_list[0].usb_board_ids[i] for i in range(self.device_count)]
+
+        def pyhackrf_board_id_name(self, index: int) -> str:
+            if self.__hackrf_device_list is not NULL:
+                return chackrf.hackrf_board_id_name(self.__hackrf_device_list[0].usb_board_ids[index]).decode('utf-8')
 
 cdef class PyHackrfDevice:
 
@@ -709,7 +740,10 @@ cdef class PyHackrfDevice:
 
 # ---- initialization and exit ---- #
 def pyhackrf_init() -> None:
-    result = chackrf.hackrf_init()
+    IF ANDROID:
+        result = chackrf.hackrf_init_on_android()
+    ELSE:
+        result = chackrf.hackrf_init()
     if result != chackrf.hackrf_error.HACKRF_SUCCESS:
         raise RuntimeError(f'pyhackrf_init() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
@@ -734,7 +768,10 @@ def pyhackrf_device_list() -> PyHackRFDeviceList:
 
 def pyhackrf_device_list_open(pyhackrf_device_list: PyHackRFDeviceList, index: int) -> PyHackrfDevice | None:
     pyhackrf_device = PyHackrfDevice()
-    result = chackrf.hackrf_device_list_open(pyhackrf_device_list.get_hackrf_device_list_ptr(), index, pyhackrf_device.get_hackrf_device_double_ptr())
+    IF ANDROID:
+        result = chackrf.hackrf_open_on_android(pyhackrf_device_list.file_descriptors[index], pyhackrf_device.get_hackrf_device_double_ptr())
+    ELSE:
+        result = chackrf.hackrf_device_list_open(pyhackrf_device_list.get_hackrf_device_list_ptr(), index, pyhackrf_device.get_hackrf_device_double_ptr())
 
     if result == chackrf.hackrf_error.HACKRF_SUCCESS:
         pyhackrf_device._setup_device()
@@ -744,8 +781,13 @@ def pyhackrf_device_list_open(pyhackrf_device_list: PyHackRFDeviceList, index: i
 
 def pyhackrf_open() -> PyHackrfDevice | None:
     pyhackrf_device = PyHackrfDevice()
-
-    result = chackrf.hackrf_open(pyhackrf_device.get_hackrf_device_double_ptr())
+    IF ANDROID:
+        result = chackrf.hackrf_error.HACKRF_ERROR_NOT_FOUND
+        hackrf_device_list = get_hackrf_device_list(1)
+        if len(hackrf_device_list):
+            result = chackrf.hackrf_open_on_android(hackrf_device_list[0][0], pyhackrf_device.get_hackrf_device_double_ptr())
+    ELSE:
+        result = chackrf.hackrf_open(pyhackrf_device.get_hackrf_device_double_ptr())
 
     if result == chackrf.hackrf_error.HACKRF_SUCCESS:
         pyhackrf_device._setup_device()
@@ -758,7 +800,16 @@ def pyhackrf_open_by_serial(desired_serial_number: str) -> PyHackrfDevice | None
         return pyhackrf_open()
 
     pyhackrf_device = PyHackrfDevice()
-    result = chackrf.hackrf_open_by_serial(desired_serial_number.encode('utf-8'), pyhackrf_device.get_hackrf_device_double_ptr())
+    IF ANDROID:
+        result = chackrf.hackrf_error.HACKRF_ERROR_NOT_FOUND
+        hackrf_device_list = get_hackrf_device_list()
+        if len(hackrf_device_list):
+            for file_descriptor, board_id, serial_number in hackrf_device_list:
+                if serial_number == desired_serial_number:
+                    pyhackrf_device = PyHackrfDevice()
+                    result = chackrf.hackrf_open_on_android(file_descriptor, pyhackrf_device.get_hackrf_device_double_ptr())
+    ELSE:
+        result = chackrf.hackrf_open_by_serial(desired_serial_number.encode('utf-8'), pyhackrf_device.get_hackrf_device_double_ptr())
 
     if result == chackrf.hackrf_error.HACKRF_SUCCESS:
         pyhackrf_device._setup_device()
