@@ -12,7 +12,7 @@ class PythonHackrfRecipe(CythonRecipe):
     depends = ('python3', 'setuptools', 'numpy', 'pyjnius', 'libhackrf')
     site_packages_name = 'python_hackrf'
     name = 'python_hackrf'
-    version = '1.2.8'
+    version = '1.3.0'
 
     def get_recipe_env(self, arch: Arch) -> dict:
         env = super().get_recipe_env(arch)
