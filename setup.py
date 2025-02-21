@@ -51,8 +51,6 @@ if PLATFORM != 'android':
     environ['CFLAGS'] = f'{cflags} {new_cflags}'.strip()
     environ['LDFLAGS'] = f'{ldflags} {new_ldflags}'.strip()
 
-else:
-    LIBHACKRF_FILES = ['python_hackrf/pylibhackrf/pyhackrf_android.pyx', 'python_hackrf/pylibhackrf/chackrf_android.pxd']
 
 setup(
     name='python_hackrf',
@@ -65,6 +63,7 @@ setup(
             sources=LIBHACKRF_FILES,
             libraries=libraries,
             include_dirs=['python_hackrf/pylibhackrf', numpy.get_include()],
+            define_macros=[("ANDROID", PLATFORM == 'android')],
             extra_compile_args=['-w'],
         ),
         Extension(
