@@ -31,7 +31,6 @@ from . cimport chackrf
 import numpy as np
 cimport cython
 
-DEF ANDROID = False
 IF ANDROID:
     from .__android import get_hackrf_device_list
 
@@ -744,6 +743,7 @@ def pyhackrf_init() -> None:
         result = chackrf.hackrf_init_on_android()
     ELSE:
         result = chackrf.hackrf_init()
+
     if result != chackrf.hackrf_error.HACKRF_SUCCESS:
         raise RuntimeError(f'pyhackrf_init() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
 
