@@ -52,9 +52,6 @@ if PLATFORM != 'android':
     environ['CFLAGS'] = f'{cflags} {new_cflags}'.strip()
     environ['LDFLAGS'] = f'{ldflags} {new_ldflags}'.strip()
 
-else:
-    LIBHACKRF_FILES += ['python_hackrf/pylibhackrf/hackrf_android.c']
-    libraries += ['usb1.0']
 
 class CustomBuildExt(build_ext):
     def run(self):

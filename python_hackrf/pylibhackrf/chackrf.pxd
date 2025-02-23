@@ -320,7 +320,7 @@ cdef extern from 'hackrf.h':
     int hackrf_set_user_bias_t_opts(hackrf_device *device, hackrf_bias_t_user_settting_req *req)
 
 IF ANDROID:
-    cdef extern from 'hackrf_android.h':
+    cdef extern from 'hackrf.h':
         int hackrf_init_on_android()
 
         int hackrf_open_on_android(int fileDescriptor, hackrf_device **device)
