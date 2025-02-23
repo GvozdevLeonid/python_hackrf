@@ -54,6 +54,7 @@ if PLATFORM != 'android':
 
 else:
     LIBHACKRF_FILES += ['python_hackrf/pylibhackrf/hackrf_android.c']
+    libraries += ['usb1.0']
 
 class CustomBuildExt(build_ext):
     def run(self):
