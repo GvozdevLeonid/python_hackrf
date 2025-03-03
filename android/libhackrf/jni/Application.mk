@@ -28,6 +28,11 @@ APP_CFLAGS := \
   -Wshadow \
   -Wunused \
   -Wextra \
-  -Wall
+  -Wall \
+  -Wno-shadow \
+  -Wno-unused-variable \
+  -Wno-unused-parameter \
+  -Wno-sign-compare \
+  -Wno-format-security
 
 APP_LDFLAGS := -llog

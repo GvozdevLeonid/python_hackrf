@@ -21,6 +21,6 @@
 # SOFTWARE.
 
 
-LOCAL_PATH := $(call my-dir)
+GLOBAL_LOCAL_PATH := $(call my-dir)
 
-include $(LOCAL_PATH)/libhackrf.mk
+include $(GLOBAL_LOCAL_PATH)/libhackrf.mk

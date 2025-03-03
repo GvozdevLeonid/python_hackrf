@@ -20,16 +20,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-LOCAL_PATH := $(call my-dir)
-LIBHACKRF_ROOT_REL := ../..
-LIBHACKRF_ROOT_ABS := $(LOCAL_PATH)/../..
-
 # LIBHACKRF
-
 include $(CLEAR_VARS)
+LIBHACKRF_ROOT_ABS := $(GLOBAL_LOCAL_PATH)/../..
 
-LOCAL_SRC_FILES := $(LIBHACKRF_ROOT_REL)/host/libhackrf/src/hackrf.c
-LOCAL_EXPORT_C_INCLUDES := $(LIBUSB_ROOT_ABS)/host/libhackrf/src
+LOCAL_SRC_FILES := $(LIBHACKRF_ROOT_ABS)/host/libhackrf/src/hackrf.c
+LOCAL_EXPORT_C_INCLUDES := $(LIBHACKRF_ROOT_ABS)/host/libhackrf/src
 
 LOCAL_CFLAGS := \
 	-I$(LIBHACKRF_ROOT_ABS)/android/libusb \
@@ -38,7 +34,7 @@ LOCAL_CFLAGS := \
 
 LOCAL_LDFLAGS := -pthread
 
-LOCAL_LDLIBS := -L$(LOCAL_PATH) -lusb1.0 -llog
+LOCAL_LDLIBS := -L$(GLOBAL_LOCAL_PATH) -lusb1.0 -llog
 
 LOCAL_MODULE := libhackrf
 
