@@ -26,7 +26,7 @@ def main() -> None:
     pyhackrf_operacake_parser = subparsers.add_parser(
         'operacake', help='Configure Opera Cake antenna switch connected to HackRF.', usage='python_hackrf operacake [-h] [-d] [-o] [-m] [-a] [-b] [-f] [-t] [-w] [-l] [-g]',
     )
-    pyhackrf_operacake_parser.add_argument('-d', action='store', help='serial_number. serial number of desired HackRF', metavar='')
+    pyhackrf_operacake_parser.add_argument('-d', action='store', help='serial number of desired HackRF', metavar='')
     pyhackrf_operacake_parser.add_argument('-o', '--address', action='store', help='specify a particular Opera Cake by address. Default is 0', metavar='', default=0)
     pyhackrf_operacake_parser.add_argument('-m', '--mode', action='store', help='specify switching mode [options: manual, frequency, time]', metavar='')
     pyhackrf_operacake_parser.add_argument('-a', action='store', help='set port connected to port A0', metavar='')
