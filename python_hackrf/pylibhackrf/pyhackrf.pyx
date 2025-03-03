@@ -806,7 +806,6 @@ def pyhackrf_open_by_serial(desired_serial_number: str) -> PyHackrfDevice | None
         if len(hackrf_device_list):
             for file_descriptor, board_id, serial_number in hackrf_device_list:
                 if serial_number == desired_serial_number:
-                    pyhackrf_device = PyHackrfDevice()
                     result = chackrf.hackrf_open_on_android(file_descriptor, pyhackrf_device.get_hackrf_device_double_ptr())
     ELSE:
         result = chackrf.hackrf_open_by_serial(desired_serial_number.encode('utf-8'), pyhackrf_device.get_hackrf_device_double_ptr())
