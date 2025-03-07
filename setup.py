@@ -3,9 +3,9 @@ import sys
 from os import environ, getenv
 
 import numpy
+from Cython.Build import cythonize
 from setuptools import Extension, find_packages, setup
 from setuptools.command.build_ext import build_ext
-from Cython.Build import cythonize
 
 libraries = ['hackrf']
 
@@ -54,13 +54,14 @@ if PLATFORM != 'android':
 
 
 class CustomBuildExt(build_ext):
-    def run(self):
+    def run(self) -> None:
         compile_env = {'ANDROID': PLATFORM == 'android'}
         self.distribution.ext_modules = cythonize(
             self.distribution.ext_modules,
             compile_time_env=compile_env,
         )
         super().run()
+
 
 setup(
     name='python_hackrf',
