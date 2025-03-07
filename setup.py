@@ -3,13 +3,11 @@ import sys
 from os import environ, getenv
 
 import numpy
-from Cython.Build import cythonize
 from setuptools import Extension, find_packages, setup
 from setuptools.command.build_ext import build_ext
+from Cython.Build import cythonize
 
 libraries = ['hackrf']
-
-LIBHACKRF_FILES = ['python_hackrf/pylibhackrf/pyhackrf.pyx', 'python_hackrf/pylibhackrf/chackrf.pxd']
 
 INSTALL_REQUIRES = []
 SETUP_REQUIRES = []
@@ -71,7 +69,7 @@ setup(
     ext_modules=[
         Extension(
             name='python_hackrf.pylibhackrf.pyhackrf',
-            sources=LIBHACKRF_FILES,
+            sources=['python_hackrf/pylibhackrf/pyhackrf.pyx', 'python_hackrf/pylibhackrf/chackrf.pxd'],
             libraries=libraries,
             include_dirs=['python_hackrf/pylibhackrf', numpy.get_include()],
             extra_compile_args=['-w'],
