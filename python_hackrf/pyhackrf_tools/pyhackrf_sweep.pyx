@@ -44,6 +44,7 @@ cnp.import_array()
 
 PY_FREQ_MIN_MHZ = 0  # 0 MHz
 PY_FREQ_MAX_MHZ = 7_250  # 7250 MHz
+PY_FREQ_MIN_HZ = PY_FREQ_MIN_MHZ * 1e6  # Hz
 PY_FREQ_MAX_HZ = PY_FREQ_MAX_MHZ * 1e6  # Hz
 PY_BLOCKS_PER_TRANSFER = 16
 
@@ -307,9 +308,9 @@ def pyhackrf_sweep(frequencies: list = None, sample_rate: int = 20_000_000, base
         step_count = 1 + (frequencies[2 * i + 1] - frequencies[2 * i] - 1) // TUNE_STEP
         frequencies[2 * i + 1] = int(frequencies[2 * i] + step_count * TUNE_STEP)
 
-        if frequencies[2 * i] < PY_FREQ_MIN_MHZ:
+        if frequencies[2 * i] < PY_FREQ_MIN_HZ:
             raise RuntimeError(f'min frequency must must be greater than {PY_FREQ_MIN_MHZ} MHz.')
-        if frequencies[2 * i + 1] > PY_FREQ_MAX_MHZ:
+        if frequencies[2 * i + 1] > PY_FREQ_MAX_HZ:
             raise RuntimeError(f'max frequency may not be higher {PY_FREQ_MAX_MHZ} MHz.')
 
         if print_to_console:
