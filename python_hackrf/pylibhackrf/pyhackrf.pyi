@@ -43,6 +43,45 @@ PY_HACKRF_OPERACAKE_MAX_DWELL_TIMES: int
 PY_HACKRF_OPERACAKE_MAX_FREQ_RANGES: int
 '''Maximum number of specifiable frequency ranges for Opera Cake add-on boards'''
 
+class PYHACKRF_ERR(Exception):
+    '''Base pyhackrf error'''
+
+class PYHACKRF_ERROR_INVALID_PARAM(PYHACKRF_ERR):
+    '''The function was called with invalid parameters'''
+
+class PYHACKRF_ERROR_NOT_FOUND(PYHACKRF_ERR):
+    '''USB device not found, returned at opening'''
+
+class PYHACKRF_ERROR_BUSY(PYHACKRF_ERR):
+    '''Resource is busy, possibly the device is already opened'''
+
+class PYHACKRF_ERROR_NO_MEM(PYHACKRF_ERR):
+    '''Memory allocation (on host side) failed'''
+
+class PYHACKRF_ERROR_LIBUSB(PYHACKRF_ERR):
+    '''LibUSB error, use @ref hackrf_error_name to get a human-readable error string (using `libusb_strerror`)'''
+
+class PYHACKRF_ERROR_THREAD(PYHACKRF_ERR):
+    '''Error setting up transfer thread (pthread-related error)'''
+
+class PYHACKRF_ERROR_STREAMING_THREAD_ERR(PYHACKRF_ERR):
+    '''Streaming thread could not start due to an error'''
+
+class PYHACKRF_ERROR_STREAMING_STOPPED(PYHACKRF_ERR):
+    '''Streaming thread stopped due to an error'''
+
+class PYHACKRF_ERROR_STREAMING_EXIT_CALLED(PYHACKRF_ERR):
+    '''Streaming thread exited (normally)'''
+
+class PYHACKRF_ERROR_USB_API_VERSION(PYHACKRF_ERR):
+    '''The installed firmware does not support this function'''
+
+class PYHACKRF_ERROR_NOT_LAST_DEVICE(PYHACKRF_ERR):
+    '''Can not exit library as one or more HackRFs still in use'''
+
+class PYHACKRF_ERROR_OTHER(PYHACKRF_ERR):
+    '''Unspecified error'''
+
 class py_rf_path_filter(IntEnum):
     '''
     RF filter path setting enum
