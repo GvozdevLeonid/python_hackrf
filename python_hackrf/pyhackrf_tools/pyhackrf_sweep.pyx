@@ -379,7 +379,7 @@ def pyhackrf_sweep(frequencies: list = None, sample_rate: int = 20_000_000, base
         device.pyhackrf_close()
         if print_to_console:
             sys.stderr.write('pyhackrf_close() done\n')
-    except RuntimeError as e:
+    except Exception as e:
         sys.stderr.write(f'{e}\n')
 
     if not len(run_available):

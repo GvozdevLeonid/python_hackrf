@@ -423,7 +423,7 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
             device.pyhackrf_stop_rx()
             if print_to_console:
                 sys.stderr.write('pyhackrf_stop_rx() done\n')
-        except RuntimeError as e:
+        except Exception as e:
             sys.stderr.write(f'{e}\n')
 
     elif tx_buffer is not None or tx_filename is not None:
@@ -431,7 +431,7 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
             device.pyhackrf_stop_tx()
             if print_to_console:
                 sys.stderr.write('pyhackrf_stop_tx() done\n')
-        except RuntimeError as e:
+        except Exception as e:
             sys.stderr.write(f'{e}\n')
 
     device_data.pop(device.serialno, None)
@@ -441,7 +441,7 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
         device.pyhackrf_close()
         if print_to_console:
             sys.stderr.write('pyhackrf_close() done\n')
-    except RuntimeError as e:
+    except Exception as e:
         sys.stderr.write(f'{e}\n')
 
     if not len(run_available):
