@@ -171,13 +171,13 @@ def sweep_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int bu
                     'timestamp': time_str,
                     'start_frequency': frequency,
                     'stop_frequency': frequency + sample_rate // 4,
-                    'array': pwr[fft_1_start:fft_1_stop]
+                    'array': pwr[fft_1_start:fft_1_stop].astype(np.float32)
                 })
                 current_device_data['queue'].put({
                     'timestamp': time_str,
                     'start_frequency': frequency + sample_rate // 2,
                     'stop_frequency': frequency + (sample_rate * 3) // 4,
-                    'array': pwr[fft_2_start:fft_2_stop]
+                    'array': pwr[fft_2_start:fft_2_stop].astype(np.float32)
                 })
 
             else:
@@ -185,7 +185,7 @@ def sweep_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int bu
                     'timestamp': time_str,
                     'start_frequency': frequency,
                     'stop_frequency': frequency + sample_rate,
-                    'array': pwr
+                    'array': pwr.astype(np.float32)
                 })
 
         else:
