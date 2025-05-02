@@ -6,7 +6,7 @@ Before installing python_hackrf library, you must have hackrf host software inst
 
 You can install this library using
 ```
-pip install python_hackrf
+pip install git+https://github.com/GvozdevLeonid/python_hackrf.git
 ```
 
 If your hackrf files are in non-standard paths and during installation the python_hackrf cannot find hackrf.h or the library file, you can specify the paths via environment variables
