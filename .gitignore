@@ -7,3 +7,4 @@ dist/
 .pypirc
 
 python_hackrf.egg-info
+*.zip
