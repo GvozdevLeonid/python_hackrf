@@ -2,7 +2,9 @@
 
 python_hackrf is a cython wrapper for [hackrf](https://github.com/greatscottgadgets/hackrf).
 
-Before installing python_hackrf library, you must have hackrf host software installed. Because this library uses dynamic linking with an existing library file.
+Before installing python_hackrf library, you must have hackrf host software installed. Because this library uses dynamic linking with an existing library file. Minimum libhackrf version: 2024.02.1+ (0.9)
+
+For windows users please use [additional steps](#installation-on-windows) to install python_hackrf
 
 You can install this library using
 ```
@@ -11,8 +13,8 @@ pip install git+https://github.com/GvozdevLeonid/python_hackrf.git
 
 If your hackrf files are in non-standard paths and during installation the python_hackrf cannot find hackrf.h or the library file, you can specify the paths via environment variables
 ```
-export PYTHON_HACKRF_CFLAGS=path_to_hackrf.h
-export PYTHON_HACKRF_LDFLAGS=path_to_hackrf.(so, dylib, dll)
+export/set {linux and macos / windows} PYTHON_HACKRF_CFLAGS=path_to_hackrf.h
+export/set {linux and macos / windows} PYTHON_HACKRF_LDFLAGS=path_to_hackrf.(so, dylib, dll)
 ```
 
 ## Requirements:
@@ -160,3 +162,38 @@ Please use the original hackrf documentation
 
 ## Notes
 For pyhackrf_transfer, FileBuffer (utils module) has been implemented, which will allow you to more conveniently receive and send iq data from sdr.
+
+
+## Installation on Windows
+To install python_hackrf, you must first install the HackRF software. Official installation instructions are available on the [HackRF documentation site](https://hackrf.readthedocs.io/en/latest/installing_hackrf_software.html).
+Alternatively, you can download the ZIP archive from the Releases tab of this repository. Extract the archive and move its contents to the standard location: `C:\Program Files\HackRF`
+
+The HackRF directory should contain the following subfolders and files:
+```
+├── include
+│ └── hackrf.h
+└── lib
+├── hackrf.dll
+├── hackrf.lib ← for MSVC
+├── libhackrf.a ← for MinGW
+├── libusb-1.0.dll
+└── pthreadVC2.dll
+```
+
+
+In addition, the archive includes other required DLLs and dependencies to ensure proper operation of HackRF on Windows.
+libusb-1.0.dll
+pthreadVC2.dll
+
+If you install hackrf yourself or via another path, set the following environment variables
+
+MSVC:
+```
+  set PYTHON_HACKRF_CFLAGS=/I"{path to .h file directory}"
+  set PYTHON_HACKRF_LDFLAGS=/LIBPATH:"{path to .dll and .lib file directory}" hackrf.lib
+```
+MinGW:
+```
+  set PYTHON_HACKRF_CFLAGS=-I"{path to .h file directory}"
+  set PYTHON_HACKRF_LDFLAGS=-L"{path to .dll and .a file directory}" -lhackrf'
+```
