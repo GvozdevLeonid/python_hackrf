@@ -1,10 +1,11 @@
 import subprocess
 import sys
-from os import environ, getenv
+from os import environ, getenv, path
 
 import numpy
 from setuptools import Extension, find_packages, setup
 from setuptools.command.build_ext import build_ext
+from setuptools.command.install import install
 from Cython.Build import cythonize
 
 libraries = ['hackrf']
@@ -75,9 +76,22 @@ class CustomBuildExt(build_ext):
         super().run()
 
 
+class InstallWithPth(install):
+    def run(self) -> None:
+        super().run()
+
+        if PLATFORM.startswith('win'):
+            pth_code = (
+                'import os; '
+                'os.add_dll_directory(os.getenv("HACKRF_LIB_DIR", "C:\\Program Files\\HackRF\\lib"))'
+            )
+            with open(path.join(self.install_lib, "python_hackrf.pth"), mode='w', encoding='utf-8') as file:
+                file.write(pth_code)
+
+
 setup(
     name='python_hackrf',
-    cmdclass={'build_ext': CustomBuildExt},
+    cmdclass={'build_ext': CustomBuildExt, 'install': InstallWithPth},
     install_requires=INSTALL_REQUIRES,
     setup_requires=SETUP_REQUIRES,
     ext_modules=[
