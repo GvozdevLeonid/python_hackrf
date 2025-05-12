@@ -1,6 +1,6 @@
 [project]
 name = "python_hackrf"
-version = "1.3.1"
+version = "1.3.2"
 authors = [
   {name="Leonid Gvozdev", email="leo.gvozdev.dev@gmail.com"},
 ]
@@ -34,6 +34,3 @@ requires = [
 
 [project.scripts]
 python_hackrf= "python_hackrf.__main__:main"
-
-[tool.setuptools]
-data-files = {"site-packages" = ["python_hackrf_bootstrap.pth"]}

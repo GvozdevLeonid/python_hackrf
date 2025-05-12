@@ -1,1 +1,0 @@
-import os, sys; sys.platform.startswith('win') and os.add_dll_directory(os.environ.get("HACKRF_LIB_PATH", "C:\Program Files\HackRF\lib"))
