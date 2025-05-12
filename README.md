@@ -171,13 +171,13 @@ The HackRF directory should contain the following subfolders and files:
 ```
 ├── include
 │ └── hackrf.h
-└── lib
-├── hackrf.dll
-├── hackrf.lib ← for MSVC
-├── libhackrf.a ← for MinGW
-├── libusb-1.0.dll
-├── pthreadVC2.dll
-└── msvcr100.dll
+├── lib
+│ └── hackrf.dll
+│ └── hackrf.lib ← for MSVC
+│ └── libhackrf.a ← for MinGW
+│ └── libusb-1.0.dll
+│ └── pthreadVC2.dll
+│ └── msvcr100.dll
 ```
 
 
