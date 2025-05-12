@@ -190,9 +190,11 @@ MSVC:
 ```
   set PYTHON_HACKRF_CFLAGS=/I"{path to .h file directory}"
   set PYTHON_HACKRF_LDFLAGS=/LIBPATH:"{path to .dll and .lib file directory}" hackrf.lib
+  set HACKRF_LIB_DIR="{path to .dll and .lib file directory}"
 ```
 MinGW:
 ```
   set PYTHON_HACKRF_CFLAGS=-I"{path to .h file directory}"
   set PYTHON_HACKRF_LDFLAGS=-L"{path to .dll and .a file directory}" -lhackrf'
+  set HACKRF_LIB_DIR="{path to .dll and .lib file directory}"
 ```
