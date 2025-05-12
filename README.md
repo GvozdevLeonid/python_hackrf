@@ -18,7 +18,6 @@ export/set {linux and macos / windows} PYTHON_HACKRF_LDFLAGS=path_to_hackrf.(so,
 ```
 
 ## Requirements:
-* Cython==0.29.37
 * Numpy>=2.2.1
 * Scipy (optional, for faster work)
 * pyFFTW (optional, for faster work)

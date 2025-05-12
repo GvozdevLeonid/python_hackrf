@@ -44,7 +44,7 @@ if PLATFORM != 'android':
         else:
             new_ldflags = environ.get('PYTHON_HACKRF_LDFLAGS', '')
 
-    elif PLATFORM == 'win32':
+    elif PLATFORM.startswith('win'):
         include_path = 'C:\\Program Files\\HackRF\\include'
         lib_path = 'C:\\Program Files\\HackRF\\lib'
 
