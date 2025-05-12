@@ -177,12 +177,14 @@ The HackRF directory should contain the following subfolders and files:
 ├── libhackrf.a ← for MinGW
 ├── libusb-1.0.dll
 └── pthreadVC2.dll
+└── msvcr100.dll
 ```
 
 
 In addition, the archive includes other required DLLs and dependencies to ensure proper operation of HackRF on Windows.
 libusb-1.0.dll
 pthreadVC2.dll
+msvcr100.dll
 
 If you install hackrf yourself or via another path, set the following environment variables
 
