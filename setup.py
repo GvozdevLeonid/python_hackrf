@@ -83,7 +83,7 @@ class InstallWithPth(install):
         if PLATFORM.startswith('win'):
             pth_code = (
                 'import os; '
-                'os.add_dll_directory(os.getenv("HACKRF_LIB_DIR", "C:\\Program Files\\HackRF\\lib"))'
+                'os.add_dll_directory(os.getenv("HACKRF_LIB_DIR", r"C:\\Program Files\\HackRF\\lib"))'
             )
             with open(path.join(self.install_lib, "python_hackrf.pth"), mode='w', encoding='utf-8') as file:
                 file.write(pth_code)
