@@ -62,6 +62,7 @@ def pyhackrf_info(print_to_console: bool = True, initialize: bool = True) -> str
     else:
         print_info += 'No HackRF boards found.'
 
+    del device_list
     if initialize:
         pyhackrf.pyhackrf_exit()
 
@@ -77,12 +78,15 @@ def pyhackrf_serial_numbers_list_info(print_to_console: bool = True, initialize:
         pyhackrf.pyhackrf_init()
 
     device_list = pyhackrf.pyhackrf_device_list()
+    device_count = device_list.device_count
+    serial_numbers = device_list.serial_numbers
 
+    del device_list
     if initialize:
         pyhackrf.pyhackrf_exit()
 
     if print_to_console:
-        print(f'Serial numbers [{device_list.device_count}]: {device_list.serial_numbers}')
+        print(f'Serial numbers [{device_count}]: {serial_numbers}')
         return None
 
-    return device_list.device_count, device_list.serial_numbers
+    return device_count, serial_numbers
