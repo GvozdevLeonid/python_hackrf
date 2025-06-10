@@ -26,7 +26,7 @@ class PythonHackrfRecipe(PyProjectRecipe):
         env['LDFLAGS'] = env['LDFLAGS'] + f' -L{self.ctx.get_libs_dir(arch.arch)} -lhackrf'
         env['CFLAGS'] = env['CFLAGS'] + f' -I{libhackrf_h_dir}'
 
-        env['PYTHON_BLADERF_LIBBLADERF_H_PATH'] = libhackrf_h_dir
+        env['PYTHON_HACKRF_LIBHACKRF_H_PATH'] = libhackrf_h_dir
         env['LDSHARED'] = env['CC'] + ' -shared'
         env['LIBLINK'] = 'NOTNONE'
 
