@@ -57,7 +57,7 @@ class FileBuffer:
 
         if use_thread:
             self._run_available = True
-            self._queue = Queue()
+            self._queue = Queue()  # type: ignore
             self._append_thread = Thread(target=self._append, daemon=True)
             self._append_thread.start()
 
@@ -115,7 +115,7 @@ class FileBuffer:
             except Exception as er:
                 print(f'Exception during cleanup: {er}', file=sys.stderr)
 
-            if os.path.exists(filepath) and not self._save_file:
+            if os.path.exists(filepath):
                 os.remove(filepath)
 
     def _register_cleanup(self) -> None:
@@ -139,11 +139,11 @@ class FileBuffer:
                         self._not_empty.set()
 
                         if not self._run_available:
-                            break
+                            break  # type: ignore
             else:
                 time.sleep(.035)
 
-    def append(self, data: np.ndarray, chunk_size: int = 131072) -> None:
+    def append(self, data: np.ndarray[Any, Any], chunk_size: int = 131072) -> None:
         if len(data) == 0:
             return
         if self._use_thread:
@@ -156,7 +156,7 @@ class FileBuffer:
                 for i in range(0, len(data), chunk_elements):
                     chunk = data[i:i + chunk_elements]
 
-                    self._writer.write(chunk)
+                    self._writer.write(chunk)  # type: ignore
                     self._write_ptr += self._dtype_size * chunk.size
 
                     self._not_empty.set()
@@ -164,7 +164,7 @@ class FileBuffer:
                     if not self._run_available:
                         break
 
-    def get_all(self, use_memmap: bool = False, wait: bool = False, timeout: float | None = None) -> np.ndarray:
+    def get_all(self, use_memmap: bool = False, wait: bool = False, timeout: float | None = None) -> np.ndarray[Any, Any]:
         with self._rlock:
 
             if self._write_ptr == 0:
@@ -174,13 +174,13 @@ class FileBuffer:
 
             if not use_memmap:
                 self._reader.seek(0)
-                result = np.frombuffer(self._reader.read(), dtype=self._dtype)
+                result: np.ndarray[Any, Any] = np.frombuffer(self._reader.read(), dtype=self._dtype)
                 self._reader.seek(self._read_ptr)
                 return result
 
             return np.memmap(self._temp_file, dtype=self._dtype)
 
-    def get_new(self, wait: bool = False, timeout: float | None = None) -> np.ndarray:
+    def get_new(self, wait: bool = False, timeout: float | None = None) -> np.ndarray[Any, Any]:
         with self._rlock:
 
             write_ptr = self._write_ptr
@@ -194,11 +194,11 @@ class FileBuffer:
 
                 write_ptr = self._write_ptr
 
-            result = np.frombuffer(self._reader.read(write_ptr - self._read_ptr), dtype=self._dtype)
+            result: np.ndarray[Any, Any] = np.frombuffer(self._reader.read(write_ptr - self._read_ptr), dtype=self._dtype)
             self._read_ptr = write_ptr
             return result
 
-    def get_chunk(self, num_elements: int, ring: bool = True, wait: bool = False, timeout: float | None = None) -> np.ndarray:
+    def get_chunk(self, num_elements: int, ring: bool = True, wait: bool = False, timeout: float | None = None) -> np.ndarray[Any, Any]:
         with self._rlock:
 
             if num_elements <= 0:
@@ -217,6 +217,8 @@ class FileBuffer:
 
             total_bytes = num_elements * self._dtype_size
             available_bytes = write_ptr - self._read_ptr
+
+            result: np.ndarray[Any, Any]
 
             if available_bytes >= total_bytes:
                 result = np.frombuffer(self._reader.read(total_bytes), dtype=self._dtype)
