@@ -13,12 +13,17 @@ pip install git+https://github.com/GvozdevLeonid/python_hackrf.git
 
 If your hackrf files are in non-standard paths and during installation the python_hackrf cannot find hackrf.h or the library file, you can specify the paths via environment variables
 ```
-export/set {linux and macos / windows} PYTHON_HACKRF_CFLAGS=path_to_hackrf.h
-export/set {linux and macos / windows} PYTHON_HACKRF_LDFLAGS=path_to_hackrf.(so, dylib, dll)
+LINUX/MACOS:
+export PYTHON_HACKRF_CFLAGS=path_to_hackrf.h
+export PYTHON_HACKRF_LDFLAGS=path_to_hackrf.(so, dylib)
+WINDOWS:
+set PYTHON_HACKRF_INCLUDE_PATH=path_to_hackrf.h dir
+set PYTHON_HACKRF_LIB_PATH=path_to_libhackrf.dll dir
 ```
 
 ## Requirements:
 * Numpy>=2.2.1
+* Cython==0.29.37
 * Scipy (optional, for faster work)
 * pyFFTW (optional, for faster work)
 * pyjnius and android (only for android)
@@ -188,15 +193,9 @@ msvcr100.dll
 
 If you install hackrf yourself or via another path, set the following environment variables
 
-MSVC:
+MSVC | MinGW:
 ```
-  set PYTHON_HACKRF_CFLAGS=/I"{path to .h file directory}"
-  set PYTHON_HACKRF_LDFLAGS=/LIBPATH:"{path to .dll and .lib file directory}" hackrf.lib
-  set HACKRF_LIB_DIR="{path to .dll and .lib file directory}"
-```
-MinGW:
-```
-  set PYTHON_HACKRF_CFLAGS=-I"{path to .h file directory}"
-  set PYTHON_HACKRF_LDFLAGS=-L"{path to .dll and .a file directory}" -lhackrf'
-  set HACKRF_LIB_DIR="{path to .dll and .lib file directory}"
+  set PYTHON_HACKRF_INCLUDE_PATH=path to .h file directory
+  set PYTHON_HACKRF_LIB_PATH=path to .dll and .lib file directory
+  set HACKRF_LIB_DIR=path to .dll and .lib file directory
 ```
