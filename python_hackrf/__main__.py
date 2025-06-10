@@ -129,7 +129,7 @@ def main() -> None:
                 return
 
             if args.t is not None:
-                str_dwell_times = args.f.split(',')
+                str_dwell_times = args.t.split(',')
                 dwell_times = []
                 for dwell_time in str_dwell_times:
                     try:
@@ -215,17 +215,17 @@ def main() -> None:
 
         pyhackrf_sweep.pyhackrf_sweep(
             frequencies=frequencies,
-            sample_rate=int(args.s) * 1e6,
-            baseband_filter_bandwidth=float(args.b) * 1e6 if args.b is not None else None,
+            sample_rate=int(float(args.s) * 1e6),
+            baseband_filter_bandwidth=int(float(args.b) * 1e6) if args.b is not None else None,
             lna_gain=int(args.l),
             vga_gain=int(args.g),
             bin_width=int(args.w),
             amp_enable=args.a,
             antenna_enable=args.p,
-            sweep_style=pyhackrf.py_sweep_style.LINEAR if args.S == 'L' else (pyhackrf.py_sweep_style.INTERLEAVED if args.S == 'I' else -1),
+            sweep_style=pyhackrf.py_sweep_style.LINEAR if args.S == 'L' else (pyhackrf.py_sweep_style.INTERLEAVED if args.S == 'I' else -1),  # type: ignore
             serial_number=args.d,
             binary_output=args.B,
-            one_shot=args.__dict__.get('1'),
+            one_shot=args.__dict__.get('1'),  # type: ignore
             num_sweeps=int(args.N) if args.N is not None else None,
             filename=args.r,
             print_to_console=True,
@@ -234,11 +234,11 @@ def main() -> None:
     elif args.command == 'transfer':
         pyhackrf_transfer.pyhackrf_transfer(
             frequency=int(args.freq_hz),
-            sample_rate=int(args.s) * 1e6,
-            baseband_filter_bandwidth=float(args.b) * 1e6 if args.b is not None else None,
+            sample_rate=int(float(args.s) * 1e6),
+            baseband_filter_bandwidth=int(float(args.b) * 1e6) if args.b is not None else None,
             i_frequency=int(args.i_freq_hz) if args.i_freq_hz is not None else None,
             lo_frequency=int(args.lo_freq_hz) if args.lo_freq_hz is not None else None,
-            image_reject=pyhackrf.py_rf_path_filter.RF_PATH_FILTER_BYPASS if args.image_reject == 'bypass' else (pyhackrf.py_rf_path_filter.RF_PATH_FILTER_LOW_PASS if args.image_reject == 'low' else (pyhackrf.py_rf_path_filter.RF_PATH_FILTER_HIGH_PASS if args.image_reject == 'high' else -1)),
+            image_reject=pyhackrf.py_rf_path_filter.RF_PATH_FILTER_BYPASS if args.image_reject == 'bypass' else (pyhackrf.py_rf_path_filter.RF_PATH_FILTER_LOW_PASS if args.image_reject == 'low' else (pyhackrf.py_rf_path_filter.RF_PATH_FILTER_HIGH_PASS if args.image_reject == 'high' else -1)),  # type: ignore
             rx_lna_gain=int(args.l),
             rx_vga_gain=int(args.g),
             tx_vga_gain=int(args.x),

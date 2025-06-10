@@ -1,5 +1,7 @@
+# ruff: noqa: RUF012
 import os
 import shutil
+from typing import Any
 
 import sh
 from pythonforandroid.archs import Arch
@@ -11,13 +13,13 @@ from pythonforandroid.util import current_directory
 class LibhackrfRecipe(NDKRecipe):
 
     url = 'https://github.com/greatscottgadgets/hackrf/archive/refs/tags/v{version}.tar.gz'
-    patches = ('hackrf_android.patch', )
-    generated_libraries = ('libhackrf.so', )
+    patches = ['hackrf_android.patch']
+    generated_libraries = ['libhackrf.so']
     site_packages_name = 'libhackrf'
-    version = '2024.02.1'
     library_release = '2024.02.1'
     library_version = '0.9'
-    depends = ('libusb', )
+    version = '2024.02.1'
+    depends = ['libusb']
     name = 'libhackrf'
 
     def should_build(self, arch: Arch) -> bool:
@@ -39,9 +41,9 @@ class LibhackrfRecipe(NDKRecipe):
 
             shutil.copy(os.path.join(libusb_recipe.get_build_dir(arch), 'libusb', 'libusb.h'), os.path.join(self.get_build_dir(arch.arch), 'android', 'libusb'))
 
-    def get_recipe_env(self, arch: Arch) -> dict:
-        env = super().get_recipe_env(arch)
-        env['LDFLAGS'] += f'-L{self.ctx.get_libs_dir(arch.arch)}'
+    def get_recipe_env(self, arch: Arch) -> dict[str, Any]:
+        env: dict[str, Any] = super().get_recipe_env(arch)
+        env['LDFLAGS'] = env['LDFLAGS'] + f'-L{self.ctx.get_libs_dir(arch.arch)}'
 
         return env
 
@@ -52,8 +54,7 @@ class LibhackrfRecipe(NDKRecipe):
         return os.path.join(self.get_build_dir(arch.arch), 'android', 'obj', 'local', arch.arch)
 
     def build_arch(self, arch: Arch, *extra_args) -> None:
-        env = self.get_recipe_env(arch)
-
+        env: dict[str, Any] = self.get_recipe_env(arch)
         shutil.copyfile(os.path.join(self.ctx.get_libs_dir(arch.arch), 'libusb1.0.so'), os.path.join(self.get_build_dir(arch.arch), 'android', 'jni', 'libusb1.0.so'))
 
         with current_directory(self.get_build_dir(arch.arch)):

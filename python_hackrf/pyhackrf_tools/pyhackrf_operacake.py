@@ -23,7 +23,7 @@
 from python_hackrf import pyhackrf
 
 
-def pyhackrf_operacake_info(device: pyhackrf.PyHackrfDevice = None,
+def pyhackrf_operacake_info(device: pyhackrf.PyHackrfDevice | None = None,
                             serial_number: str | None = None,
                             print_to_console: bool = True,
                             ) -> str | None:
@@ -39,8 +39,12 @@ def pyhackrf_operacake_info(device: pyhackrf.PyHackrfDevice = None,
             device = pyhackrf.pyhackrf_open()
 
     operacake_info = ''
-    boards = device.pyhackrf_get_operacake_boards()
-    if len(boards):
+    boards = []
+
+    if device:
+        boards = device.pyhackrf_get_operacake_boards()
+
+    if device and len(boards):
         operacake_info += 'Opera Cakes found:\n'
         for i in range(len(boards)):
             address = boards[i]
@@ -50,7 +54,8 @@ def pyhackrf_operacake_info(device: pyhackrf.PyHackrfDevice = None,
         operacake_info = 'Opera Cakes found: None'
 
     if initialize:
-        device.pyhackrf_close()
+        if device:
+            device.pyhackrf_close()
         pyhackrf.pyhackrf_exit()
 
     if print_to_console:
@@ -63,7 +68,7 @@ def pyhackrf_operacake_info(device: pyhackrf.PyHackrfDevice = None,
 def pyhackrf_set_operacake_mode(address: int,
                                 mode: str,
                                 serial_number: str | None = None,
-                                device: pyhackrf.PyHackrfDevice = None,
+                                device: pyhackrf.PyHackrfDevice | None = None,
                                 ) -> None:
 
     initialize = True if device is None else False
@@ -77,22 +82,24 @@ def pyhackrf_set_operacake_mode(address: int,
             device = pyhackrf.pyhackrf_open()
 
     if mode == 'frequency':
-        mode = pyhackrf.py_operacake_switching_mode.OPERACAKE_MODE_FREQUENCY
+        operacake_mode = pyhackrf.py_operacake_switching_mode.OPERACAKE_MODE_FREQUENCY
     elif mode == 'time':
-        mode = pyhackrf.py_operacake_switching_mode.OPERACAKE_MODE_TIME
+        operacake_mode = pyhackrf.py_operacake_switching_mode.OPERACAKE_MODE_TIME
     else:
-        mode = pyhackrf.py_operacake_switching_mode.OPERACAKE_MODE_MANUAL
+        operacake_mode = pyhackrf.py_operacake_switching_mode.OPERACAKE_MODE_MANUAL
 
-    device.pyhackrf_set_operacake_mode(address, mode)
+    if device:
+        device.pyhackrf_set_operacake_mode(address, operacake_mode)
 
     if initialize:
-        device.pyhackrf_close()
+        if device:
+            device.pyhackrf_close()
         pyhackrf.pyhackrf_exit()
 
 
-def pyhackrf_set_operacake_freq_ranges(freq_ranges: list,
+def pyhackrf_set_operacake_freq_ranges(freq_ranges: list[tuple[int, int, int]],
                                        serial_number: str | None = None,
-                                       device: pyhackrf.PyHackrfDevice = None,
+                                       device: pyhackrf.PyHackrfDevice | None = None,
                                        ) -> None:
 
     initialize = True if device is None else False
@@ -105,16 +112,18 @@ def pyhackrf_set_operacake_freq_ranges(freq_ranges: list,
         else:
             device = pyhackrf.pyhackrf_open()
 
-    device.pyhackrf_set_operacake_freq_ranges(freq_ranges)
+    if device:
+        device.pyhackrf_set_operacake_freq_ranges(freq_ranges)
 
     if initialize:
-        device.pyhackrf_close()
+        if device:
+            device.pyhackrf_close()
         pyhackrf.pyhackrf_exit()
 
 
-def pyhackrf_set_operacake_dwell_times(dwell_times: list,
+def pyhackrf_set_operacake_dwell_times(dwell_times: list[tuple[int, int]],
                                        serial_number: str | None = None,
-                                       device: pyhackrf.PyHackrfDevice = None,
+                                       device: pyhackrf.PyHackrfDevice | None = None,
                                        ) -> None:
 
     initialize = True if device is None else False
@@ -127,10 +136,12 @@ def pyhackrf_set_operacake_dwell_times(dwell_times: list,
         else:
             device = pyhackrf.pyhackrf_open()
 
-    device.pyhackrf_set_operacake_dwell_times(dwell_times)
+    if device:
+        device.pyhackrf_set_operacake_dwell_times(dwell_times)
 
     if initialize:
-        device.pyhackrf_close()
+        if device:
+            device.pyhackrf_close()
         pyhackrf.pyhackrf_exit()
 
 
@@ -138,7 +149,7 @@ def pyhackrf_set_operacake_ports(address: int,
                                  port_a: str,
                                  port_b: str,
                                  serial_number: str | None = None,
-                                 device: pyhackrf.PyHackrfDevice = None,
+                                 device: pyhackrf.PyHackrfDevice | None = None,
                                  ) -> None:
 
     initialize = True if device is None else False
@@ -151,16 +162,18 @@ def pyhackrf_set_operacake_ports(address: int,
         else:
             device = pyhackrf.pyhackrf_open()
 
-    device.pyhackrf_set_operacake_ports(address, port_a, port_b)
+    if device:
+        device.pyhackrf_set_operacake_ports(address, port_a, port_b)
 
     if initialize:
-        device.pyhackrf_close()
+        if device:
+            device.pyhackrf_close()
         pyhackrf.pyhackrf_exit()
 
 
 def pyhackrf_operacake_gpio_test(address: int,
                                  serial_number: str | None = None,
-                                 device: pyhackrf.PyHackrfDevice = None,
+                                 device: pyhackrf.PyHackrfDevice | None = None,
                                  ) -> None:
 
     initialize = True if device is None else False
@@ -173,30 +186,34 @@ def pyhackrf_operacake_gpio_test(address: int,
         else:
             device = pyhackrf.pyhackrf_open()
 
-    test_result = device.pyhackrf_operacake_gpio_test(address)
-    if test_result == 0xFFFF:
-        print('GPIO mode disabled.')
-        print('Remove additional add-on boards and retry.')
+    if device:
+        test_result = device.pyhackrf_operacake_gpio_test(address)
+        if test_result == 0xFFFF:
+            print('GPIO mode disabled.')
+            print('Remove additional add-on boards and retry.')
 
-    elif test_result:
-        reg, mask = 0x7, 0x7
+        elif test_result:
+            reg, mask = 0x7, 0x7
 
-        print("u2ctrl1\t%d\t%d\t%d\n", (reg >> 2) & 1, (reg >> 1) & 1, reg & 1)
-        test_result >>= 3
-        reg = test_result & mask
-        print("u2ctrl0\t%d\t%d\t%d", (reg >> 2) & 1, (reg >> 1) & 1, reg & 1)
-        test_result >>= 3
-        reg = test_result & mask
-        print("u3ctrl1\t%d\t%d\t%d", (reg >> 2) & 1, (reg >> 1) & 1, reg & 1)
-        test_result >>= 3
-        reg = test_result & mask
-        print("u3ctrl0\t%d\t%d\t%d", (reg >> 2) & 1, (reg >> 1) & 1, reg & 1)
-        test_result >>= 3
-        reg = test_result & mask
-        print("u1ctrl \t%d\t%d\t%d\n", (reg >> 2) & 1, (reg >> 1) & 1, reg & 1)
+            print("u2ctrl1\t%d\t%d\t%d\n", (reg >> 2) & 1, (reg >> 1) & 1, reg & 1)
+            test_result >>= 3
+            reg = test_result & mask
+            print("u2ctrl0\t%d\t%d\t%d", (reg >> 2) & 1, (reg >> 1) & 1, reg & 1)
+            test_result >>= 3
+            reg = test_result & mask
+            print("u3ctrl1\t%d\t%d\t%d", (reg >> 2) & 1, (reg >> 1) & 1, reg & 1)
+            test_result >>= 3
+            reg = test_result & mask
+            print("u3ctrl0\t%d\t%d\t%d", (reg >> 2) & 1, (reg >> 1) & 1, reg & 1)
+            test_result >>= 3
+            reg = test_result & mask
+            print("u1ctrl \t%d\t%d\t%d\n", (reg >> 2) & 1, (reg >> 1) & 1, reg & 1)
+        else:
+            print('GPIO test passed')
     else:
-        print('GPIO test passed')
+        print('device not found')
 
     if initialize:
-        device.pyhackrf_close()
+        if device:
+            device.pyhackrf_close()
         pyhackrf.pyhackrf_exit()

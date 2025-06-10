@@ -20,10 +20,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+# ruff: noqa: N802, N801, N818
+
+from collections.abc import Callable
 from enum import IntEnum
-from typing import Callable, Self
+from typing import Any, Self
 
 import numpy as np
+from typing_extensions import override
 
 PY_BYTES_PER_BLOCK: int
 '''Number of bytes per tuning for sweeping'''
@@ -98,6 +102,7 @@ class py_rf_path_filter(IntEnum):
     RF_PATH_FILTER_HIGH_PASS = ...
     '''HPF is selected, frequency_center = i_freq + lo_freq'''
 
+    @override
     def __str__(self) -> str:
         ...
 
@@ -114,6 +119,7 @@ class py_sweep_style(IntEnum):
     INTERLEAVED = ...
     '''each step is divided into two interleaved sub-steps, allowing the host to select the best portions of the FFT of each sub-step and discard the rest.'''
 
+    @override
     def __str__(self) -> str:
         ...
 
@@ -129,20 +135,24 @@ class py_operacake_switching_mode(IntEnum):
     OPERACAKE_MODE_TIME = ...
     '''Port connections are switched automatically over time. dwell times can be set with `pyhackrf_set_operacake_dwell_times`. In this mode, B0 mirrors A0'''
 
+    @override
     def __str__(self) -> str:
         ...
 
-operacake_ports = {
-    'A1': ...,
-    'A2': ...,
-    'A3': ...,
-    'A4': ...,
-    'B1': ...,
-    'B2': ...,
-    'B3': ...,
-    'B4': ...,
-}
-'''Opera Cake secondary ports (A1-A4, B1-B4)'''
+class py_operacake_ports(IntEnum):
+    '''Opera Cake secondary ports (A1-A4, B1-B4)'''
+    A1 = ...
+    A2 = ...
+    A3 = ...
+    A4 = ...
+    B1 = ...
+    B2 = ...
+    B3 = ...
+    B4 = ...
+
+    @override
+    def __str__(self) -> str:
+        ...
 
 class PyHackRFDeviceList:
     '''
@@ -153,22 +163,22 @@ class PyHackRFDeviceList:
         ...
 
     @property
-    def device_count() -> int:
+    def device_count(self) -> int:
         '''Number of devices found'''
         ...
 
     @property
-    def serial_numbers() -> list[str]:
+    def serial_numbers(self) -> list[str]:
         '''List of serial numbers of found devices'''
         ...
 
     @property
-    def usb_board_ids() -> list[int]:
+    def usb_board_ids(self) -> list[int]:
         '''List of USB board ids of found devices'''
         ...
 
     @property
-    def file_descriptors() -> list[int]:
+    def file_descriptors(self) -> list[int]:
         '''
         List of file descriptors of found devices.
         Available only on android platform
@@ -368,7 +378,7 @@ class PyHackrfDevice:
         ...
 
     def pyhackrf_init_sweep(self,
-                            frequency_list: list,
+                            frequency_list: list[int],
                             num_ranges: int,
                             num_bytes: int,
                             step_width: int,
@@ -453,7 +463,7 @@ class PyHackrfDevice:
         ...
 
     # ---- debug ---- #
-    def pyhackrf_get_m0_state(self) -> dict:
+    def pyhackrf_get_m0_state(self) -> dict[str, int]:
         '''
         Get the state of the M0 code on the LPC43xx MCU
 
@@ -520,7 +530,7 @@ class PyHackrfDevice:
         ...
 
     # ---- python callbacks setters ---- #
-    def set_rx_callback(self, rx_callback_function: Callable[[Self, np.ndarray, int, int], int]) -> None:
+    def set_rx_callback(self, rx_callback_function: Callable[[Self, np.ndarray[Any, Any], int, int], int]) -> None:
         '''
         Accept a 4 args that contains the device, buffer, the maximum length and the length of the buffer data.
         device: PyHackrfDevice, buffer: numpy.array(dtype=numpy.int8), buffer_length: int, valid_length: int
@@ -531,7 +541,7 @@ class PyHackrfDevice:
         '''
         ...
 
-    def set_tx_callback(self, tx_callback_function: Callable[[Self, np.ndarray, int, int], tuple[int, np.ndarray, int]]) -> None:
+    def set_tx_callback(self, tx_callback_function: Callable[[Self, np.ndarray[Any, Any], int, int], int]) -> None:
         '''
         Accept a 4 args that contains the device, buffer, the maximum length and the length of the buffer data.
         device: PyHackrfDevice, buffer: numpy.array(dtype=numpy.int8), buffer_length: int, valid_length: int
@@ -542,7 +552,7 @@ class PyHackrfDevice:
         '''
         ...
 
-    def set_sweep_callback(self, sweep_callback_function: Callable[[Self, np.ndarray, int, int], int]) -> None:
+    def set_sweep_callback(self, sweep_callback_function: Callable[[Self, np.ndarray[Any, Any], int, int], int]) -> None:
         '''
         Accept a 4 args that contains the device, buffer, the maximum length and the length of the buffer data.
         device: PyHackrfDevice, buffer: numpy.array(dtype=numpy.int8), buffer_length: int, valid_length: int
@@ -554,7 +564,7 @@ class PyHackrfDevice:
         '''
         ...
 
-    def set_tx_complete_callback(self, tx_complete_callback_function: Callable[[Self, np.ndarray, int, int, bool], None]) -> None:
+    def set_tx_complete_callback(self, tx_complete_callback_function: Callable[[Self, np.ndarray[Any, Any], int, int, bool], None]) -> None:
         '''
         Accept a 5 args that contains the device, buffer, the maximum length and the length of the buffer data.
         device: PyHackrfDevice, buffer: numpy.array(dtype=numpy.int8), buffer_length: int, valid_length: int
@@ -581,7 +591,7 @@ class PyHackrfDevice:
         ...
 
     # ---- operacake ---- #
-    def pyhackrf_get_operacake_boards(self) -> list:
+    def pyhackrf_get_operacake_boards(self) -> list[int]:
         '''
         Query connected Opera Cake boards
 
@@ -605,7 +615,7 @@ class PyHackrfDevice:
         '''
         ...
 
-    def pyhackrf_set_operacake_dwell_times(self, dwell_times: list) -> None:
+    def pyhackrf_set_operacake_dwell_times(self, dwell_times: list[tuple[int, int]]) -> None:
         '''
         Setup Opera Cake dwell times in `py_operacake_switching_mode.OPERACAKE_MODE_TIME` mode operation
 
@@ -615,7 +625,7 @@ class PyHackrfDevice:
         '''
         ...
 
-    def pyhackrf_set_operacake_freq_ranges(self, freq_ranges: list) -> None:
+    def pyhackrf_set_operacake_freq_ranges(self, freq_ranges: list[tuple[int, int, int]]) -> None:
         '''
         Setup Opera Cake frequency ranges in `py_operacake_switching_mode.OPERACAKE_MODE_FREQUENCY` mode operation
 

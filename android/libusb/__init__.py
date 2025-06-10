@@ -1,5 +1,7 @@
+# ruff: noqa: RUF012
 import os
 import shutil
+from typing import Any
 
 import sh
 from pythonforandroid.archs import Arch
@@ -11,7 +13,7 @@ from pythonforandroid.util import current_directory
 class LibusbRecipe(NDKRecipe):
 
     url = 'https://github.com/libusb/libusb/archive/refs/tags/v{version}.tar.gz'
-    generated_libraries = ('libusb-1.0.so', )
+    generated_libraries = ['libusb-1.0.so']
     site_packages_name = 'libusb'
     version = '1.0.26'
     name = 'libusb'
@@ -25,8 +27,8 @@ class LibusbRecipe(NDKRecipe):
     def get_lib_dir(self, arch: Arch) -> str:
         return os.path.join(self.get_build_dir(arch.arch), 'android', 'obj', 'local', arch.arch)
 
-    def build_arch(self, arch: Arch, *extra_args) -> None:
-        env = self.get_recipe_env(arch)
+    def build_arch(self, arch: Arch, *args: Any) -> None:
+        env: dict[str, Any] = self.get_recipe_env(arch)
         with current_directory(self.get_build_dir(arch.arch)):
             shprint(
                 sh.Command(os.path.join(self.ctx.ndk_dir, 'ndk-build')),
@@ -34,7 +36,7 @@ class LibusbRecipe(NDKRecipe):
                 'APP_PLATFORM=android-' + str(self.ctx.ndk_api),
                 'NDK=' + self.ctx.ndk_dir,
                 'APP_ABI=' + arch.arch,
-                *extra_args,
+                *args,
                 _env=env,
             )
 
