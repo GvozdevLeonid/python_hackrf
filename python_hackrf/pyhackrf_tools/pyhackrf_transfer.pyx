@@ -20,11 +20,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+# distutils: language = c++
 # cython: language_level=3str
+from python_hackrf.pylibhackrf cimport pyhackrf as c_pyhackrf
+from libc.stdint cimport uint64_t, uint8_t
 from python_hackrf import pyhackrf
-from libc.stdint cimport uint64_t
-import numpy as np
+from libcpp.atomic cimport atomic
+from libcpp cimport bool as c_bool
 cimport numpy as cnp
+import numpy as np
 cimport cython
 import signal
 import time
@@ -47,55 +51,77 @@ LO_MAX_HZ = 5_400_000_000
 DEFAULT_FREQUENCY = 900_000_000
 DEFAULT_LO_HZ = 1_000_000_000
 
-cdef dict run_available = {}
-cdef dict device_data = {}
+cdef atomic[uint8_t] working_sdrs[16]
+cdef dict sdr_ids = {}
 
 
-def sigint_callback_handler(sig, frame):
-    global run_available
-    for device in run_available.keys():
-        run_available[device] = False
+def sigint_callback_handler(sig, frame, sdr_id):
+    global working_sdrs
+    working_sdrs[sdr_id].store(0)
 
 
-def init_signals():
-    try:
-        signal.signal(signal.SIGINT, sigint_callback_handler)
-        signal.signal(signal.SIGILL, sigint_callback_handler)
-        signal.signal(signal.SIGTERM, sigint_callback_handler)
-        signal.signal(signal.SIGHUP, sigint_callback_handler)
-        signal.signal(signal.SIGABRT, sigint_callback_handler)
-    except Exception:
-        pass
+def init_signals() -> int:
+    global working_sdrs
+
+    sdr_id = -1
+    for i in range(16):
+        if working_sdrs[i].load() == 0:
+            sdr_id = i
+            break
+
+    if sdr_id >= 0:
+        try:
+            signal.signal(signal.SIGINT, lambda sig, frame: sigint_callback_handler(sig, frame, sdr_id))
+            signal.signal(signal.SIGILL, lambda sig, frame: sigint_callback_handler(sig, frame, sdr_id))
+            signal.signal(signal.SIGTERM, lambda sig, frame: sigint_callback_handler(sig, frame, sdr_id))
+            signal.signal(signal.SIGABRT, lambda sig, frame: sigint_callback_handler(sig, frame, sdr_id))
+        except Exception as ex:
+            sys.stderr.write(f'Error: {ex}\n')
+
+    return sdr_id
+
+
+def stop_all() -> None:
+    global working_sdrs
+    for i in range(16):
+        working_sdrs[i].store(0)
+
+
+def stop_sdr(serialno: str) -> None:
+    global sdr_ids, working_sdrs
+    if serialno in sdr_ids:
+        working_sdrs[sdr_ids[serialno]].store(0)
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def rx_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffer_length, int valid_length):
-    global run_available, device_data
+cpdef int rx_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffer_length, int valid_length):
+    global working_sdrs
 
-    if not run_available[device.serialno]:
+    cdef dict device_data = device.device_data
+    cdef uint8_t device_id = device_data['device_id']
+
+    if not working_sdrs[device_id].load():
         return -1
 
-    cdef dict current_device_data = device_data[device.serialno]
-
-    current_device_data['byte_count'] += valid_length
-    current_device_data['stream_power'] += np.sum(buffer[:valid_length].astype(np.int32) ** 2)
+    device_data['byte_count'] += valid_length
+    device_data['stream_power'] += np.sum(buffer[:valid_length].astype(np.int32) ** 2)
 
     cdef uint64_t to_read = valid_length
-    if current_device_data['num_samples']:
-        if (to_read > current_device_data['num_samples'] * 2):
-            to_read = current_device_data['num_samples'] * 2
-        current_device_data['num_samples'] -= (to_read // 2)
+    if device_data['num_samples']:
+        if (to_read > device_data['num_samples'] * 2):
+            to_read = device_data['num_samples'] * 2
+        device_data['num_samples'] -= (to_read // 2)
 
     cdef cnp.ndarray accepted_data = (buffer[:to_read:2] / 128 + 1j * buffer[1:to_read:2] / 128).astype(np.complex64)
 
-    if current_device_data['rx_buffer'] is not None:
-        current_device_data['rx_buffer'].append(accepted_data)
+    if device_data['rx_buffer'] is not None:
+        device_data['rx_buffer'].append(accepted_data)
     else:
-        accepted_data.tofile(current_device_data['rx_file'])
+        accepted_data.tofile(device_data['rx_file'])
 
-    if current_device_data['num_samples'] == 0:
-        run_available[device.serialno] = False
+    if device_data['num_samples'] == 0:
+        working_sdrs[device_id].store(0)
         return -1
 
     return 0
@@ -103,12 +129,13 @@ def rx_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffe
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def tx_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffer_length, object valid_length):
-    global run_available, device_data
+cpdef int tx_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffer_length, object valid_length):
+    global working_sdrs
 
-    cdef dict current_device_data = device_data[device.serialno]
+    cdef dict device_data = device.device_data
+    cdef uint8_t device_id = device_data['device_id']
 
-    if current_device_data['tx_complete'] or not run_available[device.serialno]:
+    if device_data['tx_complete'] or not working_sdrs[device_id].load():
         valid_length = 0
         return -1
 
@@ -118,21 +145,21 @@ def tx_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffe
     cdef bytes raw_data
     cdef cnp.ndarray sent_data
     cdef cnp.ndarray scaled_data
-    if current_device_data['num_samples']:
-        if (to_write > current_device_data['num_samples']):
-            to_write = current_device_data['num_samples']
-        current_device_data['num_samples'] -= to_write
+    if device_data['num_samples']:
+        if (to_write > device_data['num_samples']):
+            to_write = device_data['num_samples']
+        device_data['num_samples'] -= to_write
 
-    if current_device_data['tx_buffer'] is not None:
+    if device_data['tx_buffer'] is not None:
 
-        sent_data = current_device_data['tx_buffer'].get_chunk(to_write, ring=current_device_data['repeat_tx'])
+        sent_data = device_data['tx_buffer'].get_chunk(to_write, ring=device_data['repeat_tx'])
 
         if len(sent_data):
             writed = len(sent_data)
         else:
             # buffer is empty or finished
-            current_device_data['tx_complete'] = True
-            run_available[device.serialno] = False
+            device_data['tx_complete'] = True
+            working_sdrs[device_id].store(0)
             valid_length = 0
             return -1
 
@@ -141,20 +168,20 @@ def tx_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffe
         buffer[1:writed * 2:2] = scaled_data[1::2]
 
         # limit samples
-        if current_device_data['num_samples'] == 0:
-            current_device_data['tx_complete'] = True
-            run_available[device.serialno] = False
+        if device_data['num_samples'] == 0:
+            device_data['tx_complete'] = True
+            working_sdrs[device_id].store(0)
 
         valid_length = writed * 2
         return 0
 
     else:
-        raw_data = current_device_data['tx_file'].read(to_write * 8)
+        raw_data = device_data['tx_file'].read(to_write * 8)
         if len(raw_data):
             writed = len(raw_data) // 8
-        elif current_device_data['tx_file'].tell() < 1:
+        elif device_data['tx_file'].tell() < 1:
             # file is empty
-            run_available[device.serialno] = False
+            working_sdrs[device_id].store(0)
             valid_length = 0
             return -1
         else:
@@ -166,9 +193,9 @@ def tx_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffe
         buffer[1:writed * 2:2] = scaled_data[1::2]
 
         # limit samples
-        if current_device_data['num_samples'] == 0:
-            current_device_data['tx_complete'] = True
-            run_available[device.serialno] = False
+        if device_data['num_samples'] == 0:
+            device_data['tx_complete'] = True
+            working_sdrs[device_id].store(0)
             valid_length = writed * 2
             return 0
 
@@ -178,21 +205,21 @@ def tx_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffe
             return 0
 
         # file is finished
-        if not current_device_data['repeat_tx']:
-            current_device_data['tx_complete'] = True
-            run_available[device.serialno] = False
+        if not device_data['repeat_tx']:
+            device_data['tx_complete'] = True
+            working_sdrs[device_id].store(0)
             valid_length = writed * 2
             return 0
 
         # repeat file
         while writed < to_write:
-            current_device_data['tx_file'].seek(0)
-            raw_data = current_device_data['tx_file'].read((to_write - writed) * 8)
+            device_data['tx_file'].seek(0)
+            raw_data = device_data['tx_file'].read((to_write - writed) * 8)
             if len(raw_data):
                 rewrited = len(raw_data) // 8
             else:
-                current_device_data['tx_complete'] = True
-                run_available[device.serialno] = False
+                device_data['tx_complete'] = True
+                working_sdrs[device_id].store(0)
                 valid_length = writed * 2
                 return 0
 
@@ -209,39 +236,42 @@ def tx_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffe
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def tx_complete_callback(object device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffer_length, int valid_length, int success):
-    global run_available, device_data
+cpdef void tx_complete_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_t, ndim=1] buffer, int buffer_length, int valid_length, c_bool success):
+    global working_sdrs
+
+    cdef dict device_data = device.device_data
+    cdef uint8_t device_id = device_data['device_id']
 
     if not success:
-        run_available[device.serialno] = False
+        working_sdrs[device_id].store(0)
         return
 
-    cdef dict current_device_data = device_data[device.serialno]
-
-    current_device_data['byte_count'] += valid_length
-    current_device_data['stream_power'] += np.sum(buffer[:valid_length].astype(np.int32) ** 2)
+    device_data['byte_count'] += valid_length
+    device_data['stream_power'] += np.sum(buffer[:valid_length].astype(np.int32) ** 2)
 
 
-def flush_callback(object device, int success):
-    global run_available, device_data
+cpdef void flush_callback(c_pyhackrf.PyHackrfDevice device, c_bool success):
+    global working_sdrs
 
-    cdef dict current_device_data = device_data[device.serialno]
+    cdef dict device_data = device.device_data
+    cdef uint8_t device_id = device_data['device_id']
 
     if success:
-        current_device_data['flush_complete'] = True
+        device_data['flush_complete'] = True
 
-    run_available[device.serialno] = False
+    working_sdrs[device_id].store(0)
 
 
-def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, baseband_filter_bandwidth: int = None, i_frequency: int = None, lo_frequency: int = None, image_reject: pyhackrf.py_rf_path_filter = pyhackrf.py_rf_path_filter.RF_PATH_FILTER_BYPASS,
+def pyhackrf_transfer(frequency: int | None = None, sample_rate: int = 10_000_000, baseband_filter_bandwidth: int | None = None, i_frequency: int | None = None, lo_frequency: int | None = None, image_reject: pyhackrf.py_rf_path_filter = pyhackrf.py_rf_path_filter.RF_PATH_FILTER_BYPASS,
                       rx_lna_gain: int = 16, rx_vga_gain: int = 20, tx_vga_gain: int = 0, amp_enable: bool = False, antenna_enable: bool = False,
-                      repeat_tx: bool = False, synchronize: bool = False, num_samples: int = None, serial_number: str = None,
-                      rx_filename: str = None, tx_filename: str = None, rx_buffer: object = None, tx_buffer: object = None,
-                      print_to_console: bool = True):
+                      repeat_tx: bool = False, synchronize: bool = False, num_samples: int | None = None, serial_number: str | None = None,
+                      rx_filename: str | None = None, tx_filename: str | None = None, rx_buffer: object | None = None, tx_buffer: object | None = None,
+                      print_to_console: bool = True) -> None:
 
-    global run_available, device_data
+    global working_sdrs, sdr_ids
 
-    init_signals()
+    cdef uint8_t device_id = init_signals()
+    cdef c_pyhackrf.PyHackrfDevice device
     pyhackrf.pyhackrf_init()
 
     if serial_number is None:
@@ -249,27 +279,16 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
     else:
         device = pyhackrf.pyhackrf_open_by_serial(serial_number)
 
-    run_available[device.serialno] = True
+    working_sdrs[device_id].store(1)
+    sdr_ids[device.serialno] = device_id
 
     sample_rate = int(sample_rate) if sample_rate and int(sample_rate) in AVAILABLE_SAMPLING_RATES else 10_000_000
-    baseband_filter_bandwidth = int(baseband_filter_bandwidth) if baseband_filter_bandwidth and int(baseband_filter_bandwidth) in AVAILABLE_BASEBAND_FILTER_BANDWIDTHS else pyhackrf.pyhackrf_compute_baseband_filter_bw(int(sample_rate * .75))
+    if baseband_filter_bandwidth is None:
+        baseband_filter_bandwidth = int(sample_rate * .75)
+    baseband_filter_bandwidth = int(baseband_filter_bandwidth) if int(baseband_filter_bandwidth) in AVAILABLE_BASEBAND_FILTER_BANDWIDTHS else pyhackrf.pyhackrf_compute_baseband_filter_bw(int(sample_rate * .75))
+
     if num_samples and num_samples >= SAMPLES_TO_XFER_MAX:
         raise RuntimeError(f'num_samples must be less than {SAMPLES_TO_XFER_MAX}')
-
-    cdef dict current_device_data = {
-        'num_samples': num_samples,
-        'flush_complete': False,
-        'repeat_tx': repeat_tx,
-        'tx_complete': False,
-        'stream_power': 0,
-        'byte_count': 0,
-
-        'rx_file': open(rx_filename, 'wb') if rx_filename not in ('-', None) else (sys.stdout.buffer if rx_filename == '-' else None),
-        'tx_file': open(tx_filename, 'rb') if tx_filename not in ('-', None) else (sys.stdin.buffer if tx_filename == '-' else None),
-        'rx_buffer': rx_buffer,
-        'tx_buffer': tx_buffer
-    }
-    device_data[device.serialno] = current_device_data
 
     if (rx_buffer is not None or rx_filename is not None) and (tx_buffer is not None or tx_filename is not None):
         raise RuntimeError('HackRF cannot receive and send IQ samples at the same time.')
@@ -343,6 +362,21 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
             sys.stderr.write('call pyhackrf_set_amp_enable(True)\n')
         device.pyhackrf_set_amp_enable(True)
 
+    cdef dict device_data = {
+        'num_samples': num_samples,
+        'flush_complete': False,
+        'repeat_tx': repeat_tx,
+        'tx_complete': False,
+        'stream_power': 0,
+        'byte_count': 0,
+
+        'rx_file': open(rx_filename, 'wb') if rx_filename not in ('-', None) else (sys.stdout.buffer if rx_filename == '-' else None),
+        'tx_file': open(tx_filename, 'rb') if tx_filename not in ('-', None) else (sys.stdin.buffer if tx_filename == '-' else None),
+        'rx_buffer': rx_buffer,
+        'tx_buffer': tx_buffer
+    }
+    device.device_data = device_data
+
     if antenna_enable:
         if print_to_console:
             sys.stderr.write('call pyhackrf_set_antenna_enable(True)\n')
@@ -380,21 +414,21 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
     cdef uint64_t byte_count = 0
     cdef uint64_t stream_power = 0
     cdef double dB_full_scale = 0
-    while run_available[device.serialno]:
+    while working_sdrs[device_id].load():
         time.sleep(0.05)
         time_now = time.time()
         time_difference = time_now - time_prev
         if time_difference >= 1.0:
             if print_to_console:
-                byte_count, stream_power = current_device_data['byte_count'], current_device_data['stream_power']
-                current_device_data['stream_power'], current_device_data['byte_count'] = 0, 0
+                byte_count, stream_power = device_data['byte_count'], device_data['stream_power']
+                device_data['stream_power'], device_data['byte_count'] = 0, 0
 
                 if byte_count == 0 and synchronize:
                     sys.stderr.write('Waiting for trigger...\n')
-                elif byte_count != 0 and not current_device_data['flush_complete']:
+                elif byte_count != 0 and not device_data['flush_complete']:
                     dB_full_scale = 10 * np.log10(stream_power / ((byte_count / 2) * 127 ** 2))
                     sys.stderr.write(f'{(byte_count / time_difference) / 1e6:.1f} MB/second, average power {dB_full_scale:.1f} dBfs\n')
-                elif byte_count == 0 and not synchronize and not current_device_data['flush_complete']:
+                elif byte_count == 0 and not synchronize and not device_data['flush_complete']:
                     if print_to_console:
                         sys.stderr.write('Couldn\'t transfer any data for one second.\n')
                     break
@@ -403,7 +437,7 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
 
     time_now = time.time()
     if print_to_console:
-        if not run_available[device.serialno]:
+        if not working_sdrs[device_id].load():
             sys.stderr.write('\nExiting...\n')
         else:
             sys.stderr.write('\nExiting... [ pyhackrf streaming stopped ]\n')
@@ -413,10 +447,10 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
     time.sleep(.5)
 
     if rx_filename not in ('-', None):
-        current_device_data['rx_file'].close()
+        device_data['rx_file'].close()
 
     if tx_filename not in ('-', None):
-        current_device_data['tx_file'].close()
+        device_data['tx_file'].close()
 
     if rx_buffer is not None or rx_filename is not None:
         try:
@@ -434,8 +468,15 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
         except Exception as e:
             sys.stderr.write(f'{e}\n')
 
-    device_data.pop(device.serialno, None)
-    run_available.pop(device.serialno, None)
+    sdr_ids.pop(device.serialno, None)
+    working_sdrs[device_id].store(0)
+    device.device_data = {}
+
+    if antenna_enable:
+        try:
+            device.pyhackrf_set_antenna_enable(False)
+        except Exception as e:
+            sys.stderr.write(f'{e}\n')
 
     try:
         device.pyhackrf_close()
@@ -444,7 +485,9 @@ def pyhackrf_transfer(frequency: int = None, sample_rate: int = 10_000_000, base
     except Exception as e:
         sys.stderr.write(f'{e}\n')
 
-    if not len(run_available):
+    try:
         pyhackrf.pyhackrf_exit()
         if print_to_console:
             sys.stderr.write('pyhackrf_exit() done\n')
+    except Exception as e:
+            sys.stderr.write(f'{e}\n')

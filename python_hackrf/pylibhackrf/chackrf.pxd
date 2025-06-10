@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+# distutils: language = c++
 # cython: language_level=3str
 from libc.stdint cimport *
 
@@ -263,9 +264,9 @@ cdef extern from 'hackrf.h':
 
     int hackrf_set_antenna_enable(hackrf_device *device, const uint8_t value)
 
-    const char *hackrf_error_name(int errcode)
+    const char *hackrf_error_name(hackrf_error errcode)
 
-    const char *hackrf_board_id_name(int board_id)
+    const char *hackrf_board_id_name(hackrf_board_id board_id)
 
     uint32_t hackrf_board_id_platform(hackrf_board_id board_id)
 
@@ -313,7 +314,7 @@ cdef extern from 'hackrf.h':
 
     int hackrf_board_rev_read(hackrf_device *device, uint8_t *value)
 
-    const char *hackrf_board_rev_name(uint8_t board_rev)
+    const char *hackrf_board_rev_name(hackrf_board_rev board_rev)
 
     int hackrf_set_leds(hackrf_device *device, const uint8_t state)
 

@@ -26,6 +26,7 @@ from . cimport chackrf
 cdef class PyHackrfDevice:
 
     cdef chackrf.hackrf_device *__hackrf_device
+    cdef public dict device_data
     cdef list __pyoperacakes
     cdef public str serialno
 

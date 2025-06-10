@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+# distutils: language = c++
 # cython: language_level=3str
 from python_hackrf import __version__
 from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t, uintptr_t
@@ -312,16 +313,18 @@ ELSE:
 
         def pyhackrf_board_id_name(self, index: int) -> str:
             if self.__hackrf_device_list is not NULL:
-                return chackrf.hackrf_board_id_name(self.__hackrf_device_list[0].usb_board_ids[index]).decode('utf-8')
+                return chackrf.hackrf_usb_board_id_name(self.__hackrf_device_list[0].usb_board_ids[index]).decode('utf-8')
 
 cdef class PyHackrfDevice:
 
     def __cinit__(self):
         self.__hackrf_device = NULL
         self.__pyoperacakes = []
+        self.device_data = {}
 
     def __dealloc__(self):
         global global_callbacks
+
         if self.__hackrf_device is not NULL:
             if <size_t> self.__hackrf_device in global_callbacks.keys():
                 global_callbacks.pop(<size_t> self.__hackrf_device)
@@ -329,8 +332,7 @@ cdef class PyHackrfDevice:
             result = chackrf.hackrf_close(self.__hackrf_device)
             self.__hackrf_device = NULL
 
-            if result != chackrf.hackrf_error.HACKRF_SUCCESS:
-                raise RuntimeError(f'__dealloc__ failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
+            raise_error('__dealloc__', result)
 
     # ---- inner functions ---- #
     cdef chackrf.hackrf_device *get_hackrf_device_ptr(self):
@@ -371,14 +373,13 @@ cdef class PyHackrfDevice:
 
     def pyhackrf_reset(self) -> None:
         result = chackrf.hackrf_reset(self.__hackrf_device)
-        if result != chackrf.hackrf_error.HACKRF_SUCCESS:
-            raise RuntimeError(f'pyhackrf_reset() failed: {chackrf.hackrf_error_name(result).decode("utf-8")} ({result})')
+        raise_error('pyhackrf_reset()', result)
 
     def pyhackrf_board_id_read(self) -> tuple[int, str]:
         cdef uint8_t value
         result = chackrf.hackrf_board_id_read(self.__hackrf_device, &value)
         raise_error('pyhackrf_board_id_read()', result)
-        return value, chackrf.hackrf_board_id_name(value).decode('utf-8')
+        return value, chackrf.hackrf_board_id_name(<chackrf.hackrf_board_id> value).decode('utf-8')
 
     def pyhackrf_board_rev_read(self) -> tuple[int, str]:
         cdef uint8_t value
@@ -389,7 +390,7 @@ cdef class PyHackrfDevice:
         elif value == chackrf.BOARD_REV_UNRECOGNIZED:
             return value, 'Warning: Hardware revision not recognized by firmware.'
         else:
-            return value, chackrf.hackrf_board_rev_name(value).decode('utf-8')
+            return value, chackrf.hackrf_board_rev_name(<chackrf.hackrf_board_rev>value).decode('utf-8')
 
     def pyhackrf_version_string_read(self) -> str:
         cdef char[255] version
@@ -721,7 +722,7 @@ cdef class PyHackrfDevice:
         result = chackrf.hackrf_set_operacake_ports(self.__hackrf_device, <uint8_t> address, <uint8_t> py_operacake_ports[port_a], <uint8_t> py_operacake_ports[port_b])
         raise_error('pyhackrf_set_operacake_ports()', result)
 
-    def pyhackrf_set_operacake_dwell_times(self, dwell_times: list) -> None:
+    def pyhackrf_set_operacake_dwell_times(self, dwell_times: list[tuple[int, int]]) -> None:
         cdef chackrf.hackrf_operacake_dwell_time *_dwell_times = <chackrf.hackrf_operacake_dwell_time*> malloc(PY_HACKRF_OPERACAKE_MAX_DWELL_TIMES * sizeof(chackrf.hackrf_operacake_dwell_time))
         for index, (dwell, port) in enumerate(dwell_times):
             _dwell_times[index].dwell = dwell
@@ -732,7 +733,7 @@ cdef class PyHackrfDevice:
         free(_dwell_times)
         raise_error('pyhackrf_set_operacake_dwell_times()', result)
 
-    def pyhackrf_set_operacake_freq_ranges(self, freq_ranges: list) -> None:
+    def pyhackrf_set_operacake_freq_ranges(self, freq_ranges: list[tuple[int, int, int]]) -> None:
         cdef chackrf.hackrf_operacake_freq_range *_freq_ranges = <chackrf.hackrf_operacake_freq_range*> malloc(PY_HACKRF_OPERACAKE_MAX_FREQ_RANGES * sizeof(chackrf.hackrf_operacake_freq_range))
         for index, (port, freq_min, freq_max) in enumerate(freq_ranges):
             _freq_ranges[index].freq_min = freq_min

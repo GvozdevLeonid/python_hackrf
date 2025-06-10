@@ -1,6 +1,10 @@
-include python_hackrf/pylibhackrf/chackrf.pxd
+include python_hackrf/pyhackrf_tools/pyhackrf_transfer.pyi
+include python_hackrf/pyhackrf_tools/pyhackrf_transfer.pxd
+include python_hackrf/pyhackrf_tools/pyhackrf_sweep.pyi
+include python_hackrf/pyhackrf_tools/pyhackrf_sweep.pxd
 include python_hackrf/pylibhackrf/pyhackrf.pyi
 include python_hackrf/pylibhackrf/pyhackrf.pyx
 include python_hackrf/pylibhackrf/pyhackrf.pxd
+include python_hackrf/pylibhackrf/chackrf.pxd
 include pyproject.toml
 include README.md
