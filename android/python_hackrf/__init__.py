@@ -32,5 +32,9 @@ class PythonHackrfRecipe(PyProjectRecipe):
 
         return env
 
+    def build_arch(self, arch: Arch) -> None:
+        super().build_arch(arch)
+        self.restore_hostpython_prerequisites(['cython'])
+
 
 recipe = PythonHackrfRecipe()
