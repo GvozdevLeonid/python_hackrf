@@ -102,6 +102,7 @@ setup(  # type: ignore
         Extension(  # type: ignore
             name='python_hackrf.pylibhackrf.pyhackrf',
             sources=['python_hackrf/pylibhackrf/pyhackrf.pyx'],
+            libraries=['hackrf'],
             include_dirs=['python_hackrf/pylibhackrf', *libhackrf_h_paths, numpy.get_include()],
             extra_compile_args=['-w'],
             language='c++',
