@@ -198,13 +198,15 @@ cpdef int sweep_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_
                     'timestamp': time_str,
                     'start_frequency': frequency,
                     'stop_frequency': frequency + sample_rate // 4,
-                    'array': pwr[fft_1_start:fft_1_stop].astype(np.float32)
+                    'array': pwr[fft_1_start:fft_1_stop].astype(np.float32),
+                    'raw_iq': raw_iq,
                 })
                 device_data['queue'].put({
                     'timestamp': time_str,
                     'start_frequency': frequency + sample_rate // 2,
                     'stop_frequency': frequency + (sample_rate * 3) // 4,
-                    'array': pwr[fft_2_start:fft_2_stop].astype(np.float32)
+                    'array': pwr[fft_2_start:fft_2_stop].astype(np.float32),
+                    'raw_iq': raw_iq,
                 })
 
             else:
@@ -212,7 +214,8 @@ cpdef int sweep_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_
                     'timestamp': time_str,
                     'start_frequency': frequency,
                     'stop_frequency': frequency + sample_rate,
-                    'array': pwr.astype(np.float32)
+                    'array': pwr.astype(np.float32),
+                    'raw_iq': raw_iq,
                 })
 
         else:
