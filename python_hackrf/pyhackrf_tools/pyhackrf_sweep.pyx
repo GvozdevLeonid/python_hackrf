@@ -406,9 +406,8 @@ def pyhackrf_sweep(frequencies: list[int] | None = None, sample_rate: int = 20_0
     if print_to_console:
         sys.stderr.write(f'Total sweeps: {device_data["sweep_count"]} in {time_now - time_start:.5f} seconds ({sweep_rate :.2f} sweeps/second)\n')
 
-    sdr_ids.pop(device.serialno, None)
     working_sdrs[device_id].store(0)
-    device.device_data = {}
+    device_serial = device.serialno
 
     if antenna_enable:
         try:
@@ -422,6 +421,8 @@ def pyhackrf_sweep(frequencies: list[int] | None = None, sample_rate: int = 20_0
             sys.stderr.write('pyhackrf_close() done\n')
     except Exception as e:
         sys.stderr.write(f'{e}\n')
+
+    sdr_ids.pop(device_serial, None)
 
     try:
         pyhackrf.pyhackrf_exit()

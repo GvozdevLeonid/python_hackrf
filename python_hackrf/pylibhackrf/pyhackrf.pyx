@@ -368,6 +368,7 @@ cdef class PyHackrfDevice:
 
             result = chackrf.hackrf_close(self.__hackrf_device)
             self.__hackrf_device = NULL
+            self.device_data.clear()
 
             raise_error('pyhackrf_close()', result)
 

@@ -468,9 +468,8 @@ def pyhackrf_transfer(frequency: int | None = None, sample_rate: int = 10_000_00
         except Exception as e:
             sys.stderr.write(f'{e}\n')
 
-    sdr_ids.pop(device.serialno, None)
     working_sdrs[device_id].store(0)
-    device.device_data = {}
+    device_serial = device.serialno
 
     if antenna_enable:
         try:
@@ -484,6 +483,8 @@ def pyhackrf_transfer(frequency: int | None = None, sample_rate: int = 10_000_00
             sys.stderr.write('pyhackrf_close() done\n')
     except Exception as e:
         sys.stderr.write(f'{e}\n')
+
+    sdr_ids.pop(device_serial, None)
 
     try:
         pyhackrf.pyhackrf_exit()
