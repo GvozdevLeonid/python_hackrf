@@ -161,8 +161,7 @@ cpdef int sweep_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_
         index += (pyhackrf.PY_BYTES_PER_BLOCK - data_length)
 
         raw_iq = buffer[index:index + data_length:2] / 128 + 1j * buffer[index + 1:index + data_length:2] / 128
-        # raw_iq = (raw_iq - raw_iq.mean()) * window
-        raw_iq = (raw_iq - (raw_iq * window).sum() / window.sum()) * window
+        raw_iq = (raw_iq - raw_iq.mean()) * window
         pwr = np.log10(np.abs(fft(raw_iq) * norm_factor) ** 2) * 10.0
 
         if sweep_style == pyhackrf.py_sweep_style.LINEAR:
