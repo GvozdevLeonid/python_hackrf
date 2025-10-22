@@ -36,6 +36,7 @@ from python_hackrf import pyhackrf
 from libcpp.atomic cimport atomic
 cimport numpy as cnp
 import numpy as np
+import threading
 import datetime
 cimport cython
 import signal
@@ -148,6 +149,7 @@ cpdef int sweep_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_
                 device_data['sweep_started'] = True
 
         if not working_sdrs[device_id].load():
+            device_data['notify_finished'].set()
             return -1
 
         if not device_data['sweep_started']:
@@ -352,6 +354,7 @@ def pyhackrf_sweep(frequencies: list[int] | None = None, sample_rate: int = 20_0
         'start_frequency': int(frequencies[0] * 1e6),
         'fft_size': fft_size,
         'window': np.hanning(fft_size),
+        'notify_finished': threading.Event(),
 
         'binary_output': binary_output,
         'one_shot': one_shot,
@@ -405,7 +408,8 @@ def pyhackrf_sweep(frequencies: list[int] | None = None, sample_rate: int = 20_0
         sys.stderr.write(f'Total sweeps: {device_data["sweep_count"]} in {time_now - time_start:.5f} seconds ({sweep_rate :.2f} sweeps/second)\n')
 
     working_sdrs[device_id].store(0)
-    device_serial = device.serialno
+    device_data['notify_finished'].wait()
+    sdr_ids.pop(device.serialno, None)
 
     if antenna_enable:
         try:
@@ -419,8 +423,6 @@ def pyhackrf_sweep(frequencies: list[int] | None = None, sample_rate: int = 20_0
             sys.stderr.write('pyhackrf_close() done\n')
     except Exception as e:
         sys.stderr.write(f'{e}\n')
-
-    sdr_ids.pop(device_serial, None)
 
     try:
         pyhackrf.pyhackrf_exit()
