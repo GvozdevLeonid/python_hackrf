@@ -22,6 +22,7 @@
 
 # distutils: language = c++
 # cython: language_level=3str
+# cython: freethreading_compatible = True
 from python_hackrf.pylibhackrf cimport pyhackrf as c_pyhackrf
 from libc.stdint cimport uint64_t, uint8_t
 from python_hackrf import pyhackrf

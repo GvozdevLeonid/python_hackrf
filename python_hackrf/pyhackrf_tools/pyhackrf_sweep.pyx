@@ -22,6 +22,7 @@
 
 # distutils: language = c++
 # cython: language_level=3str
+# cython: freethreading_compatible = True
 try:
     from pyfftw.interfaces.numpy_fft import fft, fftshift  # type: ignore
 except ImportError:
@@ -46,9 +47,10 @@ import sys
 
 cnp.import_array()
 
-PY_FREQ_MIN_MHZ = 0  # 0 MHz
-PY_FREQ_MAX_MHZ = 7_250  # 7250 MHz
-PY_FREQ_MAX_HZ = PY_FREQ_MAX_MHZ * 1e6  # Hz
+FREQ_MIN_MHZ = 0  # 0 MHz
+FREQ_MAX_MHZ = 7_250  # 7250 MHz
+FREQ_MIN_HZ = int(FREQ_MIN_MHZ * 1e6)  # HZ
+FREQ_MAX_HZ = int(FREQ_MAX_MHZ * 1e6)  # Hz
 PY_BLOCKS_PER_TRANSFER = 16
 
 # hackrf sweep settings
@@ -107,16 +109,18 @@ cpdef int sweep_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_
     cdef str time_str = datetime.datetime.now().strftime('%Y-%m-%d, %H:%M:%S.%f')
 
     cdef dict device_data = device.device_data
-    cdef double norm_factor = 1 / device_data['fft_size']
     cdef uint32_t data_length = device_data['fft_size'] * 2
     cdef object sweep_style = device_data['sweep_style']
     cdef uint32_t sample_rate = device_data['sample_rate']
     cdef uint32_t fft_size = device_data['fft_size']
     cdef cnp.ndarray window = device_data['window']
+    cdef double psd_norm = device_data['psd_norm']
     cdef uint8_t device_id = device_data['device_id']
+    cdef double divider = 1 / 128
 
     cdef uint64_t start_frequency = device_data['start_frequency']
 
+    cdef cnp.ndarray fft_out
     cdef cnp.ndarray raw_iq
     cdef cnp.ndarray pwr
 
@@ -149,22 +153,23 @@ cpdef int sweep_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_
                 device_data['sweep_started'] = True
 
         if not working_sdrs[device_id].load():
-            device_data['notify_finished'].set()
+            device_data['close_ready'].set()
             return -1
 
         if not device_data['sweep_started']:
             index += pyhackrf.PY_BYTES_PER_BLOCK
             continue
 
-        if PY_FREQ_MAX_HZ < frequency:
+        if FREQ_MAX_HZ < frequency:
             index += pyhackrf.PY_BYTES_PER_BLOCK
             continue
 
         index += (pyhackrf.PY_BYTES_PER_BLOCK - data_length)
 
-        raw_iq = buffer[index:index + data_length:2] / 128 + 1j * buffer[index + 1:index + data_length:2] / 128
+        raw_iq = buffer[index:index + data_length:2] * divider + 1j * buffer[index + 1:index + data_length:2] * divider
         raw_iq = (raw_iq - raw_iq.mean()) * window
-        pwr = np.log10(np.abs(fft(raw_iq) * norm_factor) ** 2) * 10.0
+        fft_out = fft(raw_iq)
+        pwr = np.log10((fft_out.real**2 + fft_out.imag**2) * psd_norm + 1e-300) * 10.0
 
         if sweep_style == pyhackrf.py_sweep_style.LINEAR:
             pwr = fftshift(pwr)
@@ -251,7 +256,6 @@ def pyhackrf_sweep(frequencies: list[int] | None = None, sample_rate: int = 20_0
     cdef uint8_t device_id = init_signals()
     cdef c_pyhackrf.PyHackrfDevice device
     cdef uint32_t offset = 0
-    cdef int i
 
     pyhackrf.pyhackrf_init()
 
@@ -323,10 +327,10 @@ def pyhackrf_sweep(frequencies: list[int] | None = None, sample_rate: int = 20_0
         step_count = 1 + (frequencies[2 * i + 1] - frequencies[2 * i] - 1) // TUNE_STEP
         frequencies[2 * i + 1] = int(frequencies[2 * i] + step_count * TUNE_STEP)
 
-        if frequencies[2 * i] < PY_FREQ_MIN_MHZ:
-            raise RuntimeError(f'min frequency must must be greater than {PY_FREQ_MIN_MHZ} MHz.')
-        if frequencies[2 * i + 1] > PY_FREQ_MAX_MHZ:
-            raise RuntimeError(f'max frequency may not be higher {PY_FREQ_MAX_MHZ} MHz.')
+        if frequencies[2 * i] < FREQ_MIN_MHZ:
+            raise RuntimeError(f'min frequency must must be greater than {FREQ_MIN_MHZ} MHz.')
+        if frequencies[2 * i + 1] > FREQ_MAX_MHZ:
+            raise RuntimeError(f'max frequency may not be higher {FREQ_MAX_MHZ} MHz.')
 
         if print_to_console:
             sys.stderr.write(f'Sweeping from {frequencies[2 * i]} MHz to {frequencies[2 * i + 1]} MHz\n')
@@ -354,7 +358,8 @@ def pyhackrf_sweep(frequencies: list[int] | None = None, sample_rate: int = 20_0
         'start_frequency': int(frequencies[0] * 1e6),
         'fft_size': fft_size,
         'window': np.hanning(fft_size),
-        'notify_finished': threading.Event(),
+        'psd_norm': 1 / (sample_rate * np.dot(np.hanning(fft_size), np.hanning(fft_size))),
+        'close_ready': threading.Event(),
 
         'binary_output': binary_output,
         'one_shot': one_shot,
@@ -408,7 +413,7 @@ def pyhackrf_sweep(frequencies: list[int] | None = None, sample_rate: int = 20_0
         sys.stderr.write(f'Total sweeps: {device_data["sweep_count"]} in {time_now - time_start:.5f} seconds ({sweep_rate :.2f} sweeps/second)\n')
 
     working_sdrs[device_id].store(0)
-    device_data['notify_finished'].wait()
+    device_data['close_ready'].wait()
     sdr_ids.pop(device.serialno, None)
 
     if antenna_enable:

@@ -22,6 +22,7 @@
 
 # distutils: language = c++
 # cython: language_level=3str
+# cython: freethreading_compatible = True
 from python_hackrf import __version__
 from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t, uintptr_t
 from libc.stdlib cimport malloc, free

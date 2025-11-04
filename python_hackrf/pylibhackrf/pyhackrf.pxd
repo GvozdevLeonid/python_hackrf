@@ -21,6 +21,7 @@
 # SOFTWARE.
 
 # cython: language_level=3str
+# cython: freethreading_compatible = True
 from . cimport chackrf
 
 cdef class PyHackrfDevice:
