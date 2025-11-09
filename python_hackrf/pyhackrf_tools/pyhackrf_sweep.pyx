@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 # distutils: language = c++
-# cython: language_level=3str
+# cython: language_level = 3str
 # cython: freethreading_compatible = True
 try:
     from pyfftw.interfaces.numpy_fft import fft, fftshift  # type: ignore
