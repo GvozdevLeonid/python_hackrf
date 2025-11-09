@@ -21,10 +21,11 @@
 # SOFTWARE.
 
 # distutils: language = c++
-# cython: language_level=3str
+# cython: language_level = 3str
+# cython: freethreading_compatible = True
 from libc.stdint cimport *
 
-cdef extern from 'hackrf.h':
+cdef extern from 'hackrf.h' nogil:
     int SAMPLES_PER_BLOCK
     int BYTES_PER_BLOCK
     int MAX_SWEEP_RANGES
@@ -321,7 +322,7 @@ cdef extern from 'hackrf.h':
     int hackrf_set_user_bias_t_opts(hackrf_device *device, hackrf_bias_t_user_settting_req *req)
 
 IF ANDROID:
-    cdef extern from 'hackrf.h':
+    cdef extern from 'hackrf.h' nogil:
         int hackrf_init_on_android()
 
         int hackrf_open_on_android(int fileDescriptor, hackrf_device **device)

@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 # distutils: language = c++
-# cython: language_level=3str
+# cython: language_level = 3str
 # cython: freethreading_compatible = True
 from python_hackrf import __version__
 from libc.stdint cimport uint8_t, uint16_t, uint32_t, uint64_t, uintptr_t
@@ -155,12 +155,13 @@ class py_operacake_ports(IntEnum):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef int __rx_callback(chackrf.hackrf_transfer *transfer) noexcept nogil:
-    global global_callbacks
+
     cdef uint8_t* buffer_ptr = transfer.buffer
     cdef uint8_t* np_buffer_ptr
     cdef int result = -1
 
     with gil:
+
         np_buffer = np.empty(transfer.buffer_length, dtype=np.int8)
         np_buffer_ptr = <uint8_t*> <uintptr_t> np_buffer.ctypes.data
 
@@ -179,12 +180,12 @@ cdef int __rx_callback(chackrf.hackrf_transfer *transfer) noexcept nogil:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef int __tx_callback(chackrf.hackrf_transfer *transfer) noexcept nogil:
-    global global_callbacks
     cdef uint8_t* buffer_ptr = transfer.buffer
     cdef uint8_t* np_buffer_ptr
     cdef int result = -1
 
     with gil:
+
         np_buffer = np.empty(transfer.buffer_length, dtype=np.int8)
         valid_length = c_int(transfer.valid_length)
         np_buffer_ptr = <uint8_t*> <uintptr_t> np_buffer.ctypes.data
@@ -207,12 +208,12 @@ cdef int __tx_callback(chackrf.hackrf_transfer *transfer) noexcept nogil:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef int __sweep_callback(chackrf.hackrf_transfer *transfer) noexcept nogil:
-    global global_callbacks
     cdef uint8_t* buffer_ptr = transfer.buffer
     cdef uint8_t* np_buffer_ptr
     cdef int result = -1
 
     with gil:
+
         np_buffer = np.empty(transfer.buffer_length, dtype=np.int8)
         np_buffer_ptr = <uint8_t*> <uintptr_t> np_buffer.ctypes.data
 
@@ -231,11 +232,11 @@ cdef int __sweep_callback(chackrf.hackrf_transfer *transfer) noexcept nogil:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef void __tx_complete_callback(chackrf.hackrf_transfer *transfer, int success) noexcept nogil:
-    global global_callbacks
     cdef uint8_t* buffer_ptr = transfer.buffer
     cdef uint8_t* np_buffer_ptr
 
     with gil:
+
         np_buffer = np.empty(transfer.buffer_length, dtype=np.int8)
         np_buffer_ptr = <uint8_t*> <uintptr_t> np_buffer.ctypes.data
 
@@ -250,10 +251,10 @@ cdef void __tx_complete_callback(chackrf.hackrf_transfer *transfer, int success)
 
 
 cdef void __tx_flush_callback(void *flush_ctx, int success) noexcept nogil:
-    global global_callbacks
     cdef size_t device_ptr = <size_t> flush_ctx
 
     with gil:
+
         if global_callbacks[device_ptr]['__tx_flush_callback'] is not None:
             global_callbacks[device_ptr]['__tx_flush_callback'](global_callbacks[device_ptr]['device'], success)
 
@@ -324,13 +325,14 @@ cdef class PyHackrfDevice:
         self.device_data = {}
 
     def __dealloc__(self):
-        global global_callbacks
+        cdef int result
 
         if self.__hackrf_device is not NULL:
             if <size_t> self.__hackrf_device in global_callbacks.keys():
                 global_callbacks.pop(<size_t> self.__hackrf_device)
 
-            result = chackrf.hackrf_close(self.__hackrf_device)
+            with nogil:
+                result = chackrf.hackrf_close(self.__hackrf_device)
             self.__hackrf_device = NULL
 
             raise_error('__dealloc__', result)
@@ -343,8 +345,6 @@ cdef class PyHackrfDevice:
         return &self.__hackrf_device
 
     cdef void _setup_device(self):
-        global global_callbacks
-
         if self.__hackrf_device is not NULL:
             self.serialno = self.pyhackrf_serialno_read()
 
@@ -362,12 +362,14 @@ cdef class PyHackrfDevice:
 
     # ---- device ---- #
     def pyhackrf_close(self) -> None:
-        global global_callbacks
+        cdef int result
+
         if self.__hackrf_device is not NULL:
             if <size_t> self.__hackrf_device in global_callbacks.keys():
                 global_callbacks.pop(<size_t> self.__hackrf_device)
 
-            result = chackrf.hackrf_close(self.__hackrf_device)
+            with nogil:
+                result = chackrf.hackrf_close(self.__hackrf_device)
             self.__hackrf_device = NULL
             self.device_data.clear()
 
@@ -468,11 +470,21 @@ cdef class PyHackrfDevice:
         raise_error('pyhackrf_set_baseband_filter_bandwidth()', result)
 
     def pyhackrf_set_freq(self, freq_hz: int) -> None:
-        result = chackrf.hackrf_set_freq(self.__hackrf_device, <uint64_t> freq_hz)
+        cdef int result
+        cdef uint64_t c_freq_hz = <uint64_t> freq_hz
+
+        with nogil:
+            result = chackrf.hackrf_set_freq(self.__hackrf_device, c_freq_hz)
         raise_error('pyhackrf_set_freq()', result)
 
     def pyhackrf_set_freq_explicit(self, i_freq_hz: int, lo_freq_hz: int, path: py_rf_path_filter) -> None:
-        result = chackrf.hackrf_set_freq_explicit(self.__hackrf_device, <uint64_t> i_freq_hz, <uint64_t> lo_freq_hz, path)
+        cdef int result
+        cdef chackrf.rf_path_filter c_path = path
+        cdef uint64_t c_i_freq_hz = <uint64_t> i_freq_hz
+        cdef uint64_t c_lo_freq_hz = <uint64_t> lo_freq_hz
+
+        with nogil:
+            result = chackrf.hackrf_set_freq_explicit(self.__hackrf_device, c_i_freq_hz, c_lo_freq_hz, c_path)
         raise_error('pyhackrf_set_freq_explicit()', result)
 
     def pyhackrf_set_sample_rate_manual(self, freq_hz: int, divider: int) -> None:
@@ -488,18 +500,27 @@ cdef class PyHackrfDevice:
         raise_error('pyhackrf_set_amp_enable()', result)
 
     def pyhackrf_set_lna_gain(self, value: int) -> None:
-        value = int(max(0, min(40, value)) / 8) * 8
-        result = chackrf.hackrf_set_lna_gain(self.__hackrf_device, <uint32_t> value)
+        cdef int result
+        cdef uint32_t c_value = <uint32_t> int(max(0, min(40, value)) / 8) * 8
+
+        with nogil:
+            result = chackrf.hackrf_set_lna_gain(self.__hackrf_device, c_value)
         raise_error('pyhackrf_set_lna_gain()', result)
 
     def pyhackrf_set_vga_gain(self, value: int) -> None:
-        value = int(max(0, min(62, value)) / 2) * 2
-        result = chackrf.hackrf_set_vga_gain(self.__hackrf_device, <uint32_t> value)
+        cdef int result
+        cdef uint32_t c_value = <uint32_t> int(max(0, min(62, value)) / 2) * 2
+
+        with nogil:
+            result = chackrf.hackrf_set_vga_gain(self.__hackrf_device, c_value)
         raise_error('pyhackrf_set_vga_gain()', result)
 
     def pyhackrf_set_txvga_gain(self, value: int) -> None:
-        value = int(max(0, min(47, value)))
-        result = chackrf.hackrf_set_txvga_gain(self.__hackrf_device, <uint32_t> value)
+        cdef int result
+        cdef uint32_t c_value = <uint32_t> int(max(0, min(47, value)))
+
+        with nogil:
+            result = chackrf.hackrf_set_txvga_gain(self.__hackrf_device, c_value)
         raise_error('pyhackrf_set_txvga_gain()', result)
 
     def pyhackrf_set_antenna_enable(self, value: bool) -> None:
@@ -518,7 +539,11 @@ cdef class PyHackrfDevice:
 
     # ---- streaming ---- #
     def pyhackrf_is_streaming(self) -> bool:
-        result = chackrf.hackrf_is_streaming(self.__hackrf_device)
+        cdef int result
+
+        with nogil:
+            result = chackrf.hackrf_is_streaming(self.__hackrf_device)
+
         if result == chackrf.hackrf_error.HACKRF_TRUE:
             return True
         elif result in (chackrf.hackrf_error.HACKRF_ERROR_STREAMING_THREAD_ERR, chackrf.hackrf_error.HACKRF_ERROR_STREAMING_STOPPED, chackrf.hackrf_error.HACKRF_ERROR_STREAMING_EXIT_CALLED):
@@ -557,19 +582,27 @@ cdef class PyHackrfDevice:
         raise_error('pyhackrf_start_rx_sweep()', result)
 
     def pyhackrf_start_rx(self) -> None:
+        cdef int result
         result = chackrf.hackrf_start_rx(self.__hackrf_device, __rx_callback, NULL)
         raise_error('pyhackrf_start_rx()', result)
 
     def pyhackrf_stop_rx(self) -> None:
-        result = chackrf.hackrf_stop_rx(self.__hackrf_device)
+        cdef int result
+
+        with nogil:
+            result = chackrf.hackrf_stop_rx(self.__hackrf_device)
         raise_error('pyhackrf_stop_rx()', result)
 
     def pyhackrf_start_tx(self) -> None:
+        cdef int result
         result = chackrf.hackrf_start_tx(self.__hackrf_device, __tx_callback, NULL)
         raise_error('pyhackrf_start_tx()', result)
 
     def pyhackrf_stop_tx(self) -> None:
-        result = chackrf.hackrf_stop_tx(self.__hackrf_device)
+        cdef int result
+
+        with nogil:
+            result = chackrf.hackrf_stop_tx(self.__hackrf_device)
         raise_error('pyhackrf_stop_tx()', result)
   
     def pyhackrf_enable_tx_block_complete_callback(self) -> None:
@@ -644,8 +677,6 @@ cdef class PyHackrfDevice:
 
     # ---- python callbacks setters ---- #
     def set_rx_callback(self, rx_callback_function) -> None:
-        global global_callbacks
-
         if self.__hackrf_device is not NULL:
             global_callbacks[<size_t> self.__hackrf_device]['__rx_callback'] = rx_callback_function
             return
@@ -653,8 +684,6 @@ cdef class PyHackrfDevice:
         raise RuntimeError(f'set_rx_callback() failed: Device not initialized!')
 
     def set_tx_callback(self, tx_callback_function) -> None:
-        global global_callbacks
-
         if self.__hackrf_device is not NULL:
             global_callbacks[<size_t> self.__hackrf_device]['__tx_callback'] = tx_callback_function
             return
@@ -662,8 +691,6 @@ cdef class PyHackrfDevice:
         raise RuntimeError(f'set_tx_callback() failed: Device not initialized!')
 
     def set_sweep_callback(self, sweep_callback_function) -> None:
-        global global_callbacks
-
         if self.__hackrf_device is not NULL:
             global_callbacks[<size_t> self.__hackrf_device]['__sweep_callback'] = sweep_callback_function
             return
@@ -671,8 +698,6 @@ cdef class PyHackrfDevice:
         raise RuntimeError(f'set_sweep_callback() failed: Device not initialized!')
 
     def set_tx_complete_callback(self, tx_complete_callback_function) -> None:
-        global global_callbacks
-
         if self.__hackrf_device is not NULL:
             global_callbacks[<size_t> self.__hackrf_device]['__tx_complete_callback'] = tx_complete_callback_function
             return
@@ -680,8 +705,6 @@ cdef class PyHackrfDevice:
         raise RuntimeError(f'set_tx_complete_callback() failed: Device not initialized!')
 
     def set_tx_flush_callback(self, tx_flush_callback_function) -> None:
-        global global_callbacks
-
         if self.__hackrf_device is not NULL:
             global_callbacks[<size_t> self.__hackrf_device]['__tx_flush_callback'] = tx_flush_callback_function
             return

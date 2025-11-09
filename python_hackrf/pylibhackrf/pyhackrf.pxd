@@ -20,7 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# cython: language_level=3str
+# distutils: language = c++
+# cython: language_level = 3str
 # cython: freethreading_compatible = True
 from . cimport chackrf
 
