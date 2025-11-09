@@ -122,7 +122,7 @@ cpdef int sweep_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_
 
     cdef cnp.ndarray fft_out
     cdef cnp.ndarray raw_iq
-    cdef cnp.ndarray pwr
+    cdef cnp.ndarray dbfs
 
     cdef uint32_t fft_1_start = 1 + (fft_size * 5) // 8
     cdef uint32_t fft_1_stop = 1 + (fft_size * 5) // 8 + fft_size // 4
@@ -167,12 +167,11 @@ cpdef int sweep_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_
         index += (pyhackrf.PY_BYTES_PER_BLOCK - data_length)
 
         raw_iq = buffer[index:index + data_length:2] * divider + 1j * buffer[index + 1:index + data_length:2] * divider
-        raw_iq = (raw_iq - raw_iq.mean()) * window
-        fft_out = fft(raw_iq)
-        pwr = np.log10((fft_out.real**2 + fft_out.imag**2) * psd_norm + 1e-300) * 10.0
+        fft_out = fft((raw_iq - raw_iq.mean()) * window)
+        dbfs = np.log10((fft_out.real**2 + fft_out.imag**2) * psd_norm + 1e-300) * 10.0
 
         if sweep_style == pyhackrf.py_sweep_style.LINEAR:
-            pwr = fftshift(pwr)
+            dbfs = fftshift(dbfs)
 
         index += data_length
 
@@ -182,18 +181,18 @@ cpdef int sweep_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_
                 line = struct.pack('I', record_length)
                 line += struct.pack('Q', frequency)
                 line += struct.pack('Q', frequency + sample_rate // 4)
-                line += struct.pack('<' + 'f' * (fft_size // 4), *pwr[fft_1_start:fft_1_stop])
+                line += struct.pack('<' + 'f' * (fft_size // 4), *dbfs[fft_1_start:fft_1_stop])
                 line += struct.pack('I', record_length)
                 line += struct.pack('Q', frequency + sample_rate // 2)
                 line += struct.pack('Q', frequency + (sample_rate * 3) // 4)
-                line += struct.pack('<' + 'f' * (fft_size // 4), *pwr[fft_2_start:fft_2_stop])
+                line += struct.pack('<' + 'f' * (fft_size // 4), *dbfs[fft_2_start:fft_2_stop])
 
             else:
                 record_length = 16 + fft_size * 4
                 line = struct.pack('I', record_length)
                 line += struct.pack('Q', frequency)
                 line += struct.pack('Q', frequency + sample_rate)
-                line += struct.pack('<' + 'f' * fft_size, *pwr)
+                line += struct.pack('<' + 'f' * fft_size, *dbfs)
 
             device_data['file'].write(line)
 
@@ -203,13 +202,13 @@ cpdef int sweep_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_
                     'timestamp': time_str,
                     'start_frequency': frequency,
                     'stop_frequency': frequency + sample_rate // 4,
-                    'fft': pwr[fft_1_start:fft_1_stop].astype(np.float32),
+                    'fft': dbfs[fft_1_start:fft_1_stop].astype(np.float32),
                 })
                 device_data['queue'].put({
                     'timestamp': time_str,
                     'start_frequency': frequency + sample_rate // 2,
                     'stop_frequency': frequency + (sample_rate * 3) // 4,
-                    'fft': pwr[fft_2_start:fft_2_stop].astype(np.float32),
+                    'fft': dbfs[fft_2_start:fft_2_stop].astype(np.float32),
                 })
 
             else:
@@ -217,24 +216,23 @@ cpdef int sweep_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_
                     'timestamp': time_str,
                     'start_frequency': frequency,
                     'stop_frequency': frequency + sample_rate,
-                    'fft': pwr.astype(np.float32),
-                    'raw_iq': raw_iq,
+                    'fft': dbfs.astype(np.float32),
                 })
 
         else:
             if sweep_style == pyhackrf.py_sweep_style.INTERLEAVED:
                 line = f'{time_str}, {frequency}, {frequency + sample_rate // 4}, {sample_rate / fft_size}, {fft_size}, '
-                for value in pwr[fft_1_start:fft_1_stop]:
+                for value in dbfs[fft_1_start:fft_1_stop]:
                     line += f'{value:.10f}, '
                 line += f'\n{time_str}, {frequency + sample_rate // 2}, {frequency + (sample_rate * 3) // 4}, {sample_rate / fft_size}, {fft_size}, '
-                for value in pwr[fft_2_start:fft_2_stop]:
+                for value in dbfs[fft_2_start:fft_2_stop]:
                     line += f'{value:.10f}, '
                 line = line[:len(line) - 2] + '\n'
 
             else:
                 line = f'{time_str}, {frequency}, {frequency + sample_rate}, {sample_rate / fft_size}, {fft_size}, '
-                for i in range(len(pwr)):
-                    line += f'{pwr[i]:.2f}, '
+                for i in range(len(dbfs)):
+                    line += f'{dbfs[i]:.2f}, '
                 line = line[:len(line) - 2] + '\n'
 
             device_data['file'].write(line)
