@@ -202,13 +202,13 @@ cpdef int sweep_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_
                     'timestamp': time_str,
                     'start_frequency': frequency,
                     'stop_frequency': frequency + sample_rate // 4,
-                    'fft': dbfs[fft_1_start:fft_1_stop].astype(np.float32),
+                    'dbfs': dbfs[fft_1_start:fft_1_stop].astype(np.float32),
                 })
                 device_data['queue'].put({
                     'timestamp': time_str,
                     'start_frequency': frequency + sample_rate // 2,
                     'stop_frequency': frequency + (sample_rate * 3) // 4,
-                    'fft': dbfs[fft_2_start:fft_2_stop].astype(np.float32),
+                    'dbfs': dbfs[fft_2_start:fft_2_stop].astype(np.float32),
                 })
 
             else:
@@ -216,7 +216,7 @@ cpdef int sweep_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_
                     'timestamp': time_str,
                     'start_frequency': frequency,
                     'stop_frequency': frequency + sample_rate,
-                    'fft': dbfs.astype(np.float32),
+                    'dbfs': dbfs.astype(np.float32),
                 })
 
         else:
