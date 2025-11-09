@@ -1,10 +1,11 @@
-__version__ = '1.4.0'
+__version__ = '1.5.0'
 
 from python_hackrf.pylibhackrf import pyhackrf  # noqa F401
 from python_hackrf.pyhackrf_tools import (  # noqa F401
     pyhackrf_operacake,
     pyhackrf_transfer,
     pyhackrf_sweep,
+    pyhackrf_scan,
     pyhackrf_info,
     utils,
 )

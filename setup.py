@@ -8,8 +8,8 @@ from setuptools.command.build_ext import build_ext
 from setuptools.command.install import install
 from Cython.Build import cythonize
 
-INSTALL_REQUIRES = ['Cython>=3.1.0,<3.2', 'numpy']
-SETUP_REQUIRES = ['Cython>=3.1.0,<3.2', 'numpy']
+INSTALL_REQUIRES = ['Cython>=3.1.0,<3.2.1', 'numpy']
+SETUP_REQUIRES = ['Cython>=3.1.0,<3.2.1', 'numpy']
 libhackrf_h_paths = []
 
 PLATFORM = sys.platform
@@ -110,6 +110,13 @@ setup(  # type: ignore
         Extension(  # type: ignore
             name='python_hackrf.pyhackrf_tools.pyhackrf_sweep',
             sources=['python_hackrf/pyhackrf_tools/pyhackrf_sweep.pyx'],
+            include_dirs=['python_hackrf/pylibhackrf', 'python_hackrf/pyhackrf_tools', *libhackrf_h_paths, numpy.get_include()],
+            extra_compile_args=['-w'],
+            language='c++',
+        ),
+        Extension(  # type: ignore
+            name='python_hackrf.pyhackrf_tools.pyhackrf_scan',
+            sources=['python_hackrf/pyhackrf_tools/pyhackrf_scan.pyx'],
             include_dirs=['python_hackrf/pylibhackrf', 'python_hackrf/pyhackrf_tools', *libhackrf_h_paths, numpy.get_include()],
             extra_compile_args=['-w'],
             language='c++',

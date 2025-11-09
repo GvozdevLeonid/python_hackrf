@@ -23,7 +23,7 @@ set PYTHON_HACKRF_LIB_PATH=path_to_libhackrf.dll dir
 
 ## Requirements:
 * Numpy>=2.2.1
-* Cython>=3.1.0,<3.2
+* Cython>=3.1.0,<3.2.1
 * Scipy (optional, for faster work)
 * pyFFTW (optional, for faster work)
 * pyjnius and android (only for android)

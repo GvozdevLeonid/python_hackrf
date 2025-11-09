@@ -1,6 +1,6 @@
 [project]
 name = "python_hackrf"
-version = "1.4.0"
+version = "1.5.0"
 authors = [
   {name="Leonid Gvozdev", email="leo.gvozdev.dev@gmail.com"},
 ]
@@ -26,7 +26,7 @@ dependencies = [
 
 [build-system]
 requires = [
-    "Cython>=3.1.0,<3.2",
+    "Cython>=3.1.0,<3.2.1",
     "setuptools",
     "wheel",
     "numpy",

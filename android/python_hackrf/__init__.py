@@ -15,7 +15,7 @@ class PythonHackrfRecipe(PyProjectRecipe):
     hostpython_prerequisites = ['Cython>=3.1.0,<3.2']
     site_packages_name = 'python_hackrf'
     name = 'python_hackrf'
-    version = '1.4.0'
+    version = '1.5.0'
 
     def get_recipe_env(self, arch: Arch, **kwargs) -> dict[str, Any]:
         env: dict[str, Any] = super().get_recipe_env(arch, **kwargs)

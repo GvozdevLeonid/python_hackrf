@@ -2,6 +2,8 @@ include python_hackrf/pyhackrf_tools/pyhackrf_transfer.pyi
 include python_hackrf/pyhackrf_tools/pyhackrf_transfer.pyx
 include python_hackrf/pyhackrf_tools/pyhackrf_sweep.pyi
 include python_hackrf/pyhackrf_tools/pyhackrf_sweep.pyx
+include python_hackrf/pyhackrf_tools/pyhackrf_scan.pyi
+include python_hackrf/pyhackrf_tools/pyhackrf_scan.pyx
 include python_hackrf/pylibhackrf/pyhackrf.pyi
 include python_hackrf/pylibhackrf/pyhackrf.pyx
 include python_hackrf/pylibhackrf/pyhackrf.pxd
