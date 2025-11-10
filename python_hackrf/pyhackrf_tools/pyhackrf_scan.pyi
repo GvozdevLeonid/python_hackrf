@@ -1,5 +1,3 @@
-from python_hackrf import pyhackrf
-
 def stop_all() -> None:
     ...
 
