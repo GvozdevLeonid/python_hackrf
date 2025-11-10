@@ -137,6 +137,7 @@ def pyhackrf_scan(frequencies: list[int], samples_per_scan: int, queue: object, 
     sdr_ids[device.serialno] = device_id
 
     sample_rate = int(sample_rate) if int(sample_rate) in AVAILABLE_SAMPLING_RATES else 20_000_000
+    cdef uint64_t offset = int(sample_rate // 2)
 
     if baseband_filter_bandwidth is None:
         baseband_filter_bandwidth = int(sample_rate * .75)
@@ -225,7 +226,7 @@ def pyhackrf_scan(frequencies: list[int], samples_per_scan: int, queue: object, 
     cdef uint32_t tune_step = 0
     cdef uint32_t tune_steps = len(calculated_frequencies)
 
-    device.pyhackrf_set_freq(calculated_frequencies[tune_step])
+    device.pyhackrf_set_freq(calculated_frequencies[tune_step] + offset)
     tune_step = (tune_step + 1) % tune_steps
     device.pyhackrf_start_rx()
 
@@ -256,7 +257,7 @@ def pyhackrf_scan(frequencies: list[int], samples_per_scan: int, queue: object, 
                 'timestamp': timestamp,
             })
 
-            device.pyhackrf_set_freq(calculated_frequencies[tune_step])
+            device.pyhackrf_set_freq(calculated_frequencies[tune_step] + offset)
             tune_step = (tune_step + 1) % tune_steps
             if tune_step == 0:
                 sweep_count += 1
