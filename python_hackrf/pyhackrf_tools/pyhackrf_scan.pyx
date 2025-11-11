@@ -253,7 +253,7 @@ def pyhackrf_scan(frequencies: list[int], samples_per_scan: int, queue: object, 
             queue.put({
                 'start_frequency': calculated_frequencies[tune_step],
                 'stop_frequency': calculated_frequencies[tune_step] + sample_rate,
-                'raw_iq': (buffer - buffer.mean()) * window,
+                'raw_iq': buffer.copy(),
                 'timestamp': timestamp,
             })
 
