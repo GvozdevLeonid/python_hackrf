@@ -89,7 +89,6 @@ cpdef int rx_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_t, 
 
     cdef dict device_data = device.device_data
     cdef uint8_t device_id = device_data['device_id']
-    cdef cnp.ndarray accepted_data
     cdef double divider = 1 / 128
 
     if not working_sdrs[device_id].load():
@@ -104,9 +103,7 @@ cpdef int rx_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_t, 
         if (to_read > device_data['num_samples'] * 2):
             to_read = device_data['num_samples'] * 2
 
-        accepted_data = (buffer[:to_read:2] * divider + 1j * buffer[1:to_read:2] * divider).astype(np.complex64)
-
-        device_data['buffer'][device_data['samples_per_scan'] - device_data['num_samples']: device_data['samples_per_scan'] - device_data['num_samples'] + (to_read // 2)] = (buffer[:to_read:2] / 128 + 1j * buffer[1:to_read:2] / 128).astype(np.complex64)
+        device_data['buffer'][device_data['samples_per_scan'] - device_data['num_samples']: device_data['samples_per_scan'] - device_data['num_samples'] + (to_read // 2)] = (buffer[:to_read:2] * divider + 1j * buffer[1:to_read:2] * divider).astype(np.complex64)
         device_data['num_samples'] -= (to_read // 2)
 
         if device_data['num_samples'] == 0:
@@ -199,7 +196,6 @@ def pyhackrf_scan(frequencies: list[int], samples_per_scan: int, queue: object, 
             sys.stderr.write(f'Sweeping from {frequencies[2 * i] / 1e6} MHz to {frequencies[2 * i + 1] / 1e6} MHz\n')
 
     cdef cnp.ndarray buffer = np.empty(samples_per_scan, dtype=np.complex64)
-    cdef cnp.ndarray window = np.hanning(samples_per_scan)
     cdef dict device_data = {
         'device_id': device_id,
 
