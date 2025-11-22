@@ -225,7 +225,6 @@ def pyhackrf_scan(frequencies: list[int], samples_per_scan: int, queue: object, 
     cdef double delay = float(os.environ.get('pyhackrf_scan_await_time', 0.0002))
 
     device.pyhackrf_set_freq(calculated_frequencies[tune_step] + offset)
-    tune_step = (tune_step + 1) % tune_steps
     device.pyhackrf_start_rx()
 
     while device.pyhackrf_is_streaming() and working_sdrs[device_id].load():
@@ -256,9 +255,10 @@ def pyhackrf_scan(frequencies: list[int], samples_per_scan: int, queue: object, 
                 'timestamp': timestamp,
             })
 
+            tune_step = (tune_step + 1) % tune_steps
             device.pyhackrf_set_freq(calculated_frequencies[tune_step] + offset)
             time.sleep(delay)
-            tune_step = (tune_step + 1) % tune_steps
+
             if tune_step == 0:
                 scan_count += 1
 
