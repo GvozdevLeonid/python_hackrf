@@ -33,6 +33,7 @@ import threading
 import signal
 import time
 import sys
+import os
 
 cnp.import_array()
 FREQ_MIN_MHZ = 0  # 70 MHz
@@ -193,7 +194,7 @@ def pyhackrf_scan(frequencies: list[int], samples_per_scan: int, queue: object, 
             frequency += sample_rate
 
         if print_to_console:
-            sys.stderr.write(f'Sweeping from {frequencies[2 * i] / 1e6} MHz to {frequencies[2 * i + 1] / 1e6} MHz\n')
+            sys.stderr.write(f'Scaning from {frequencies[2 * i] / 1e6} MHz to {frequencies[2 * i + 1] / 1e6} MHz\n')
 
     cdef cnp.ndarray buffer = np.empty(samples_per_scan, dtype=np.complex64)
     cdef dict device_data = {
@@ -216,11 +217,12 @@ def pyhackrf_scan(frequencies: list[int], samples_per_scan: int, queue: object, 
     cdef double time_prev = time.time()
     cdef double timestamp = time.time()
     cdef double time_difference = 0
-    cdef double sweep_rate = 0
+    cdef double scan_rate = 0
     cdef double time_now = 0
-    cdef uint64_t sweep_count = 0
+    cdef uint64_t scan_count = 0
     cdef uint32_t tune_step = 0
     cdef uint32_t tune_steps = len(calculated_frequencies)
+    cdef double delay = float(os.environ.get('pyhackrf_scan_await_time', 0.01))
 
     device.pyhackrf_set_freq(calculated_frequencies[tune_step] + offset)
     tune_step = (tune_step + 1) % tune_steps
@@ -232,8 +234,8 @@ def pyhackrf_scan(frequencies: list[int], samples_per_scan: int, queue: object, 
 
         if time_difference >= 1.0:
             if print_to_console:
-                sweep_rate = sweep_count / (time_now - time_start)
-                sys.stderr.write(f'{sweep_count} total sweeps completed, {round(sweep_rate, 2)} sweeps/second\n')
+                scan_rate = scan_count / (time_now - time_start)
+                sys.stderr.write(f'{scan_count} total scans completed, {round(scan_rate, 2)} scans/second\n')
 
             if device_data['accepted_bytes'] == 0:
                 if print_to_console:
@@ -255,9 +257,10 @@ def pyhackrf_scan(frequencies: list[int], samples_per_scan: int, queue: object, 
             })
 
             device.pyhackrf_set_freq(calculated_frequencies[tune_step] + offset)
+            time.sleep(delay)
             tune_step = (tune_step + 1) % tune_steps
             if tune_step == 0:
-                sweep_count += 1
+                scan_count += 1
 
             device_data['num_samples'] = samples_per_scan
 
@@ -272,11 +275,11 @@ def pyhackrf_scan(frequencies: list[int], samples_per_scan: int, queue: object, 
 
     time_now = time.time()
     time_difference = time_now - time_prev
-    if sweep_rate == 0 and time_difference > 0:
-        sweep_rate = sweep_count / (time_now - time_start)
+    if scan_rate == 0 and time_difference > 0:
+        scan_rate = scan_count / (time_now - time_start)
 
     if print_to_console:
-        sys.stderr.write(f'Total sweeps: {sweep_count} in {time_now - time_start:.5f} seconds ({sweep_rate :.2f} sweeps/second)\n')
+        sys.stderr.write(f'Total scans: {scan_count} in {time_now - time_start:.5f} seconds ({scan_rate :.2f} scans/second)\n')
 
     working_sdrs[device_id].store(0)
     device_data['close_ready'].wait()
