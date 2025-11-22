@@ -96,10 +96,10 @@ cpdef int rx_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_t, 
         device_data['hop_ready'].set()
         return -1
 
-    device_data['accepted_bytes'] += valid_length
-
     cdef uint64_t to_read = valid_length
     if device_data['num_samples'] > 0:
+        device_data['accepted_bytes'] += valid_length
+
         if (to_read > device_data['num_samples'] * 2):
             to_read = device_data['num_samples'] * 2
 
@@ -244,6 +244,7 @@ def pyhackrf_scan(frequencies: list[int], samples_per_scan: int, queue: object, 
             time_prev = time_now
 
         if device_data['hop_ready'].wait():
+            device_data['hop_ready'].clear()
             device.pyhackrf_stop_rx()
 
             queue.put({
@@ -259,7 +260,7 @@ def pyhackrf_scan(frequencies: list[int], samples_per_scan: int, queue: object, 
                 sweep_count += 1
 
             device_data['num_samples'] = samples_per_scan
-            device_data['hop_ready'].clear()
+
             timestamp = time.time()
             device.pyhackrf_start_rx()
 
