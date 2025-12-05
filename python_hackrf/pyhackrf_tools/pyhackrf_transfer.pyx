@@ -30,6 +30,7 @@ from libcpp.atomic cimport atomic
 from libcpp cimport bool as c_bool
 cimport numpy as cnp
 import numpy as np
+import threading
 cimport cython
 import signal
 import time
@@ -103,6 +104,7 @@ cpdef int rx_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_t, 
     cdef uint8_t device_id = device_data['device_id']
 
     if not working_sdrs[device_id].load():
+        device_data['close_ready'].set()
         return -1
 
     device_data['byte_count'] += valid_length
@@ -123,6 +125,7 @@ cpdef int rx_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_t, 
 
     if device_data['num_samples'] == 0:
         working_sdrs[device_id].store(0)
+        device_data['close_ready'].set()
         return -1
 
     return 0
@@ -137,6 +140,7 @@ cpdef int tx_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_t, 
     cdef uint8_t device_id = device_data['device_id']
 
     if device_data['tx_complete'] or not working_sdrs[device_id].load():
+        device_data['close_ready'].set()
         valid_length = 0
         return -1
 
@@ -161,6 +165,7 @@ cpdef int tx_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_t, 
             # buffer is empty or finished
             device_data['tx_complete'] = True
             working_sdrs[device_id].store(0)
+            device_data['close_ready'].set()
             valid_length = 0
             return -1
 
@@ -172,6 +177,7 @@ cpdef int tx_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_t, 
         if device_data['num_samples'] == 0:
             device_data['tx_complete'] = True
             working_sdrs[device_id].store(0)
+            device_data['close_ready'].set()
 
         valid_length = writed * 2
         return 0
@@ -183,6 +189,7 @@ cpdef int tx_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_t, 
         elif device_data['tx_file'].tell() < 1:
             # file is empty
             working_sdrs[device_id].store(0)
+            device_data['close_ready'].set()
             valid_length = 0
             return -1
         else:
@@ -197,6 +204,7 @@ cpdef int tx_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_t, 
         if device_data['num_samples'] == 0:
             device_data['tx_complete'] = True
             working_sdrs[device_id].store(0)
+            device_data['close_ready'].set()
             valid_length = writed * 2
             return 0
 
@@ -209,6 +217,7 @@ cpdef int tx_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_t, 
         if not device_data['repeat_tx']:
             device_data['tx_complete'] = True
             working_sdrs[device_id].store(0)
+            device_data['close_ready'].set()
             valid_length = writed * 2
             return 0
 
@@ -221,6 +230,7 @@ cpdef int tx_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_t, 
             else:
                 device_data['tx_complete'] = True
                 working_sdrs[device_id].store(0)
+                device_data['close_ready'].set()
                 valid_length = writed * 2
                 return 0
 
@@ -245,6 +255,7 @@ cpdef void tx_complete_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cn
 
     if not success:
         working_sdrs[device_id].store(0)
+        device_data['close_ready'].set()
         return
 
     device_data['byte_count'] += valid_length
@@ -261,6 +272,7 @@ cpdef void flush_callback(c_pyhackrf.PyHackrfDevice device, c_bool success):
         device_data['flush_complete'] = True
 
     working_sdrs[device_id].store(0)
+    device_data['close_ready'].set()
 
 
 def pyhackrf_transfer(frequency: int | None = None, sample_rate: int = 10_000_000, baseband_filter_bandwidth: int | None = None, i_frequency: int | None = None, lo_frequency: int | None = None, image_reject: pyhackrf.py_rf_path_filter = pyhackrf.py_rf_path_filter.RF_PATH_FILTER_BYPASS,
@@ -371,11 +383,14 @@ def pyhackrf_transfer(frequency: int | None = None, sample_rate: int = 10_000_00
         'stream_power': 0,
         'byte_count': 0,
 
+        'close_ready': threading.Event(),
+
         'rx_file': open(rx_filename, 'wb') if rx_filename not in ('-', None) else (sys.stdout.buffer if rx_filename == '-' else None),
         'tx_file': open(tx_filename, 'rb') if tx_filename not in ('-', None) else (sys.stdin.buffer if tx_filename == '-' else None),
         'rx_buffer': rx_buffer,
         'tx_buffer': tx_buffer
     }
+
     device.device_data = device_data
 
     if antenna_enable:
@@ -415,6 +430,7 @@ def pyhackrf_transfer(frequency: int | None = None, sample_rate: int = 10_000_00
     cdef uint64_t byte_count = 0
     cdef uint64_t stream_power = 0
     cdef double dB_full_scale = 0
+
     while working_sdrs[device_id].load():
         time.sleep(0.05)
         time_now = time.time()
@@ -445,7 +461,10 @@ def pyhackrf_transfer(frequency: int | None = None, sample_rate: int = 10_000_00
 
     if print_to_console:
         sys.stderr.write(f'Total time: {time_now - time_start:.5f} seconds\n')
-    time.sleep(.5)
+
+    working_sdrs[device_id].store(0)
+    device_data['close_ready'].wait()
+    sdr_ids.pop(device.serialno, None)
 
     if rx_filename not in ('-', None):
         device_data['rx_file'].close()
@@ -469,9 +488,6 @@ def pyhackrf_transfer(frequency: int | None = None, sample_rate: int = 10_000_00
         except Exception as e:
             sys.stderr.write(f'{e}\n')
 
-    working_sdrs[device_id].store(0)
-    device_serial = device.serialno
-
     if antenna_enable:
         try:
             device.pyhackrf_set_antenna_enable(False)
@@ -484,8 +500,6 @@ def pyhackrf_transfer(frequency: int | None = None, sample_rate: int = 10_000_00
             sys.stderr.write('pyhackrf_close() done\n')
     except Exception as e:
         sys.stderr.write(f'{e}\n')
-
-    sdr_ids.pop(device_serial, None)
 
     try:
         pyhackrf.pyhackrf_exit()
