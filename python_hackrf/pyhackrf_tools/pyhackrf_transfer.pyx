@@ -188,6 +188,7 @@ cpdef int tx_callback(c_pyhackrf.PyHackrfDevice device, cnp.ndarray[cnp.int8_t, 
             writed = len(raw_data) // 8
         elif device_data['tx_file'].tell() < 1:
             # file is empty
+            device_data['tx_complete'] = True
             working_sdrs[device_id].store(0)
             device_data['close_ready'].set()
             valid_length = 0
